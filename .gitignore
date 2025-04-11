@@ -1,0 +1,56 @@
+# 依赖包目录
+node_modules/
+venv/
+__pycache__/
+frontend/node_modules/
+backend/__pycache__/
+backend/**/__pycache__/
+
+# 构建输出
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# 环境变量和敏感信息
+.env
+frontend/.env
+backend/.env
+
+# 日志文件
+logs/
+*.log
+backend/logs/
+
+# 缓存文件
+.cache/
+backend/cache/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 编辑器和IDE文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 临时文件
+tmp/
+temp/
+
+# 本地配置文件
+*.local
+
+# 模型文件（通常较大）
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# 数据库文件
+*.db
+*.sqlite

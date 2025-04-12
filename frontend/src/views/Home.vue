@@ -28,6 +28,14 @@
               <div class="text-gray-600">进行中任务</div>
               <div class="font-medium">{{ summaryData.activeTasks }}</div>
             </div>
+            <div class="flex justify-between items-center">
+              <div class="text-gray-600">系统运行时间</div>
+              <div class="font-medium">{{ summaryData.uptime || '加载中...' }}</div>
+            </div>
+            <div class="flex justify-between items-center">
+              <div class="text-gray-600">进程数量</div>
+              <div class="font-medium">{{ summaryData.processCount }}</div>
+            </div>
           </div>
           
           <n-divider />
@@ -35,22 +43,28 @@
           <!-- 系统资源使用情况 -->
           <div>
             <div class="flex justify-between items-center mb-2">
-              <div class="text-gray-600">CPU使用率</div>
+              <div class="text-gray-600">CPU使用率 ({{ summaryData.cpuCount }}核)</div>
               <div class="font-medium">{{ summaryData.cpuUsage }}%</div>
             </div>
             <n-progress type="line" :percentage="summaryData.cpuUsage" :indicator-placement="'inside'" :color="cpuUsageColor" />
             
             <div class="flex justify-between items-center mb-2 mt-3">
               <div class="text-gray-600">内存使用率</div>
-              <div class="font-medium">{{ summaryData.memoryUsage }}%</div>
+              <div class="font-medium">{{ summaryData.memoryUsage }}% ({{ formatBytes(summaryData.memoryTotal - summaryData.memoryAvailable) }}/{{ formatBytes(summaryData.memoryTotal) }})</div>
             </div>
             <n-progress type="line" :percentage="summaryData.memoryUsage" :indicator-placement="'inside'" :color="memoryUsageColor" />
             
             <div class="flex justify-between items-center mb-2 mt-3">
               <div class="text-gray-600">存储使用率</div>
-              <div class="font-medium">{{ summaryData.storageUsage }}%</div>
+              <div class="font-medium">{{ summaryData.storageUsage }}% ({{ formatBytes(summaryData.storageTotal - summaryData.storageFree) }}/{{ formatBytes(summaryData.storageTotal) }})</div>
             </div>
             <n-progress type="line" :percentage="summaryData.storageUsage" :indicator-placement="'inside'" :color="storageUsageColor" />
+            
+            <div class="flex justify-between items-center mt-3">
+              <div class="text-gray-600">网络流量</div>
+              <div class="font-medium">↑{{ formatBytes(summaryData.networkSent) }} / ↓{{ formatBytes(summaryData.networkReceived) }}</div>
+            </div>
+            
           </div>
         </div>
         
@@ -62,7 +76,7 @@
           </div>
           
           <div class="space-y-3">
-            <div v-for="agent in agents" :key="agent.id" class="flex items-center justify-between p-2 rounded-md" :class="agent.status === 'active' ? 'bg-green-50' : 'bg-gray-50'">
+            <div v-for="agent in agents" :key="agent.id" class="flex items-center justify-between">
               <div class="flex items-center">
                 <div class="w-2 h-2 rounded-full mr-2" :class="agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'"></div>
                 <div class="font-medium">{{ agent.name }}</div>
@@ -143,11 +157,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { format } from 'date-fns'
 import Map3D from '../components/map/Map3D.vue'
+import { systemApi } from '../api/system'
 
 const router = useRouter()
 const message = useMessage()
@@ -162,7 +177,18 @@ const summaryData = ref({
   activeTasks: 4,
   cpuUsage: 42,
   memoryUsage: 68,
-  storageUsage: 35
+  storageUsage: 35,
+  // 新增系统资源监控数据
+  cpuCount: 4,
+  memoryTotal: 0,
+  memoryAvailable: 0,
+  storageTotal: 0,
+  storageFree: 0,
+  networkSent: 0,
+  networkReceived: 0,
+  processCount: 0,
+  uptime: '',
+  systemInfo: {}
 })
 
 // 系统资源使用颜色计算
@@ -179,11 +205,11 @@ function getUsageColor(usage) {
 
 // 智能体列表
 const agents = ref([
-  { id: 1, name: '监控智能体', status: 'active', type: 'monitor' },
-  { id: 2, name: '路径规划智能体', status: 'active', type: 'planner' },
-  { id: 3, name: '应急响应智能体', status: 'active', type: 'response' },
-  { id: 4, name: '物流调度智能体', status: 'active', type: 'logistics' },
-  { id: 5, name: '安防巡检智能体', status: 'active', type: 'security' }
+  { id: 1, name: '监控智能体', status: 'active', type: 'monitor', cpuUsage: 0, memoryUsage: 0 },
+  { id: 2, name: '路径规划智能体', status: 'active', type: 'planner', cpuUsage: 0, memoryUsage: 0 },
+  { id: 3, name: '应急响应智能体', status: 'active', type: 'response', cpuUsage: 0, memoryUsage: 0 },
+  { id: 4, name: '物流调度智能体', status: 'active', type: 'logistics', cpuUsage: 0, memoryUsage: 0 },
+  { id: 5, name: '安防巡检智能体', status: 'active', type: 'security', cpuUsage: 0, memoryUsage: 0 }
 ])
 
 // 最近事件列表
@@ -244,6 +270,19 @@ function formatDate(date) {
   return format(date, 'HH:mm:ss')
 }
 
+// 格式化字节大小
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes'
+  
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+}
+
 // 根据事件级别获取边框颜色
 function getBorderColorByEventLevel(level) {
   if (level === 'high') return 'border-danger'
@@ -286,9 +325,72 @@ function initiateAreaScan() {
   router.push('/monitor')
 }
 
+// 定时器引用
+let statusTimer = null
+
+// 获取系统状态
+async function fetchSystemStatus() {
+  try {
+    const response = await systemApi.getSystemStatus()
+    if (response.data) {
+      // 更新系统资源数据
+      summaryData.value.cpuUsage = response.data.cpu_usage
+      summaryData.value.memoryUsage = response.data.memory_usage
+      summaryData.value.storageUsage = response.data.storage_usage
+      
+      // 更新其他系统数据
+      summaryData.value.onlineDrones = response.data.online_drones
+      summaryData.value.totalDrones = response.data.total_drones
+      summaryData.value.activeAgents = response.data.active_agents
+      summaryData.value.totalAgents = response.data.total_agents
+      summaryData.value.pendingEvents = response.data.pending_events
+      summaryData.value.activeTasks = response.data.active_tasks
+      
+      // 更新新增的系统资源监控数据
+      summaryData.value.cpuCount = response.data.cpu_count
+      summaryData.value.memoryTotal = response.data.memory_total
+      summaryData.value.memoryAvailable = response.data.memory_available
+      summaryData.value.storageTotal = response.data.storage_total
+      summaryData.value.storageFree = response.data.storage_free
+      summaryData.value.networkSent = response.data.network.bytes_sent
+      summaryData.value.networkReceived = response.data.network.bytes_recv
+      summaryData.value.processCount = response.data.process_count
+      summaryData.value.uptime = response.data.uptime_formatted
+      summaryData.value.systemInfo = response.data.system_info
+    }
+  } catch (error) {
+    console.error('获取系统状态失败:', error)
+  }
+}
+
+// 获取智能体状态
+async function fetchAgentsStatus() {
+  try {
+    const response = await systemApi.getAgentsStatus()
+    if (response.data && response.data.length > 0) {
+      agents.value = response.data
+    }
+  } catch (error) {
+    console.error('获取智能体状态失败:', error)
+  }
+}
+
 // 数据获取
 onMounted(() => {
-  // 这里可以添加实际的API调用
-  console.log('Home page mounted')
+  // 初始加载数据
+  fetchSystemStatus()
+  fetchAgentsStatus()
+  
+  // 设置定时器，每10秒更新一次系统状态
+  statusTimer = setInterval(() => {
+    fetchSystemStatus()
+  }, 10000)
 })
-</script> 
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (statusTimer) {
+    clearInterval(statusTimer)
+  }
+})
+</script>

@@ -21,6 +21,7 @@ from agents.logistics import create_logistics_agent
 from agents.security import create_security_agent
 from api.v1.router import api_router
 
+
 # 设置日志
 logger = get_logger("main")
 
@@ -459,3 +460,5 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.DEBUG
     )
+
+## 4. 更新后端主应用程序，注册新的路由

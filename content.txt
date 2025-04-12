@@ -1,0 +1,84 @@
+skymind/
+├── backend/
+│   ├── main.py                 # FastAPI主入口
+│   ├── requirements.txt        # 项目依赖
+│   ├── config/
+│   │   ├── __init__.py
+│   │   ├── settings.py         # 全局配置
+│   │   └── logging_config.py   # 日志配置
+│   ├── database/
+│   │   ├── __init__.py
+│   │   ├── models.py           # 数据模型
+│   │   └── mongodb.py          # MongoDB连接
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── base.py             # 基础智能体抽象类
+│   │   ├── coordinator.py      # 协调智能体
+│   │   ├── monitor.py          # 监控智能体(YOLOv8)
+│   │   ├── planner.py          # 路径规划智能体
+│   │   ├── response.py         # 应急响应智能体(LLM)
+│   │   ├── logistics.py        # 物流调度智能体
+│   │   └── security.py         # 安防巡检智能体
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── v1/
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── auth.py     # 认证相关接口
+│   │   │   │   ├── monitor.py  # 监控相关接口
+│   │   │   │   ├── emergency.py # 应急相关接口
+│   │   │   │   ├── logistics.py # 物流相关接口
+│   │   │   │   ├── security.py  # 安防相关接口
+│   │   │   │   ├── drones.py 
+│   │   │   │   ├── events.py 
+│   │   │   │   ├── tasks.py 
+│   │   │   │   └── no_fly_zones.py 
+│   │   │   └── router.py       # 路由配置
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── security.py         # 安全认证
+│   │   └── events.py           # 事件处理
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── auth.py             # 认证相关模式
+│   │   ├── monitor.py          # 监控相关模式
+│   │   ├── emergency.py        # 应急相关模式
+│   │   ├── logistics.py        # 物流相关模式
+│   │   └── security.py         # 安防相关模式
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── yolo_service.py     # YOLO目标检测服务
+│   │   ├── path_planning.py    # 路径规划服务
+│   │   ├── llm_service.py      # LLM服务
+│   │   └── beidou_service.py   # 北斗导航服务
+│   └── utils/
+│       ├── __init__.py
+│       ├── simulation.py       # 虚拟仿真工具
+│       └── visualization.py    # 可视化工具
+└── frontend/
+    ├── public/
+    ├── src/
+    │   ├── assets/
+    │   ├── components/
+    │   │   ├── Dashboard.vue
+    │   │   ├── Map3D.vue
+    │   │   ├── DroneControl.vue
+    │   │   ├── EmergencyPanel.vue
+    │   │   ├── LogisticsManagement.vue
+    │   │   └── SecurityMonitor.vue
+    │   ├── views/
+    │   │   ├── Home.vue
+    │   │   ├── Login.vue
+    │   │   ├── Monitor.vue
+    │   │   ├── Emergency.vue
+    │   │   ├── Logistics.vue
+    │   │   └── Security.vue
+    │   ├── router/
+    │   ├── store/
+    │   ├── api/
+    │   ├── utils/
+    │   ├── App.vue
+    │   └── main.js
+    ├── package.json
+    └── vite.config.js

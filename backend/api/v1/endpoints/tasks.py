@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+import traceback
 
 from config.logging_config import get_logger
 from database.models import Task, User, TaskStatus, TaskType, Location, GeoPoint, TimeWindow, Drone
@@ -30,28 +31,39 @@ async def get_all_tasks(
     if task_type:
         query["type"] = task_type
     
-    # 查询数据库
-    tasks = await Task.find(query).sort(sort_by, sort_order).skip(skip).limit(limit).to_list()
+    # Construct the sort key string expected by Beanie
+    sort_key = f"{'+' if sort_order > 0 else '-'}{sort_by}"
+    tasks = await Task.find(query).sort(sort_key).skip(skip).limit(limit).to_list()
     
     # 格式化结果
     result = []
     for task in tasks:
-        task_dict = task.dict()
-        
-        # 添加关联无人机信息
-        if task.assigned_drones:
-            drones = await Drone.find({"drone_id": {"$in": task.assigned_drones}}).to_list()
-            task_dict["drone_details"] = [
-                {
-                    "drone_id": drone.drone_id,
-                    "name": drone.name,
-                    "status": drone.status,
-                    "battery_level": drone.battery_level
-                }
-                for drone in drones
-            ]
-        
-        result.append(task_dict)
+        try:
+            task_dict = task.model_dump(mode='json')
+            
+            # 添加关联无人机信息
+            if task_dict.get("assigned_drones"):
+                drones = await Drone.find({"drone_id": {"$in": task.assigned_drones}}).to_list()
+                task_dict["drone_details"] = [
+                    {
+                        "drone_id": drone.drone_id,
+                        "name": drone.name,
+                        "status": drone.status,
+                        "battery_level": drone.battery_level
+                    }
+                    for drone in drones
+                ]
+            
+            result.append(task_dict)
+        except Exception as e:
+            task_id_str = getattr(task, 'task_id', '未知ID')
+            logger.error(f"处理任务 {task_id_str} 时出错: {e}")
+            logger.error(traceback.format_exc())
+            result.append({
+                "task_id": task_id_str,
+                "error": f"无法处理任务 {task_id_str}",
+                "details": str(e)
+            })
     
     return result
 

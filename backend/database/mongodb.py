@@ -4,7 +4,8 @@ from config.settings import settings
 from config.logging_config import get_logger
 from .models import (
     User, Drone, Event, Task, NoFlyZone, UserRole, 
-    DetectionConfig, VideoSource, AgentLog, AgentState, DroneStatus, GeoPoint
+    DetectionConfig, VideoSource, AgentLog, AgentState, DroneStatus, GeoPoint,
+    TaskType, TaskStatus, Location
 )
 
 logger = get_logger("database")
@@ -102,6 +103,125 @@ async def create_initial_data():
             
             await Drone.insert_many(sample_drones)
             logger.info(f"成功创建了 {len(sample_drones)} 个示例无人机")
+        
+        # 检查是否已有任务数据
+        task_count = await Task.count()
+        if task_count == 0:
+            logger.info("数据库中无任务数据，开始创建示例任务...")
+            
+            # 获取一些无人机ID用于关联
+            drones = await Drone.find().limit(4).to_list()
+            drone_ids = [drone.drone_id for drone in drones]
+            
+            # 创建示例任务
+            sample_tasks = [
+                Task(
+                    title="市中心建筑巡检",
+                    description="对市中心重要建筑进行例行无人机巡检",
+                    type=TaskType.INSPECTION,
+                    priority=3,
+                    status=TaskStatus.IN_PROGRESS,
+                    created_by="admin",
+                    assigned_drones=[drone_ids[0]] if drone_ids else [],
+                    start_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.35, 30.52],
+                            altitude=100.0
+                        ),
+                        name="武汉市中心"
+                    ),
+                    end_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.36, 30.53],
+                            altitude=100.0
+                        ),
+                        name="武汉市政府"
+                    )
+                ),
+                Task(
+                    title="紧急物资运送",
+                    description="向东湖高新区运送医疗物资",
+                    type=TaskType.DELIVERY,
+                    priority=8,
+                    status=TaskStatus.IN_PROGRESS,
+                    created_by="admin",
+                    assigned_drones=[drone_ids[1]] if len(drone_ids) > 1 else [],
+                    start_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.37, 30.51],
+                            altitude=50.0
+                        ),
+                        name="中心医院"
+                    ),
+                    end_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.41, 30.50],
+                            altitude=50.0
+                        ),
+                        name="东湖高新区"
+                    )
+                ),
+                Task(
+                    title="环境监测任务",
+                    description="对长江沿岸进行环境质量监测",
+                    type=TaskType.INSPECTION,
+                    priority=4,
+                    status=TaskStatus.COMPLETED,
+                    created_by="admin",
+                    assigned_drones=[drone_ids[2]] if len(drone_ids) > 2 else [],
+                    start_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.28, 30.58],
+                            altitude=80.0
+                        ),
+                        name="长江大桥"
+                    ),
+                    end_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.32, 30.60],
+                            altitude=80.0
+                        ),
+                        name="长江沿岸"
+                    )
+                ),
+                Task(
+                    title="城市安防巡逻",
+                    description="对主要交通干道进行安全巡逻",
+                    type=TaskType.SURVEILLANCE,
+                    priority=6,
+                    status=TaskStatus.COMPLETED,
+                    created_by="admin",
+                    assigned_drones=[drone_ids[3]] if len(drone_ids) > 3 else [],
+                    start_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.39, 30.55],
+                            altitude=120.0
+                        ),
+                        name="武汉火车站"
+                    ),
+                    end_location=Location(
+                        position=GeoPoint(
+                            coordinates=[114.39, 30.49],
+                            altitude=120.0
+                        ),
+                        name="武昌火车站"
+                    )
+                )
+            ]
+            
+            # 保存示例任务
+            for task in sample_tasks:
+                await task.insert()
+            
+            logger.info(f"成功创建了 {len(sample_tasks)} 个示例任务")
+            
+            # 为分配了任务的无人机更新assigned_tasks字段
+            for i, drone_id in enumerate(drone_ids):
+                if i < len(sample_tasks):
+                    drone = await Drone.find_one({"drone_id": drone_id})
+                    if drone:
+                        drone.assigned_tasks.append(sample_tasks[i].task_id)
+                        await drone.save()
         
     except Exception as e:
         logger.error(f"创建初始数据失败: {str(e)}")

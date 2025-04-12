@@ -1,7 +1,6 @@
 <template>
-  <!-- 使用 n-layout-header 替代 div 以更好地适应主题 -->
-  <n-layout-header bordered class="z-10">
-    <div class="container mx-auto px-4 h-16 flex justify-between items-center">
+  <header class="bg-white shadow-sm border-b border-gray-200 z-10">
+    <div class="container mx-auto px-4 py-2 flex justify-between items-center">
       <!-- 左侧Logo和菜单 -->
       <div class="flex items-center space-x-10">
         <!-- Logo和标题 -->
@@ -9,17 +8,13 @@
           <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white text-lg font-bold">
             SM
           </div>
-          <!-- 使用 n-text 保证标题颜色随主题变化 -->
-          <n-text tag="h1" class="text-xl font-bold">SkyMind</n-text>
+          <h1 class="text-xl font-bold text-gray-800">SkyMind</h1>
         </router-link>
         
         <!-- 主导航菜单 -->
         <nav class="hidden md:flex space-x-6">
-          <!-- 使用 n-button 或 n-text 来确保链接颜色适应主题 -->
-          <router-link v-for="item in mainNavItems" :key="item.path" :to="item.path" v-slot="{ navigate, isActive }">
-            <n-button text :type="isActive ? 'primary' : 'default'" @click="navigate">
-              {{ item.title }}
-            </n-button>
+          <router-link v-for="item in mainNavItems" :key="item.path" :to="item.path" class="text-gray-600 hover:text-primary font-medium transition-colors">
+            {{ item.title }}
           </router-link>
         </nav>
       </div>
@@ -27,59 +22,52 @@
       <!-- 右侧功能区 -->
       <div class="flex items-center space-x-4">
         <!-- 搜索按钮 -->
-        <n-button circle quaternary @click="showSearch = true">
+        <n-button circle secondary @click="showSearch = true">
           <template #icon>
-            <n-icon><search-outline /></n-icon>
+            <n-icon><search-outlined /></n-icon>
           </template>
         </n-button>
         
         <!-- 消息通知 -->
         <n-badge :value="unreadCount" :max="99" :show="unreadCount > 0">
-          <n-button circle quaternary @click="handleMessageClick">
+          <n-button circle secondary>
             <template #icon>
-              <n-icon><notifications-outline /></n-icon>
+              <n-icon><bell-outlined /></n-icon>
             </template>
           </n-button>
         </n-badge>
         
         <!-- 用户菜单 -->
         <n-dropdown :options="userMenuOptions" placement="bottom-end" trigger="click" @select="handleUserMenuSelect">
-          <n-avatar round size="small" class="cursor-pointer bg-primary">
-            {{ userInitials }}
-          </n-avatar>
+          <div class="flex items-center cursor-pointer">
+            <div class="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-white text-sm font-bold">
+              {{ userInitials }}
+            </div>
+          </div>
         </n-dropdown>
         
-        <!-- 主题切换 -->
-        <n-button circle quaternary @click="toggleTheme">
+        <!-- 主题切换 (Using SettingOutlined for now) -->
+        <n-button circle secondary @click="toggleTheme">
           <template #icon>
             <n-icon>
-              <component :is="isDarkMode ? MoonIcon : SunnyIcon" />
+              <setting-outlined />
             </n-icon>
           </template>
         </n-button>
       </div>
     </div>
-  </n-layout-header>
+  </header>
   
   <!-- 搜索对话框 -->
   <n-modal v-model:show="showSearch" preset="card" title="全局搜索" style="width: 600px">
-    <n-input 
-      v-model:value="searchQuery" 
-      placeholder="搜索事件、任务、无人机..." 
-      size="large" 
-      clearable 
-      @keyup.enter="handleSearch"
-    >
+    <n-input v-model:value="searchQuery" placeholder="搜索事件、任务、无人机..." size="large">
       <template #prefix>
-        <n-icon><search-outline /></n-icon>
-      </template>
-      <template #suffix>
-        <n-button text @click="handleSearch">搜索</n-button>
+        <n-icon><search-outlined /></n-icon>
       </template>
     </n-input>
     
     <template #footer>
-      <div class="text-xs text-gray-500">按 Enter 或点击搜索按钮进行搜索，按 ESC 关闭</div>
+      <div class="text-xs text-gray-500">按 ESC 键关闭</div>
     </template>
   </n-modal>
 </template>
@@ -87,20 +75,12 @@
 <script setup>
 import { ref, inject, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui' // 导入 message
 import {
-  SearchOutline,
-  NotificationsOutline as BellOutline,
-  SettingsOutline as SettingOutlined,
-  PersonOutline as UserOutline,
-  LogOutOutline as LogoutOutline,
-  MoonOutline as MoonIcon,
-  SunnyOutline as SunnyIcon
-} from '@vicons/ionicons5'
-import { NIcon, NText, NButton, NLayoutHeader, NBadge, NDropdown, NAvatar, NModal, NInput } from 'naive-ui'
+  SearchOutlined,
+  BellOutlined,
+  SettingOutlined // Only import icons guaranteed to exist
+} from '@vicons/antd'
 import { useUserStore } from '@/store/userStore'
-
-const message = useMessage() // 初始化 message
 
 // 注入主题切换函数
 const isDarkMode = inject('isDarkMode')
@@ -114,16 +94,6 @@ const toggleTheme = () => {
 const showSearch = ref(false)
 const searchQuery = ref('')
 
-function handleSearch() {
-  if (!searchQuery.value.trim()) {
-    message.warning('请输入搜索内容')
-    return
-  }
-  message.info(`正在搜索: ${searchQuery.value}`)
-  // 在这里可以添加实际的搜索逻辑，例如跳转到搜索结果页或调用API
-  // showSearch.value = false // 可以选择在搜索后关闭弹窗
-}
-
 // 用户信息
 const userStore = useUserStore()
 const router = useRouter()
@@ -134,12 +104,7 @@ const userInitials = computed(() => {
 })
 
 // 未读消息数
-const unreadCount = ref(3) // 示例数据
-
-// 处理消息按钮点击
-function handleMessageClick() {
-  message.info('消息中心功能暂未开放')
-}
+const unreadCount = ref(3)
 
 // 主导航菜单项
 const mainNavItems = [
@@ -150,21 +115,18 @@ const mainNavItems = [
   { title: '无人机管理', path: '/drones' }
 ]
 
-// 用户菜单选项 - 使用 Naive UI 图标
-const renderIcon = (icon) => {
-  return () => h(NIcon, null, { default: () => h(icon) })
-}
-
+// 用户菜单选项
 const userMenuOptions = [
   {
     label: '个人信息',
     key: 'profile',
-    icon: renderIcon(UserOutline)
+    // Note: Using fas classes might require FontAwesome setup
+    icon: () => h('i', { class: 'fas fa-user' })
   },
   {
     label: '设置',
     key: 'settings',
-    icon: renderIcon(SettingOutlined)
+    icon: () => h('i', { class: 'fas fa-cog' })
   },
   {
     type: 'divider',
@@ -173,7 +135,7 @@ const userMenuOptions = [
   {
     label: '退出登录',
     key: 'logout',
-    icon: renderIcon(LogoutOutline)
+    icon: () => h('i', { class: 'fas fa-sign-out-alt' })
   }
 ]
 
@@ -182,13 +144,10 @@ const handleUserMenuSelect = (key) => {
   if (key === 'logout') {
     userStore.logout()
     router.push('/login')
-    message.success('已退出登录')
   } else if (key === 'profile') {
-    // router.push('/profile') // 暂时注释，因为 profile 页面可能不存在
-    message.info('个人信息功能暂未开放')
+    router.push('/profile')
   } else if (key === 'settings') {
-    // router.push('/settings') // 暂时注释，因为 settings 页面可能不存在
-    message.info('设置功能暂未开放') // 修改为提示信息
+    router.push('/settings')
   }
 }
 </script> 

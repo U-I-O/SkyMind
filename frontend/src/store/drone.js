@@ -75,12 +75,6 @@ export const useDroneStore = defineStore('drone', () => {
         drones.value = []
       }
       
-      // 如果没有获取到无人机数据，添加一个模拟无人机用于UI测试
-      if (drones.value.length === 0) {
-        console.log('没有真实无人机数据，添加模拟数据')
-        drones.value = getMockDrones()
-      }
-      
       // Update lastUpdated timestamp
       lastUpdated.value = new Date()
       
@@ -91,67 +85,11 @@ export const useDroneStore = defineStore('drone', () => {
       console.error('获取无人机数据失败:', err)
       error.value = err.message || '获取无人机数据失败'
       
-      // Don't discard previous drone data on error
-      if (drones.value.length === 0) {
-        console.log('使用模拟无人机数据')
-        drones.value = getMockDrones()
-      }
-      
       // Re-throw the error so the caller can handle it
       throw err
     } finally {
       loading.value = false
     }
-  }
-  
-  /**
-   * Get mock drone data for testing
-   */
-  function getMockDrones() {
-    return [
-      {
-        drone_id: 'mock-drone-1',
-        name: '模拟无人机 1',
-        model: 'DJI Mavic 3',
-        status: 'idle',
-        battery_level: 85,
-        camera_equipped: true,
-        capabilities: ['camera', 'delivery'],
-        max_flight_time: 45,
-        max_altitude: 500,
-        current_location: {
-          coordinates: [114.367, 30.54, 100]
-        }
-      },
-      {
-        drone_id: 'mock-drone-2',
-        name: '模拟无人机 2',
-        model: 'DJI Phantom 4',
-        status: 'flying',
-        battery_level: 62,
-        camera_equipped: true,
-        capabilities: ['camera', 'security'],
-        max_flight_time: 30,
-        max_altitude: 400,
-        current_location: {
-          coordinates: [114.363, 30.535, 120]
-        }
-      },
-      {
-        drone_id: 'mock-drone-3',
-        name: '模拟无人机 3',
-        model: 'Autel EVO II',
-        status: 'charging',
-        battery_level: 24,
-        camera_equipped: true,
-        capabilities: ['camera', 'inspection'],
-        max_flight_time: 40,
-        max_altitude: 450, 
-        current_location: {
-          coordinates: [114.37, 30.545, 0]
-        }
-      }
-    ]
   }
   
   /**

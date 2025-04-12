@@ -1,6 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import auth, monitor, emergency, logistics, security, drones, tasks, events, no_fly_zones, system
-
+from .endpoints import auth, monitor, emergency, logistics, security, drones, tasks, events, no_fly_zones
 
 api_router = APIRouter()
 
@@ -65,11 +64,4 @@ api_router.include_router(
     no_fly_zones.router,
     prefix="/no-fly-zones",
     tags=["禁飞区"]
-)
-
-# 系统资源相关路由
-api_router.include_router(
-    system.router,
-    prefix="/system",
-    tags=["系统"]
 )

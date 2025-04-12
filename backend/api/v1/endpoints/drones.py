@@ -18,35 +18,48 @@ async def get_all_drones(
     current_user: User = Depends(get_current_active_user)
 ):
     """获取所有无人机"""
-    # 创建查询条件
-    query = {}
-    if status:
-        query["status"] = status
-    
-    # 查询数据库
-    drones = await Drone.find(query).to_list()
-    
-    # 格式化结果
-    result = []
-    for drone in drones:
-        drone_dict = drone.dict()
+    try:
+        # 创建查询条件
+        query = {}
+        if status:
+            # Ensure the status string matches the DroneStatus enum values if filtering
+            try:
+                drone_status = DroneStatus(status)
+                query["status"] = drone_status
+            except ValueError:
+                 raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"无效的状态值: {status}. 可选值: {[s.value for s in DroneStatus]}"
+                 )
         
-        # 添加关联任务信息
-        if drone.assigned_tasks:
-            tasks = await Task.find({"task_id": {"$in": drone.assigned_tasks}}).to_list()
-            drone_dict["task_details"] = [
-                {
-                    "task_id": task.task_id,
-                    "title": task.title,
-                    "status": task.status,
-                    "type": task.type
+        # 查询数据库
+        drones = await Drone.find(query).to_list()
+        
+        # 格式化结果 - SIMPLIFIED FOR DEBUGGING
+        result = []
+        for drone in drones:
+            try:
+                # Return only basic, safe fields
+                simplified_drone = {
+                    "drone_id": drone.drone_id,
+                    "name": drone.name,
+                    "status": drone.status.value if drone.status else None, # Ensure status is string
+                    # Add other simple fields if needed for basic display
+                    "model": drone.model,
+                    "battery_level": drone.battery_level 
                 }
-                for task in tasks
-            ]
-        
-        result.append(drone_dict)
-    
-    return result
+                result.append(simplified_drone)
+            except Exception as e:
+                logger.error(f"序列化无人机 (simplified) 失败 {drone.drone_id}: {str(e)}")
+                continue # Skip problematic drone
+
+        return result
+    except Exception as e:
+        logger.error(f"获取无人机列表失败: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取无人机列表时发生服务器内部错误"
+        )
 
 # 获取单个无人机详情
 @router.get("/{drone_id}", response_model=Dict[str, Any])

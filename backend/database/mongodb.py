@@ -52,7 +52,7 @@ async def init_db():
         raise
 
 async def create_initial_data():
-    """创建初始数据，如默认管理员用户等"""
+    """创建初始数据"""
     from passlib.context import CryptContext
     
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -78,6 +78,56 @@ async def create_initial_data():
     except Exception as e:
         logger.error(f"创建初始数据失败: {str(e)}")
         raise
+    
+    # 创建初始巡逻区域
+    from database.models import PatrolArea, AreaType, EventLevel
+    
+    patrol_areas = [
+        {
+            "name": "北区工业园",
+            "type": AreaType.INDUSTRIAL,
+            "boundary": {
+                "type": "Polygon",
+                "coordinates": [[[114.3, 30.5], [114.32, 30.5], [114.32, 30.52], [114.3, 30.52], [114.3, 30.5]]]
+            },
+            "priority": EventLevel.HIGH
+        },
+        {
+            "name": "东区住宅区",
+            "type": AreaType.RESIDENTIAL,
+            "boundary": {
+                "type": "Polygon",
+                "coordinates": [[[114.33, 30.51], [114.35, 30.51], [114.35, 30.53], [114.33, 30.53], [114.33, 30.51]]]
+            },
+            "priority": EventLevel.MEDIUM
+        },
+        {
+            "name": "南区商业区",
+            "type": AreaType.COMMERCIAL,
+            "boundary": {
+                "type": "Polygon",
+                "coordinates": [[[114.36, 30.48], [114.38, 30.48], [114.38, 30.5], [114.36, 30.5], [114.36, 30.48]]]
+            },
+            "priority": EventLevel.MEDIUM
+        },
+        {
+            "name": "西区公园",
+            "type": AreaType.PARK,
+            "boundary": {
+                "type": "Polygon",
+                "coordinates": [[[114.29, 30.49], [114.31, 30.49], [114.31, 30.51], [114.29, 30.51], [114.29, 30.49]]]
+            },
+            "priority": EventLevel.LOW
+        }
+    ]
+    
+    for area_data in patrol_areas:
+        # 检查是否已存在
+        existing_area = await PatrolArea.find_one({"name": area_data["name"]})
+        if not existing_area:
+            area = PatrolArea(**area_data)
+            await area.insert()
+            logger.info(f"创建初始巡逻区域: {area.name}")
 
 # 数据库会话上下文管理器
 class DatabaseSession:

@@ -6,7 +6,7 @@ import api from './index'
  * @returns {Promise} List of tasks
  */
 export function getTasks(params = {}) {
-  return api.get('/api/v1/tasks', { params })
+  return api.get('tasks', { params })
 }
 
 /**
@@ -15,7 +15,7 @@ export function getTasks(params = {}) {
  * @returns {Promise} Task details
  */
 export function getTaskById(id) {
-  return api.get(`/api/v1/tasks/${id}`)
+  return api.get(`tasks/${id}`)
 }
 
 /**
@@ -24,7 +24,7 @@ export function getTaskById(id) {
  * @returns {Promise} Creation result
  */
 export function createTask(data) {
-  return api.post('/api/v1/tasks', data)
+  return api.post('tasks', data)
 }
 
 /**
@@ -34,7 +34,7 @@ export function createTask(data) {
  * @returns {Promise} Update result
  */
 export function updateTask(id, data) {
-  return api.put(`/api/v1/tasks/${id}`, data)
+  return api.put(`tasks/${id}`, data)
 }
 
 /**
@@ -44,7 +44,7 @@ export function updateTask(id, data) {
  * @returns {Promise} Cancellation result
  */
 export function cancelTask(id, data = {}) {
-  return api.post(`/api/v1/tasks/${id}/cancel`, data)
+  return api.post(`tasks/${id}/cancel`, data)
 }
 
 /**
@@ -64,7 +64,7 @@ export function getTasksByDrone(droneId, params = {}) {
  * @returns {Promise} Assignment result
  */
 export function assignTask(taskId, droneId) {
-  return api.post(`/api/v1/tasks/${taskId}/assign`, { drone_id: droneId })
+  return api.post(`tasks/${taskId}/assign`, { drone_id: droneId })
 }
 
 /**
@@ -74,7 +74,7 @@ export function assignTask(taskId, droneId) {
  * @returns {Promise} Update result
  */
 export function updateTaskStatus(id, status) {
-  return api.post(`/api/v1/tasks/${id}/status`, { status })
+  return api.post(`tasks/${id}/status`, { status })
 }
 
 /**
@@ -82,7 +82,7 @@ export function updateTaskStatus(id, status) {
  * @returns {Promise} Task statistics by status
  */
 export function getTaskStatusStatistics() {
-  return api.get('/api/v1/tasks/statistics/status')
+  return api.get('tasks/statistics/status')
 }
 
 /**
@@ -90,7 +90,7 @@ export function getTaskStatusStatistics() {
  * @returns {Promise} Task statistics by type
  */
 export function getTaskTypeStatistics() {
-  return api.get('/api/v1/tasks/statistics/type')
+  return api.get('tasks/statistics/type')
 }
 
 /**
@@ -99,7 +99,7 @@ export function getTaskTypeStatistics() {
  * @returns {Promise} Array of task details
  */
 export function batchGetTasks(taskIds) {
-  return api.post('/api/v1/tasks/batch', { task_ids: taskIds })
+  return api.post('tasks/batch', { task_ids: taskIds })
 }
 
 /**

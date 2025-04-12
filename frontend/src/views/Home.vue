@@ -303,7 +303,7 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="postcss">
 .card {
   @apply bg-white p-4 rounded-lg shadow;
 }

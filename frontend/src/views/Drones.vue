@@ -55,7 +55,7 @@
       
       <div class="card flex items-center px-6">
         <div class="w-12 h-12 rounded-full flex items-center justify-center bg-purple-100 text-purple-500 mr-4">
-          <n-icon size="24"><battery-icon /></n-icon>
+          <n-icon size="24"><thunderbolt-icon /></n-icon>
         </div>
         <div>
           <div class="text-sm text-gray-500">充电中</div>
@@ -279,10 +279,12 @@ import {
   TableOutlined as ListIcon,
   AppstoreOutlined as GridIcon,
   EnvironmentOutlined as MapIcon,
-  RobotOutlined as DroneIcon
+  RobotOutlined as DroneIcon,
+  ThunderboltOutlined as ThunderboltIcon
 } from '@vicons/antd'
 import { getDrones, createDrone, controlDrone } from '../api/drone'
 import Map3D from '../components/map/Map3D.vue'
+import { h } from 'vue'
 
 const router = useRouter()
 const message = useMessage()
@@ -352,10 +354,6 @@ const columns = [
   {
     title: '状态',
     key: 'status',
-    render: (row) => {
-      const type = getStatusType(row.status)
-      return h('n-tag', { type }, { default: () => row.status })
-    },
     sorter: 'default',
     filterOptions: statusOptions.value,
     filter: (value, row) => row.status === value
@@ -368,39 +366,16 @@ const columns = [
   {
     title: '电池电量',
     key: 'battery_level',
-    render: (row) => {
-      return h('div', { class: 'flex items-center w-full max-w-xs' }, [
-        h('n-progress', { percentage: row.battery_level, indicatorPlacement: 'inside', processing: row.status === 'charging' })
-      ])
-    },
     sorter: 'default'
-  },
-  {
-    title: '最大飞行时间',
-    key: 'max_flight_time',
-    render: (row) => `${row.max_flight_time} 分钟`
-  },
-  {
-    title: '最大速度',
-    key: 'max_speed',
-    render: (row) => `${row.max_speed} m/s`
-  },
-  {
-    title: '当前位置',
-    key: 'current_location',
-    render: (row) => {
-      if (!row.current_location) return '未知'
-      return `${formatCoordinate(row.current_location.coordinates[0])}, ${formatCoordinate(row.current_location.coordinates[1])}`
-    }
   },
   {
     title: '操作',
     key: 'actions',
     render: (row) => {
-      return h('div', { class: 'space-x-2' }, [
+      return [
         h('n-button', { size: 'small', onClick: () => viewDroneDetails(row) }, { default: () => '详情' }),
-        h('n-button', { size: 'small', type: 'primary', onClick: () => controlDrone(row) }, { default: () => '控制' })
-      ])
+        h('n-button', { size: 'small', type: 'primary', onClick: () => openDroneControl(row) }, { default: () => '控制' })
+      ]
     }
   }
 ]

@@ -132,7 +132,9 @@ class BaseAgent(ABC):
                 # 避免过于频繁的循环
                 await asyncio.sleep(settings.AGENT_COMMUNICATION_INTERVAL)
             except Exception as e:
-                self.logger.error(f"智能体循环出错: {str(e)}")
+                import traceback
+                error_trace = traceback.format_exc()
+                self.logger.error(f"智能体循环出错: {str(e)}\n{error_trace}")
                 await asyncio.sleep(5)  # 出错后等待一段时间再继续
     
     @abstractmethod

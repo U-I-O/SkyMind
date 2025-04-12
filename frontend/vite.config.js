@@ -15,11 +15,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
+        rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
+        timeout: 30000,
+        ws: true,
+        onError: (err, req, res) => {
+          console.error('API代理错误:', err);
+        }
       },
       '/ws': {
         target: 'ws://localhost:8000',
-        ws: true
+        ws: true,
+        changeOrigin: true
       }
     }
   }

@@ -9,6 +9,7 @@ from pathlib import Path
 import random
 import math
 from shapely.geometry import Point, Polygon
+import pymongo
 
 from config.logging_config import get_logger
 from database.models import (
@@ -442,7 +443,17 @@ class SecurityAgent(BaseAgent):
     async def _create_patrol_task(self, area: Dict[str, Any]):
         """创建巡检任务"""
         try:
-            # 创建任务
+            # 检查是否已经存在相同的巡检任务
+            existing_task = await Task.find_one({
+                "title": f"{area['name']}巡检任务",
+                "status": {"$in": [TaskStatus.PENDING, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS]}
+            })
+            
+            if existing_task:
+                self.logger.info(f"已存在相同区域的巡检任务: {existing_task.task_id}")
+                return existing_task
+            
+            # 创建新任务，确保不手动指定_id
             task = Task(
                 title=f"{area['name']}巡检任务",
                 description=f"对 {area['name']} 进行安防巡检，模式: {area['pattern']}",
@@ -478,7 +489,45 @@ class SecurityAgent(BaseAgent):
                     )
                 )
             
-            await task.insert()
+            # 使用insert插入新任务，避免可能的_id冲突
+            try:
+                await task.insert()
+            except pymongo.errors.DuplicateKeyError as e:
+                self.logger.warning(f"插入任务时出现重复键错误，尝试重新创建: {str(e)}")
+                # 如果发生冲突，创建一个新的任务对象（会自动生成新的_id）
+                task = Task(
+                    task_id=str(uuid.uuid4()),  # 明确指定新的task_id
+                    title=f"{area['name']}巡检任务",
+                    description=f"对 {area['name']} 进行安防巡检，模式: {area['pattern']}",
+                    type=TaskType.SURVEILLANCE,
+                    priority=area["priority"],
+                    created_by=self.agent_id,
+                    task_data={
+                        "patrol_area_id": area["zone_id"],
+                        "patrol_pattern": area["pattern"],
+                        "waypoints": area["waypoints"]
+                    }
+                )
+                # 重新设置位置信息
+                if area["waypoints"]:
+                    first_wp = area["waypoints"][0]
+                    task.start_location = Location(
+                        position=GeoPoint(
+                            type="Point",
+                            coordinates=first_wp["position"]["coordinates"],
+                            altitude=first_wp["altitude"]
+                        )
+                    )
+                if len(area["waypoints"]) > 1:
+                    last_wp = area["waypoints"][-1]
+                    task.end_location = Location(
+                        position=GeoPoint(
+                            type="Point",
+                            coordinates=last_wp["position"]["coordinates"],
+                            altitude=last_wp["altitude"]
+                        )
+                    )
+                await task.insert()
             
             # 更新区域最后巡检时间
             area["last_patrol"] = datetime.utcnow()
@@ -487,16 +536,16 @@ class SecurityAgent(BaseAgent):
             coordinator = await get_coordinator()
             await coordinator.message_queue.put({
                 "type": "new_task",
-                "task_id": task.task_id,
-                "source_agent_id": self.agent_id
+                "data": task.dict(),
+                "sender_id": self.agent_id
             })
             
-            logger.info(f"创建了巡检任务: {task.task_id} 用于区域 {area['name']}")
+            self.logger.info(f"创建了巡检任务: {task.task_id} 用于区域 {area['name']}")
             
             return task
         
         except Exception as e:
-            logger.error(f"创建巡检任务失败: {str(e)}")
+            self.logger.error(f"创建巡检任务失败: {str(e)}")
             return None
     
     async def _process_active_tasks(self):

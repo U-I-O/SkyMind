@@ -7,6 +7,9 @@ import naive from 'naive-ui'
 // 导入全局样式
 import './assets/css/main.css'
 
+// Make router available globally for the API interceptor
+window.router = router
+
 const app = createApp(App)
 const pinia = createPinia()
 

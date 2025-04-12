@@ -6,6 +6,8 @@ frontend/node_modules/
 backend/__pycache__/
 backend/**/__pycache__/
 
+package-lock.json
+
 # 构建输出
 dist/
 build/

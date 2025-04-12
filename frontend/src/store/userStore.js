@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
-  const token = ref(localStorage.getItem('token') || '')
+  const token = ref(localStorage.getItem('auth_token') || '')
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   
   // 计算属性
@@ -41,7 +41,7 @@ export const useUserStore = defineStore('user', () => {
         await fetchUser(); 
       }
       
-      localStorage.setItem('token', data.access_token)
+      localStorage.setItem('auth_token', data.access_token)
       
       // 配置axios默认请求头
       setAuthHeader(data.access_token)
@@ -96,7 +96,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     user.value = null
     
-    localStorage.removeItem('token')
+    localStorage.removeItem('auth_token')
     localStorage.removeItem('user')
     
     // 清除axios请求头
@@ -161,6 +161,20 @@ export const useUserStore = defineStore('user', () => {
     fetchUser();
   } else if (token.value) {
     setAuthHeader(token.value);
+  }
+  
+  // Helper function to set header on the specific api instance
+  function setApiAuthHeader(token) {
+    // We need to import the api instance or handle this differently
+    // For now, let's assume api/index.js handles this via interceptors
+    // If direct calls to api instance need header updates, this needs adjustment
+    // Example (if api instance was available here):
+    // import api from '@/api';
+    // if (token) {
+    //   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    // } else {
+    //   delete api.defaults.headers.common['Authorization'];
+    // }
   }
   
   return { 

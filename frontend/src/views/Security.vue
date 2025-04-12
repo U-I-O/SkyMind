@@ -17,7 +17,7 @@
     <div class="grid grid-cols-12 gap-4 flex-1">
       <!-- 地图区域 -->
       <div class="col-span-8 card p-0 overflow-hidden rounded-lg shadow">
-        <Map3D ref="mapRef" />
+        <Map3D ref="mapRef" @map-loaded="handleMapLoaded" />
       </div>
       
       <!-- 信息面板 -->
@@ -108,43 +108,82 @@ const securityEvents = ref([]);
 const startPatrol = async () => {
   startingPatrol.value = true;
   try {
-    // 获取可用的安防无人机
-    const { data } = await droneApi.getDrones({ status: 'available', capability: 'security' });
-    const securityDrones = data;
-        
-    if (securityDrones.length === 0) {
-      notification.error({
-        title: '错误',
-        content: '没有可用的安防无人机进行巡逻',
+    // 使用安防API开始巡逻
+    const { data: securityAreas } = await droneApi.getDrones({ capability: 'security', status: 'available' });
+    
+    if (!securityAreas || securityAreas.length === 0) {
+      // 如果没有可用的安防无人机，使用模拟数据用于演示
+      const mockDrones = getMockDrones();
+      assignedDrones.value = mockDrones.slice(0, 3);
+      
+      notification.warning({
+        title: '提示',
+        content: '当前无可用真实无人机，使用模拟数据进行演示',
         duration: 3000
       });
-      return;
+    } else {
+      // 分配真实无人机
+      assignedDrones.value = securityAreas.slice(0, 3);
     }
-        
-    // 分配无人机 (最多3架)
-    assignedDrones.value = securityDrones.slice(0, 3);
-        
+    
+    // 随机选择一个巡逻区域
+    const areaTypes = ['城市中心', '住宅区', '商业区', '工业区', '公园'];
+    const selectedArea = areaTypes[Math.floor(Math.random() * areaTypes.length)];
+    
+    try {
+      // 创建巡逻任务，使用更可靠的方式调用API
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/security/patrol-tasks/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          area_id: `${selectedArea}巡检区域`
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`创建巡逻任务失败: ${response.status}`);
+      }
+      
+      // 解析响应
+      const taskData = await response.json();
+      console.log('创建的巡逻任务:', taskData);
+    } catch (apiError) {
+      console.error('API调用失败:', apiError);
+      // 即使API调用失败，也继续进行演示
+      notification.warning({
+        title: '提示',
+        content: '后端API调用失败，将在前端模拟巡逻过程',
+        duration: 3000
+      });
+    }
+    
     // 启动巡逻计时器
     patrolActive.value = true;
     patrolStartTime.value = new Date();
     areaCoverage.value = 0; // 重置覆盖率
-        
+    
     patrolTimer.value = setInterval(() => {
       const now = new Date();
       patrolDuration.value = formatDistanceStrict(now, patrolStartTime.value, { unit: 'second' })
         .replace(' seconds', 's').replace(' minutes', 'm').replace(' hours', 'h'); // 简化显示
-          
+      
       // 模拟区域覆盖增长
       if (areaCoverage.value < 100) {
         areaCoverage.value = Math.min(100, areaCoverage.value + Math.random() * 1); // 随机增长
       }
     }, 1000);
-        
-    // 在地图上可视化巡逻路径 (如果Map3D组件支持)
+    
+    // 在地图上可视化巡逻路径
     if (mapRef.value && mapRef.value.startDronePatrol) {
       mapRef.value.startDronePatrol(assignedDrones.value);
     }
-        
+    
+    // 生成模拟安全事件
+    mockSecurityEvents();
+    
     notification.success({
       title: '成功',
       content: `安防巡逻已开始，分配了 ${assignedDrones.value.length} 架无人机`,
@@ -154,7 +193,7 @@ const startPatrol = async () => {
     console.error('启动巡逻失败:', error);
     notification.error({
       title: '错误',
-      content: '启动安防巡逻失败',
+      content: `启动安防巡逻失败: ${error.message || '未知错误'}`,
       duration: 3000
     });
   } finally {
@@ -171,6 +210,15 @@ const stopPatrol = () => {
     // 在地图上停止无人机 (如果Map3D组件支持)
     if (mapRef.value && mapRef.value.stopDronePatrol) {
       mapRef.value.stopDronePatrol(assignedDrones.value.map(d => d.id));
+      
+      // 确保巡逻状态被重置
+      setTimeout(() => {
+        // 检查地图组件的巡逻状态
+        if (mapRef.value.getPatrolStatus && mapRef.value.getPatrolStatus()) {
+          console.warn('巡逻状态未正确重置，强制重置');
+          mapRef.value.stopDronePatrol([]);
+        }
+      }, 500);
     }
         
     notification.info({
@@ -178,10 +226,11 @@ const stopPatrol = () => {
       content: '安防巡逻已停止',
       duration: 3000
     });
+    
     // 重置状态
     patrolDuration.value = '00:00:00';
     assignedDrones.value = [];
-    // areaCoverage 保留最后的值或重置
+    // areaCoverage 保留最后的值
   }
 };
     
@@ -220,6 +269,39 @@ const getUsageColor = (usage) => {
   return '#D03050'; // error
 };
     
+// 获取模拟无人机数据
+const getMockDrones = () => {
+  return [
+    {
+      id: 'drone-001',
+      name: '安防无人机 1',
+      model: 'DJI Mavic 3',
+      status: 'idle',
+      battery_level: 85,
+      capabilities: ['security', 'camera'],
+      current_location: { latitude: 30.54, longitude: 114.367, altitude: 100 }
+    },
+    {
+      id: 'drone-002',
+      name: '安防无人机 2',
+      model: 'DJI Matrice 300 RTK',
+      status: 'idle',
+      battery_level: 92,
+      capabilities: ['security', 'camera', 'infrared'],
+      current_location: { latitude: 30.543, longitude: 114.368, altitude: 120 }
+    },
+    {
+      id: 'drone-003',
+      name: '安防无人机 3',
+      model: 'Autel EVO II',
+      status: 'idle',
+      battery_level: 78,
+      capabilities: ['security', 'camera'],
+      current_location: { latitude: 30.538, longitude: 114.365, altitude: 90 }
+    }
+  ];
+};
+
 // 模拟安全事件数据
 const mockSecurityEvents = () => {
   securityEvents.value = [
@@ -248,8 +330,45 @@ const mockSecurityEvents = () => {
 };
 
 onMounted(() => {
-  mockSecurityEvents();
+  try {
+    // 加载模拟安全事件数据
+    mockSecurityEvents();
+    
+    // 确保地图组件初始化设置为武汉大学区域
+    console.log('安防页面初始化，准备设置地图到武汉大学区域');
+    setTimeout(() => {
+      if (mapRef.value && mapRef.value.flyTo) {
+        console.log('尝试将地图飞行到武汉大学');
+        try {
+          mapRef.value.flyTo({
+            lat: 30.54,
+            lng: 114.367,
+            zoom: 14,
+            duration: 1
+          });
+        } catch (error) {
+          console.error('飞行到武汉大学失败:', error);
+        }
+      } else {
+        console.warn('地图组件不可用或不支持flyTo方法');
+      }
+    }, 1000); // 延长等待时间确保组件已加载
+  } catch (error) {
+    console.error('安防页面初始化错误:', error);
+  }
 });
+
+// 增加地图加载完成的处理方法
+const handleMapLoaded = (mapStatus) => {
+  console.log('安防页面地图加载完成:', mapStatus);
+  if (!mapStatus || !mapStatus.success) {
+    notification.error({
+      title: '地图加载失败',
+      content: '地图组件加载失败，部分功能可能无法使用',
+      duration: 3000
+    });
+  }
+};
 
 onUnmounted(() => {
   // 组件卸载时停止计时器

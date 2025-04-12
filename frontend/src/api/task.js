@@ -1,77 +1,152 @@
 import api from './index'
 
 /**
- * 获取所有任务列表
- * @param {Object} params - 查询参数
- * @returns {Promise} 任务列表
+ * Get all tasks
+ * @param {Object} params - Query parameters (status, type, limit, skip, etc.)
+ * @returns {Promise} List of tasks
  */
 export function getTasks(params = {}) {
-  return api.get('/tasks', { params })
+  return api.get('/api/v1/tasks', { params })
 }
 
 /**
- * 获取指定任务详情
- * @param {string} id - 任务ID
- * @returns {Promise} 任务详情
+ * Get specific task details
+ * @param {string} id - Task ID
+ * @returns {Promise} Task details
  */
 export function getTaskById(id) {
-  return api.get(`/tasks/${id}`)
+  return api.get(`/api/v1/tasks/${id}`)
 }
 
 /**
- * 创建新任务
- * @param {Object} data - 任务信息
- * @returns {Promise} 创建结果
+ * Create a new task
+ * @param {Object} data - Task information
+ * @returns {Promise} Creation result
  */
 export function createTask(data) {
-  return api.post('/tasks', data)
+  return api.post('/api/v1/tasks', data)
 }
 
 /**
- * 更新任务信息
- * @param {string} id - 任务ID
- * @param {Object} data - 更新的信息
- * @returns {Promise} 更新结果
+ * Update task information
+ * @param {string} id - Task ID
+ * @param {Object} data - Updated information
+ * @returns {Promise} Update result
  */
 export function updateTask(id, data) {
-  return api.put(`/tasks/${id}`, data)
+  return api.put(`/api/v1/tasks/${id}`, data)
 }
 
 /**
- * 删除任务
- * @param {string} id - 任务ID
- * @returns {Promise} 删除结果
+ * Cancel a task
+ * @param {string} id - Task ID
+ * @param {Object} data - Cancellation details (reason, etc.)
+ * @returns {Promise} Cancellation result
  */
-export function deleteTask(id) {
-  return api.delete(`/tasks/${id}`)
+export function cancelTask(id, data = {}) {
+  return api.post(`/api/v1/tasks/${id}/cancel`, data)
 }
 
 /**
- * 取消任务
- * @param {string} id - 任务ID
- * @returns {Promise} 取消结果
+ * Get tasks for a specific drone
+ * @param {string} droneId - Drone ID
+ * @param {Object} params - Query parameters (status, etc.)
+ * @returns {Promise} List of tasks assigned to the drone
  */
-export function cancelTask(id) {
-  return api.post(`/tasks/${id}/cancel`)
+export function getTasksByDrone(droneId, params = {}) {
+  return api.get(`/drones/${droneId}/tasks`, { params })
 }
 
 /**
- * 获取任务执行状态
- * @param {string} id - 任务ID
- * @returns {Promise} 任务状态
+ * Assign a task to a drone
+ * @param {string} taskId - Task ID
+ * @param {string} droneId - Drone ID
+ * @returns {Promise} Assignment result
  */
-export function getTaskStatus(id) {
-  return api.get(`/tasks/${id}/status`)
+export function assignTask(taskId, droneId) {
+  return api.post(`/api/v1/tasks/${taskId}/assign`, { drone_id: droneId })
 }
 
 /**
- * 分配任务给无人机或智能体
- * @param {string} id - 任务ID
- * @param {Object} data - 分配信息
- * @param {string[]} data.drone_ids - 无人机ID列表
- * @param {string[]} data.agent_ids - 智能体ID列表
- * @returns {Promise} 分配结果
+ * Update task status
+ * @param {string} id - Task ID
+ * @param {string} status - New status
+ * @returns {Promise} Update result
  */
-export function assignTask(id, data) {
-  return api.post(`/tasks/${id}/assign`, data)
+export function updateTaskStatus(id, status) {
+  return api.post(`/api/v1/tasks/${id}/status`, { status })
+}
+
+/**
+ * Get task status statistics
+ * @returns {Promise} Task statistics by status
+ */
+export function getTaskStatusStatistics() {
+  return api.get('/api/v1/tasks/statistics/status')
+}
+
+/**
+ * Get task type statistics
+ * @returns {Promise} Task statistics by type
+ */
+export function getTaskTypeStatistics() {
+  return api.get('/api/v1/tasks/statistics/type')
+}
+
+/**
+ * Get a batch of tasks by IDs
+ * @param {Array} taskIds - Array of task IDs
+ * @returns {Promise} Array of task details
+ */
+export function batchGetTasks(taskIds) {
+  return api.post('/api/v1/tasks/batch', { task_ids: taskIds })
+}
+
+/**
+ * Create a delivery task
+ * @param {Object} data - Delivery task information
+ * @returns {Promise} Creation result
+ */
+export function createDeliveryTask(data) {
+  return createTask({
+    ...data,
+    type: 'delivery'
+  })
+}
+
+/**
+ * Create an inspection task
+ * @param {Object} data - Inspection task information
+ * @returns {Promise} Creation result
+ */
+export function createInspectionTask(data) {
+  return createTask({
+    ...data,
+    type: 'inspection'
+  })
+}
+
+/**
+ * Create a surveillance task
+ * @param {Object} data - Surveillance task information
+ * @returns {Promise} Creation result
+ */
+export function createSurveillanceTask(data) {
+  return createTask({
+    ...data,
+    type: 'surveillance'
+  })
+}
+
+/**
+ * Create an emergency response task
+ * @param {Object} data - Emergency task information
+ * @returns {Promise} Creation result
+ */
+export function createEmergencyTask(data) {
+  return createTask({
+    ...data,
+    type: 'emergency',
+    priority: data.priority || 10 // Default to highest priority
+  })
 } 

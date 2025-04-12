@@ -275,7 +275,6 @@ import {
   ReloadOutlined as ReloadIcon,
   CheckCircleOutlined as CheckIcon, 
   WarningOutlined as WarningIcon,
-  BatteryOutlined as BatteryIcon,
   RocketOutlined as FlightIcon,
   TableOutlined as ListIcon,
   AppstoreOutlined as GridIcon,
@@ -314,6 +313,15 @@ const droneForm = reactive({
   camera_equipped: true,
   payload_capacity: 2.0
 })
+
+// 状态选项
+const statusOptions = ref([
+  { label: '空闲', value: 'idle' },
+  { label: '飞行中', value: 'flying' },
+  { label: '充电中', value: 'charging' },
+  { label: '维护中', value: 'maintenance' },
+  { label: '离线', value: 'offline' }
+])
 
 // 表单验证规则
 const rules = {
@@ -402,14 +410,6 @@ const pagination = {
   pageSize: 10
 }
 
-// 状态选项
-const statusOptions = ref([
-  { label: '空闲', value: 'idle' },
-  { label: '飞行中', value: 'flying' },
-  { label: '充电中', value: 'charging' },
-  { label: '维护中', value: 'maintenance' },
-  { label: '离线', value: 'offline' }
-])
 
 // 获取型号选项
 const modelOptions = computed(() => {

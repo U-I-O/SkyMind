@@ -49,6 +49,7 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.connection_type: Dict[str, str] = {}  # 连接类型: "admin", "user", "drone"
+        self.pending_commands: Dict[str, asyncio.Future] = {}  # command_id -> Future for responses
 
     async def connect(self, websocket: WebSocket, client_id: str, connection_type: str = "user"):
         await websocket.accept()
@@ -60,6 +61,15 @@ class ConnectionManager:
         if client_id in self.active_connections:
             self.active_connections.pop(client_id)
             self.connection_type.pop(client_id, None)
+            
+            # Cancel any pending command futures for this client
+            commands_to_cancel = [cmd_id for cmd_id, future in self.pending_commands.items() 
+                                if not future.done() and future.get_name() == client_id]
+            for cmd_id in commands_to_cancel:
+                future = self.pending_commands.pop(cmd_id, None)
+                if future and not future.done():
+                    future.set_exception(ConnectionError("Client disconnected"))
+            
             logger.info(f"WebSocket客户端断开连接: {client_id}")
 
     async def send_message(self, client_id: str, message: Dict[str, Any]):
@@ -74,6 +84,22 @@ class ConnectionManager:
                 except Exception as e:
                     logger.error(f"向客户端 {client_id} 广播消息失败: {str(e)}")
                     self.disconnect(client_id)
+    
+    def register_command(self, command_id: str, client_id: str) -> asyncio.Future:
+        """Register a command and return a future that will be resolved when the command completes"""
+        future = asyncio.Future()
+        future.set_name(client_id)  # Store client_id in the future for cleanup
+        self.pending_commands[command_id] = future
+        return future
+    
+    def resolve_command(self, command_id: str, result: Any, is_success: bool = True):
+        """Resolve a pending command with result data"""
+        future = self.pending_commands.pop(command_id, None)
+        if future and not future.done():
+            if is_success:
+                future.set_result(result)
+            else:
+                future.set_exception(Exception(str(result)))
 
 manager = ConnectionManager()
 
@@ -81,21 +107,39 @@ manager = ConnectionManager()
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     connection_type = websocket.query_params.get("type", "user")
+    connection_version = websocket.query_params.get("version", "1.0")
+    auth_token = websocket.query_params.get("token", None)
+    
+    # In a real app, validate auth_token here
+    # For now, we'll accept any connection
+    
     await manager.connect(websocket, client_id, connection_type)
     try:
         while True:
             data = await websocket.receive_json()
             # 处理接收到的消息
             if "type" in data:
-                if data["type"] == "ping":
+                message_type = data["type"]
+                
+                if message_type == "ping":
                     # 心跳消息
-                    await manager.send_message(client_id, {"type": "pong", "timestamp": datetime.utcnow().isoformat()})
-                elif data["type"] == "subscribe":
+                    await manager.send_message(client_id, {
+                        "type": "pong", 
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                
+                elif message_type == "subscribe":
                     # 处理订阅请求
                     await handle_subscription(client_id, data)
-                elif data["type"] == "drone_status":
+                
+                elif message_type == "drone_status":
                     # 处理无人机状态更新
                     await handle_drone_status(client_id, data)
+                
+                elif message_type == "drone_command":
+                    # 处理无人机命令
+                    await handle_drone_command(client_id, data)
+                
                 else:
                     # 其他消息类型
                     await handle_message(client_id, data)
@@ -166,20 +210,135 @@ async def handle_drone_status(client_id: str, data: Dict[str, Any]):
         # 广播无人机状态更新
         await manager.broadcast({
             "type": "drone_update",
-            "drone_id": drone_id,
-            "status": drone.status,
-            "position": drone.current_location.dict() if drone.current_location else None,
-            "battery_level": drone.battery_level,
+            "data": {
+                "drone_id": drone_id,
+                "status": drone.status,
+                "current_location": drone.current_location.dict() if drone.current_location else None,
+                "battery_level": drone.battery_level,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        })
+
+async def handle_drone_command(client_id: str, data: Dict[str, Any]):
+    """处理无人机命令执行"""
+    drone_id = data.get("droneId")
+    command = data.get("command")
+    params = data.get("params", {})
+    command_id = data.get("commandId")
+    
+    if not drone_id or not command or not command_id:
+        await manager.send_message(client_id, {
+            "type": "command_response",
+            "commandId": command_id if command_id else "unknown",
+            "status": "error",
+            "error": "Missing required parameters: droneId, command, or commandId",
             "timestamp": datetime.utcnow().isoformat()
         })
+        return
+    
+    try:
+        # 获取无人机
+        drone = await Drone.find_one({"drone_id": drone_id})
+        if not drone:
+            raise ValueError(f"无人机 {drone_id} 未找到")
+        
+        # 处理命令
+        result = await process_drone_command(drone, command, params)
+        
+        # 发送成功响应
+        await manager.send_message(client_id, {
+            "type": "command_response",
+            "commandId": command_id,
+            "status": "success",
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+        # 广播无人机更新到所有连接的客户端
+        updated_drone = await Drone.find_one({"drone_id": drone_id})
+        if updated_drone:
+            await manager.broadcast({
+                "type": "drone_update",
+                "data": updated_drone.dict()
+            })
+        
+    except Exception as e:
+        logger.error(f"处理无人机命令失败: {str(e)}")
+        await manager.send_message(client_id, {
+            "type": "command_response",
+            "commandId": command_id,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+async def process_drone_command(drone: Drone, command: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """处理无人机命令并返回结果"""
+    coordinator = await get_coordinator()
+    
+    # 根据命令类型执行命令
+    if command == "start_task":
+        task_id = params.get("task_id")
+        if not task_id:
+            raise ValueError("Missing task_id parameter")
+        
+        task = await Task.find_one({"task_id": task_id})
+        if not task:
+            raise ValueError(f"任务 {task_id} 未找到")
+        
+        # 将任务分配给无人机
+        if task_id not in drone.assigned_tasks:
+            drone.assigned_tasks.append(task_id)
+            await drone.save()
+            
+        # 更新任务状态
+        task.status = "assigned"
+        await task.save()
+        
+        # 命令无人机开始执行任务
+        # 在实际实现中，这将通过与无人机的通信来完成
+        result = await coordinator.start_task(drone.drone_id, task_id)
+        
+        return {
+            "message": f"任务 {task_id} 启动成功",
+            "drone": drone.dict(),
+            "task": task.dict()
+        }
+    
+    elif command == "return_home":
+        # 命令无人机返回至家位置
+        drone.status = "flying"  # 更新状态为飞行
+        await drone.save()
+        
+        # 在实际实现中，这将通过向无人机发送命令来完成
+        result = await coordinator.return_home(drone.drone_id)
+        
+        return {
+            "message": f"无人机 {drone.drone_id} 返回至家",
+            "drone": drone.dict()
+        }
+    
+    elif command == "emergency_land":
+        # 命令无人机立即降落
+        drone.status = "flying"  # 更新状态为飞行（在实际实现中将变为降落）
+        await drone.save()
+        
+        # 在实际实现中，这将通过向无人机发送紧急降落命令来完成
+        result = await coordinator.emergency_land(drone.drone_id)
+        
+        return {
+            "message": f"紧急降落已启动，无人机 {drone.drone_id}",
+            "drone": drone.dict()
+        }
+    
+    else:
+        # 处理其他命令类型
+        raise ValueError(f"不支持的命令: {command}")
 
 async def handle_message(client_id: str, data: Dict[str, Any]):
     """处理其他WebSocket消息"""
     # 处理各种消息类型
     message_type = data.get("type")
-    
-    # 根据消息类型进行处理
-    # 在实际应用中，这里可以实现更多的消息处理逻辑
     
     # 回复客户端
     await manager.send_message(client_id, {
@@ -255,102 +414,36 @@ async def start_agent_system():
         # 启动所有智能体
         for agent in agents:
             asyncio.create_task(agent.start())
-            await asyncio.sleep(0.5)  # 短暂延迟，避免同时启动
-        
-        logger.info(f"成功启动 {len(agents)} 个智能体")
         
         # 启动事件监听器
         asyncio.create_task(event_listener())
         
-        # 发布系统就绪消息
-        await manager.broadcast({
-            "type": "system_status",
-            "status": "ready",
-            "agents_count": len(agents) + 1,  # +1 表示协调智能体
-            "timestamp": datetime.utcnow().isoformat()
-        })
-    
+        logger.info(f"成功启动 {len(agents) + 1} 个智能体")
     except Exception as e:
         logger.error(f"启动智能体系统失败: {str(e)}")
 
 async def event_listener():
     """监听系统事件并通过WebSocket广播"""
-    try:
-        # 获取协调者
-        coordinator = await get_coordinator()
-        
-        # 创建一个队列用于接收事件
-        event_queue = asyncio.Queue()
-        
-        # 注册事件回调
-        async def handle_task_event(data):
-            await event_queue.put(("task", data))
-        
-        async def handle_event_event(data):
-            await event_queue.put(("event", data))
-        
-        async def handle_drone_event(data):
-            await event_queue.put(("drone", data))
-        
-        # 注册事件监听器
-        await coordinator.on_event("task_created", handle_task_event)
-        await coordinator.on_event("task_updated", handle_task_event)
-        await coordinator.on_event("task_completed", handle_task_event)
-        await coordinator.on_event("task_failed", handle_task_event)
-        
-        await coordinator.on_event("event_detected", handle_event_event)
-        await coordinator.on_event("event_updated", handle_event_event)
-        await coordinator.on_event("event_resolved", handle_event_event)
-        
-        await coordinator.on_event("drone_status_changed", handle_drone_event)
-        await coordinator.on_event("drone_task_assigned", handle_drone_event)
-        
-        # 监听事件队列
-        while True:
-            event_type, data = await event_queue.get()
-            
-            if event_type == "task":
-                task_id = data.get("task_id")
-                if task_id:
-                    task = await Task.find_one({"task_id": task_id})
-                    if task:
-                        await manager.broadcast({
-                            "type": "task_update",
-                            "task_id": task_id,
-                            "task": task.dict(),
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-            
-            elif event_type == "event":
-                event_id = data.get("event_id")
-                if event_id:
-                    event = await Event.find_one({"event_id": event_id})
-                    if event:
-                        await manager.broadcast({
-                            "type": "event_update",
-                            "event_id": event_id,
-                            "event": event.dict(),
-                            "level": event.level,
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-            
-            elif event_type == "drone":
-                drone_id = data.get("drone_id")
-                if drone_id:
-                    drone = await Drone.find_one({"drone_id": drone_id})
-                    if drone:
-                        await manager.broadcast({
-                            "type": "drone_update",
-                            "drone_id": drone_id,
-                            "drone": drone.dict(),
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
+    coordinator = await get_coordinator()
     
-    except Exception as e:
-        logger.error(f"事件监听器错误: {str(e)}")
-        # 重启监听器
-        await asyncio.sleep(5)
-        asyncio.create_task(event_listener())
+    # 注册不同类型事件的处理程序
+    async def handle_task_event(data):
+        await manager.broadcast({"type": "task_update", "data": data})
+    
+    async def handle_event_event(data):
+        await manager.broadcast({"type": "event_update", "data": data})
+    
+    async def handle_drone_event(data):
+        await manager.broadcast({"type": "drone_update", "data": data})
+    
+    # 注册处理程序与协调者
+    coordinator.register_handler("task", handle_task_event)
+    coordinator.register_handler("event", handle_event_event)
+    coordinator.register_handler("drone", handle_drone_event)
+    
+    # 保持监听器活动
+    while True:
+        await asyncio.sleep(1)
 
 # 挂载静态文件
 try:

@@ -437,25 +437,10 @@ async def event_listener():
     async def handle_drone_event(data):
         await manager.broadcast({"type": "drone_update", "data": data})
     
-    # 添加巡逻区域事件处理程序
-    async def handle_patrol_area_event(data):
-        await manager.broadcast({"type": "patrol_area_update", "data": data})
-    
-    # 添加巡逻任务事件处理程序
-    async def handle_patrol_task_event(data):
-        await manager.broadcast({"type": "patrol_task_update", "data": data})
-    
-    # 添加安全事件处理程序
-    async def handle_security_event(data):
-        await manager.broadcast({"type": "security_event_update", "data": data})
-    
     # 注册处理程序与协调者
     coordinator.register_handler("task", handle_task_event)
     coordinator.register_handler("event", handle_event_event)
     coordinator.register_handler("drone", handle_drone_event)
-    coordinator.register_handler("patrol_area", handle_patrol_area_event)
-    coordinator.register_handler("patrol_task", handle_patrol_task_event)
-    coordinator.register_handler("security_event", handle_security_event)
     
     # 保持监听器活动
     while True:

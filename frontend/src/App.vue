@@ -11,7 +11,7 @@
               <!-- 主内容区 - 包含全局地图和路由视图 -->
               <main class="flex-1 overflow-hidden relative">
                 <!-- 全局共享地图组件 -->
-                <div class="absolute inset-0 w-full h-full">
+                <div v-if="showHeader" class="absolute inset-0 w-full h-full">
                   <Map3D 
                     ref="mapRef"
                     :show-drones="true"
@@ -23,7 +23,7 @@
                 </div>
                 
                 <!-- 路由视图 - 漂浮在地图上方 -->
-                <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute inset-0" :class="{ 'pointer-events-none': showHeader }">
                   <router-view v-slot="{ Component }">
                     <transition name="fade" mode="out-in">
                       <component :is="Component" />

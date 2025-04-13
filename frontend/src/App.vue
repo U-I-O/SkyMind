@@ -8,13 +8,28 @@
               <!-- 顶部导航栏 -->
               <AppHeader v-if="showHeader" />
               
-              <!-- 主内容区 -->
-              <main class="flex-1 overflow-hidden">
-                <router-view v-slot="{ Component }">
-                  <transition name="fade" mode="out-in">
-                    <component :is="Component" />
-                  </transition>
-                </router-view>
+              <!-- 主内容区 - 包含全局地图和路由视图 -->
+              <main class="flex-1 overflow-hidden relative">
+                <!-- 全局共享地图组件 -->
+                <div class="absolute inset-0 w-full h-full">
+                  <Map3D 
+                    ref="mapRef"
+                    :show-drones="true"
+                    :show-live-updates="true"
+                    :center-on-selected="selectedDrone !== null"
+                    :selected-drone-id="selectedDrone?.drone_id"
+                    @drone-clicked="handleDroneClicked"
+                  />
+                </div>
+                
+                <!-- 路由视图 - 漂浮在地图上方 -->
+                <div class="absolute inset-0 pointer-events-none">
+                  <router-view v-slot="{ Component }">
+                    <transition name="fade" mode="out-in">
+                      <component :is="Component" />
+                    </transition>
+                  </router-view>
+                </div>
               </main>
             </div>
           </n-message-provider>
@@ -29,6 +44,7 @@ import { computed, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { darkTheme } from 'naive-ui'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import Map3D from '@/components/map/Map3D.vue'
 
 // 主题配置
 const isDarkMode = ref(false)
@@ -40,6 +56,28 @@ const toggleDarkMode = () => {
 }
 provide('toggleDarkMode', toggleDarkMode)
 provide('isDarkMode', isDarkMode)
+
+// 地图相关状态
+const mapRef = ref(null)
+const selectedDrone = ref(null)
+
+// 处理无人机点击事件
+const handleDroneClicked = (droneId) => {
+  // 这里可以通过store获取无人机信息
+  // 示例: const drone = droneStore.getDroneById(droneId)
+  // selectedDrone.value = drone
+  
+  // 触发事件通知子组件
+  window.dispatchEvent(new CustomEvent('drone-selected', { detail: { droneId } }))
+}
+
+// 提供地图相关方法给子组件
+provide('mapRef', mapRef)
+provide('flyToLocation', (coordinates) => {
+  if (mapRef.value && mapRef.value.flyTo) {
+    mapRef.value.flyTo(coordinates)
+  }
+})
 
 // 根据路由决定是否显示顶部导航
 const route = useRoute()
@@ -56,4 +94,4 @@ const showHeader = computed(() => route.path !== '/login')
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>

@@ -1,90 +1,110 @@
 <template>
-  <div class="h-full flex flex-col">
-    <!-- 主要内容 -->
-    <div class="flex-1 grid grid-cols-12 gap-4 p-4 overflow-auto">
-      <!-- 左侧信息面板 -->
-      <div class="col-span-3 flex flex-col gap-4">
-        <!-- 系统状态卡片 -->
-        <div class="card">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="font-bold text-lg">系统状态</h2>
-            <n-tag type="success" size="small">运行中</n-tag>
-          </div>
-          
-          <div class="space-y-3">
-            <div class="flex justify-between items-center">
-              <div class="text-gray-600">在线无人机</div>
-              <div class="font-medium">{{ onlineDrones }}/{{ totalDrones }}</div>
-            </div>
-            <div class="flex justify-between items-center">
-              <div class="text-gray-600">活跃智能体</div>
-              <div class="font-medium">{{ summaryData.activeAgents }}/{{ summaryData.totalAgents }}</div>
-            </div>
-            <div class="flex justify-between items-center">
-              <div class="text-gray-600">未处理事件</div>
-              <div class="font-medium">{{ summaryData.pendingEvents }}</div>
-            </div>
-            <div class="flex justify-between items-center">
-              <div class="text-gray-600">进行中任务</div>
-              <div class="font-medium">{{ summaryData.activeTasks }}</div>
-            </div>
-          </div>
-          
-          <n-divider />
-          
-          <!-- 系统资源使用情况 -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <div class="text-gray-600">CPU使用率</div>
-              <div class="font-medium">{{ summaryData.cpuUsage }}%</div>
-            </div>
-            <n-progress type="line" :percentage="summaryData.cpuUsage" :indicator-placement="'inside'" :color="cpuUsageColor" />
-            
-            <div class="flex justify-between items-center mb-2 mt-3">
-              <div class="text-gray-600">内存使用率</div>
-              <div class="font-medium">{{ summaryData.memoryUsage }}%</div>
-            </div>
-            <n-progress type="line" :percentage="summaryData.memoryUsage" :indicator-placement="'inside'" :color="memoryUsageColor" />
-            
-            <div class="flex justify-between items-center mb-2 mt-3">
-              <div class="text-gray-600">存储使用率</div>
-              <div class="font-medium">{{ summaryData.storageUsage }}%</div>
-            </div>
-            <n-progress type="line" :percentage="summaryData.storageUsage" :indicator-placement="'inside'" :color="storageUsageColor" />
-          </div>
-        </div>
-        
-        <!-- 智能体状态 -->
-        <div class="card">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="font-bold text-lg">智能体状态</h2>
-            <n-button text size="small" quaternary>查看全部</n-button>
-          </div>
-          
-          <div class="space-y-3">
-            <div v-for="agent in agents" :key="agent.id" class="flex items-center justify-between p-2 rounded-md" :class="agent.status === 'active' ? 'bg-green-50' : 'bg-gray-50'">
-              <div class="flex items-center">
-                <div class="w-2 h-2 rounded-full mr-2" :class="agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'"></div>
-                <div class="font-medium">{{ agent.name }}</div>
+  <div class="h-full pointer-events-none">
+    <!-- 漂浮面板容器 -->
+    <div class="p-4 h-full">
+      <div class="h-full grid grid-cols-12 gap-4">
+          <!-- 左侧信息面板 -->
+          <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+            <!-- 系统状态卡片 -->
+            <div class="floating-card bg-white bg-opacity-95">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg">系统状态</h2>
+                <n-tag type="success" size="small">运行中</n-tag>
               </div>
-              <n-tag :type="agent.status === 'active' ? 'success' : 'default'" size="small">{{ agent.status }}</n-tag>
+              
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">在线无人机</div>
+                  <div class="font-medium">{{ onlineDrones }}/{{ totalDrones }}</div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">活跃智能体</div>
+                  <div class="font-medium">{{ summaryData.activeAgents }}/{{ summaryData.totalAgents }}</div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">未处理事件</div>
+                  <div class="font-medium">{{ summaryData.pendingEvents }}</div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">进行中任务</div>
+                  <div class="font-medium">{{ summaryData.activeTasks }}</div>
+                </div>
+              </div>
+              
+              <n-divider />
+              
+              <!-- 系统资源使用情况 -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <div class="text-gray-600">CPU使用率</div>
+                  <div class="font-medium">{{ summaryData.cpuUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.cpuUsage" :indicator-placement="'inside'" :color="cpuUsageColor" />
+                
+                <div class="flex justify-between items-center mb-2 mt-3">
+                  <div class="text-gray-600">内存使用率</div>
+                  <div class="font-medium">{{ summaryData.memoryUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.memoryUsage" :indicator-placement="'inside'" :color="memoryUsageColor" />
+                
+                <div class="flex justify-between items-center mb-2 mt-3">
+                  <div class="text-gray-600">存储使用率</div>
+                  <div class="font-medium">{{ summaryData.storageUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.storageUsage" :indicator-placement="'inside'" :color="storageUsageColor" />
+              </div>
+            </div>
+            
+            <!-- 无人机状态面板 -->
+            <div class="floating-card bg-white bg-opacity-95">
+              <h3 class="text-lg font-medium mb-4">活跃无人机 ({{ activeDrones.length }})</h3>
+              <div class="overflow-y-auto max-h-60">
+                <div 
+                  v-for="drone in activeDrones" 
+                  :key="drone.drone_id"
+                  class="p-3 rounded-md cursor-pointer mb-2 transition-colors"
+                  :class="selectedDrone?.drone_id === drone.drone_id ? 'bg-blue-50' : 'hover:bg-gray-50'"
+                  @click="selectDrone(drone)"
+                >
+                  <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                      <n-icon v-if="drone.status === 'idle'"><play-circle-outlined /></n-icon>
+                      <n-icon v-else-if="drone.status === 'flying'"><environment-outlined /></n-icon>
+                      <n-icon v-else-if="drone.status === 'charging'"><thunderbolt-outlined /></n-icon>
+                      <n-icon v-else-if="['maintenance', 'error'].includes(drone.status)"><warning-outlined /></n-icon>
+                    </div>
+                    <div class="flex-1">
+                      <div class="font-medium">{{ drone.name }}</div>
+                      <div class="flex items-center mt-1">
+                        <n-tag :type="getDroneStatusType(drone.status)">
+                          {{ getStatusText(drone.status) }}
+                        </n-tag>
+                        <div class="ml-2 w-20">
+                          <n-progress 
+                            :percentage="drone.battery_level" 
+                            :color="getBatteryColor(drone.battery_level)"
+                            :show-indicator="false"
+                            :height="5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="activeDrones.length === 0" class="text-center text-gray-500 py-4">
+                  暂无活跃无人机
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <!-- 中央地图区域 -->
-      <div class="col-span-6 card p-0 overflow-hidden">
-        <div class="h-full">
-          <!-- 3D地图组件 -->
-          <Map3D />
-        </div>
-      </div>
-      
-      <!-- 右侧控制面板 -->
-      <div class="col-span-3 flex flex-col gap-4">
-        <!-- 事件和警报 -->
-        <div class="card">
+          
+          <!-- 中间空白区域 -->
+          <div class="col-span-6"></div>
+          
+          <!-- 右侧控制面板 -->
+          <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+            <!-- 事件和警报 -->
+            <div class="floating-card bg-white bg-opacity-95">
           <div class="flex justify-between items-center mb-4">
             <h2 class="font-bold text-lg">最新事件</h2>
             <router-link to="/events" class="text-primary text-sm">查看全部</router-link>
@@ -102,10 +122,10 @@
               <div class="text-sm text-gray-600 mt-1">{{ event.description }}</div>
             </div>
           </div>
-        </div>
-        
-        <!-- 任务进度 -->
-        <div class="card">
+            </div>
+            
+            <!-- 任务进度 -->
+            <div class="floating-card bg-white bg-opacity-95">
           <div class="flex justify-between items-center mb-4">
             <h2 class="font-bold text-lg">任务进度</h2>
             <router-link to="/tasks" class="text-primary text-sm">查看全部</router-link>
@@ -124,31 +144,27 @@
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- 快速操作 -->
-        <div class="card">
-          <h2 class="font-bold text-lg mb-4">快速操作</h2>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <n-button @click="initiateEmergencyResponse">应急响应</n-button>
-            <n-button @click="createDeliveryTask">创建物流任务</n-button>
-            <n-button @click="startSecurityPatrol">安防巡检</n-button>
-            <n-button @click="initiateAreaScan">区域扫描</n-button>
+            </div>
+            
+
           </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
+import { useMessage, NIcon } from 'naive-ui'
 import { format } from 'date-fns'
-import Map3D from '../components/map/Map3D.vue'
 import { useDroneStore } from '@/store/drone'
+import { 
+  PlayCircleOutlined, 
+  EnvironmentOutlined,
+  ThunderboltOutlined, 
+  WarningOutlined
+} from '@vicons/antd'
 
 const router = useRouter()
 const message = useMessage()
@@ -183,14 +199,68 @@ function getUsageColor(usage) {
   return '#D03050'
 }
 
-// 智能体列表
-const agents = ref([
-  { id: 1, name: '监控智能体', status: 'active', type: 'monitor' },
-  { id: 2, name: '路径规划智能体', status: 'active', type: 'planner' },
-  { id: 3, name: '应急响应智能体', status: 'active', type: 'response' },
-  { id: 4, name: '物流调度智能体', status: 'active', type: 'logistics' },
-  { id: 5, name: '安防巡检智能体', status: 'active', type: 'security' }
-])
+// 无人机相关状态
+const selectedDrone = ref(null)
+
+// 获取活跃无人机列表
+const activeDrones = computed(() => 
+  droneStore.drones.filter(drone => drone.status !== 'offline')
+)
+
+// 选择无人机
+const selectDrone = (drone) => {
+  selectedDrone.value = drone
+  
+  // 使用全局地图方法定位到无人机
+  const flyToLocation = inject('flyToLocation')
+  if (flyToLocation && drone.location) {
+    flyToLocation(drone.location)
+  }
+}
+
+// 监听全局无人机选择事件
+onMounted(() => {
+  window.addEventListener('drone-selected', (event) => {
+    const droneId = event.detail.droneId
+    const drone = droneStore.getDroneById(droneId)
+    if (drone) {
+      selectDrone(drone)
+    }
+  })
+})
+
+// 获取无人机状态类型
+const getDroneStatusType = (status) => {
+  const statusMap = {
+    'idle': 'info',
+    'flying': 'success',
+    'charging': 'warning',
+    'maintenance': 'warning',
+    'offline': 'error',
+    'error': 'error'
+  }
+  return statusMap[status] || 'info'
+}
+
+// 获取电池颜色
+const getBatteryColor = (level) => {
+  if (level <= 20) return '#ff4d4f'
+  if (level <= 50) return '#faad14'
+  return '#52c41a'
+}
+
+// 获取状态中文描述
+const getStatusText = (status) => {
+  const statusMap = {
+    'idle': '待命',
+    'flying': '飞行中',
+    'charging': '充电中',
+    'maintenance': '维护中',
+    'offline': '离线',
+    'error': '故障'
+  }
+  return statusMap[status] || status
+}
 
 // 最近事件列表
 const recentEvents = ref([
@@ -271,26 +341,7 @@ function getProgressStatus(status) {
   return 'default'
 }
 
-// 快速操作函数
-function initiateEmergencyResponse() {
-  message.info('正在启动应急响应流程')
-  router.push('/emergency')
-}
 
-function createDeliveryTask() {
-  message.info('正在打开物流任务创建界面')
-  router.push('/logistics')
-}
-
-function startSecurityPatrol() {
-  message.info('正在启动安防巡检任务')
-  router.push('/security')
-}
-
-function initiateAreaScan() {
-  message.info('正在初始化区域扫描')
-  router.push('/monitor')
-}
 
 // 在组件挂载时获取无人机数据
 onMounted(async () => {
@@ -308,6 +359,12 @@ onMounted(async () => {
   @apply bg-white p-4 rounded-lg shadow;
 }
 
+.floating-card {
+  @apply p-4 rounded-lg shadow-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+}
+
 .border-danger {
   border-color: #D03050;
 }
@@ -316,7 +373,7 @@ onMounted(async () => {
   border-color: #F0A020;
 }
 
-.border-info {
+.border-primary {
   border-color: #2080F0;
 }
-</style> 
+</style>

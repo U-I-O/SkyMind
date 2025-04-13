@@ -9,10 +9,10 @@
       </div>
       
       <!-- 控制面板 -->
-      <div class="absolute top-4 right-4 z-10">
-        <div class="flex flex-col space-y-2">
+      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+        <div class="flex flex-row space-x-2 bg-white bg-opacity-80 rounded-full px-4 py-2 shadow-md">
           <!-- 图层控制 -->
-          <n-popover trigger="click" placement="left">
+          <n-popover trigger="click" placement="top">
             <template #trigger>
               <n-button circle secondary class="opacity-90">
                 <template #icon>
@@ -32,7 +32,7 @@
           </n-popover>
           
           <!-- 地图样式切换 -->
-          <n-popover trigger="click" placement="left">
+          <n-popover trigger="click" placement="top">
             <template #trigger>
               <n-button circle secondary class="opacity-90">
                 <template #icon>

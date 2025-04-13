@@ -1,29 +1,29 @@
 <template>
-  <div class="h-full flex flex-col p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">安防巡逻</h1>
-      <div class="flex space-x-2">
-        <n-button type="primary" @click="startPatrol" :loading="startingPatrol">
-          <template #icon><n-icon><play-circle-outlined /></n-icon></template>
-          开始巡逻
-        </n-button>
-        <n-button type="error" @click="stopPatrol" :disabled="!patrolActive">
-          <template #icon><n-icon><stop-outlined /></n-icon></template>
-          停止巡逻
-        </n-button>
-      </div>
-    </div>
-    
-    <div class="grid grid-cols-12 gap-4 flex-1">
-      <!-- 地图区域 -->
-      <div class="col-span-8 card p-0 overflow-hidden rounded-lg shadow">
-        <Map3D ref="mapRef" @map-loaded="handleMapLoaded" />
-      </div>
+  <div class="h-full pointer-events-none">
+    <!-- 使用全局地图，不需要在此页面添加地图组件 -->
+    <div class="p-4 h-full">
+      <div class="grid grid-cols-12 gap-4 h-full">
+        <!-- 左侧面板 -->
+        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+          <!-- 标题和操作按钮 -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-2xl font-bold">安防巡逻</h1>
+              <div class="flex space-x-2">
+                <n-button type="primary" @click="startPatrol" :loading="startingPatrol">
+                  <template #icon><n-icon><play-circle-outlined /></n-icon></template>
+                  开始巡逻
+                </n-button>
+                <n-button type="error" @click="stopPatrol" :disabled="!patrolActive">
+                  <template #icon><n-icon><stop-outlined /></n-icon></template>
+                  停止巡逻
+                </n-button>
+              </div>
+            </div>
+          </div>
       
-      <!-- 信息面板 -->
-      <div class="col-span-4 flex flex-col gap-4">
         <!-- 巡逻状态 -->
-        <div class="bg-white p-4 rounded-lg shadow">
+        <div class="floating-card bg-white bg-opacity-95">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium">巡逻状态</h3>
             <n-tag :type="patrolActive ? 'success' : 'default'" size="small">
@@ -42,9 +42,21 @@
             </n-descriptions-item>
           </n-descriptions>
         </div>
-        
+      </div>
+      
+      <!-- 中间空白区域 -->
+      <div class="col-span-6"></div>
+      
+      <!-- 右侧面板 -->
+      <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
         <!-- 安全事件 -->
-        <div class="bg-white p-4 rounded-lg shadow flex-1 overflow-y-auto">
+        <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium">安全事件</h3>
+            <n-button text size="small" type="primary" @click="viewAllEvents">查看全部</n-button>
+          </div>
+        
+          
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium">安全事件</h3>
             <n-button text size="small" type="primary" @click="viewAllEvents">查看全部</n-button>
@@ -67,12 +79,13 @@
           </n-timeline>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   NButton, 
@@ -88,14 +101,15 @@ import {
 } from 'naive-ui';
 import { PlayCircleOutlined, StopOutlined } from '@vicons/antd';
 import { format, formatDistanceStrict } from 'date-fns';
-import Map3D from '@/components/map/Map3D.vue';
+// 使用全局地图组件，不需要导入Map3D
 import * as droneApi from '@/api/drone';
 
 const notification = useNotification();
 const message = useMessage();
 const router = useRouter();
 
-const mapRef = ref(null);
+// 使用全局地图引用
+const mapRef = inject('mapRef');
 const patrolActive = ref(false);
 const startingPatrol = ref(false);
 const areaCoverage = ref(0);
@@ -177,7 +191,7 @@ const startPatrol = async () => {
     }, 1000);
     
     // 在地图上可视化巡逻路径
-    if (mapRef.value && mapRef.value.startDronePatrol) {
+    if (mapRef && mapRef.value && mapRef.value.startDronePatrol) {
       mapRef.value.startDronePatrol(assignedDrones.value);
     }
     
@@ -208,7 +222,7 @@ const stopPatrol = () => {
     patrolTimer.value = null;
         
     // 在地图上停止无人机 (如果Map3D组件支持)
-    if (mapRef.value && mapRef.value.stopDronePatrol) {
+    if (mapRef && mapRef.value && mapRef.value.stopDronePatrol) {
       mapRef.value.stopDronePatrol(assignedDrones.value.map(d => d.id));
       
       // 确保巡逻状态被重置
@@ -250,9 +264,11 @@ const formatTime = (timestamp) => {
   }
 };
     
+const flyToLocation = inject('flyToLocation');
+
 const focusOnEvent = (event) => {
-  if (mapRef.value && mapRef.value.flyTo && event.coordinates) {
-    mapRef.value.flyTo(event.coordinates);
+  if (flyToLocation && event.coordinates) {
+    flyToLocation(event.coordinates);
     message.info(`聚焦事件: ${event.description}`);
   } else {
     message.warning('无法在地图上定位此事件');
@@ -334,41 +350,21 @@ onMounted(() => {
     // 加载模拟安全事件数据
     mockSecurityEvents();
     
-    // 确保地图组件初始化设置为武汉大学区域
-    console.log('安防页面初始化，准备设置地图到武汉大学区域');
-    setTimeout(() => {
-      if (mapRef.value && mapRef.value.flyTo) {
-        console.log('尝试将地图飞行到武汉大学');
-        try {
-          mapRef.value.flyTo({
-            lat: 30.54,
-            lng: 114.367,
-            zoom: 14,
-            duration: 1
-          });
-        } catch (error) {
-          console.error('飞行到武汉大学失败:', error);
-        }
-      } else {
-        console.warn('地图组件不可用或不支持flyTo方法');
-      }
-    }, 1000); // 延长等待时间确保组件已加载
+    // 使用全局地图定位到武汉大学区域
+    if (flyToLocation) {
+      flyToLocation({
+        lat: 30.54,
+        lng: 114.367,
+        zoom: 14,
+        duration: 1
+      });
+    }
   } catch (error) {
     console.error('安防页面初始化错误:', error);
   }
 });
 
-// 增加地图加载完成的处理方法
-const handleMapLoaded = (mapStatus) => {
-  console.log('安防页面地图加载完成:', mapStatus);
-  if (!mapStatus || !mapStatus.success) {
-    notification.error({
-      title: '地图加载失败',
-      content: '地图组件加载失败，部分功能可能无法使用',
-      duration: 3000
-    });
-  }
-};
+// 不需要处理地图加载，因为使用全局地图
 
 onUnmounted(() => {
   // 组件卸载时停止计时器
@@ -380,15 +376,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 保持原有样式或根据需要调整 */
-.security-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.floating-card {
+  @apply p-4 rounded-lg shadow-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
 }
-.card {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-</style> 
+</style>

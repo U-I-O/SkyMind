@@ -1,248 +1,259 @@
 <template>
-  <div class="h-full flex flex-col p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">应急响应中心</h1>
-      
-      <!-- 操作按钮 -->
-      <div class="flex space-x-3">
-        <n-button type="error" @click="activateEmergencyMode">
-          <template #icon>
-            <n-icon><warning-icon /></n-icon>
-          </template>
-          {{ emergencyModeActive ? '取消紧急状态' : '激活紧急状态' }}
-        </n-button>
-        
-        <n-button @click="refreshData">
-          <template #icon>
-            <n-icon><reload-icon /></n-icon>
-          </template>
-          刷新
-        </n-button>
-      </div>
-    </div>
-    
-    <!-- 状态指示器 -->
-    <div v-if="emergencyModeActive" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 animate-pulse-slow">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <n-icon size="24" color="#ef4444"><alert-icon /></n-icon>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-lg font-bold text-red-700">紧急状态已激活</h3>
-          <div class="text-sm text-red-600">
-            系统处于紧急响应模式，所有应急预案已启动，优先级调整为最高。
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 主要内容 -->
-    <div class="grid grid-cols-12 gap-4 flex-1">
-      <!-- 左侧应急事件列表 -->
-      <div class="col-span-4 flex flex-col">
-        <div class="card mb-4">
-          <h2 class="font-bold text-lg mb-3">紧急事件</h2>
-          <n-tabs type="line">
-            <n-tab-pane name="active" tab="活跃事件">
-              <div class="max-h-[300px] overflow-y-auto space-y-3 pb-2">
-                <div v-for="event in activeEvents" :key="event.id" 
-                     class="p-3 border-l-4 rounded-md cursor-pointer"
-                     :class="[
-                       getEventBorderColor(event.level),
-                       selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
-                     ]"
-                     @click="selectEvent(event)">
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <div class="font-medium">{{ event.title }}</div>
-                      <div class="text-xs text-gray-500">{{ formatDateTime(event.detected_at) }}</div>
-                    </div>
-                    <n-tag :type="getEventTagType(event.level)">{{ event.level }}</n-tag>
-                  </div>
-                  <div class="mt-1 text-sm text-gray-600">{{ truncateText(event.description, 80) }}</div>
-                </div>
+  <div class="h-full pointer-events-none">
+    <!-- 使用全局地图，不需要在此页面添加地图组件 -->
+    <div class="p-4 h-full">
+      <div class="h-full grid grid-cols-12 gap-4">
+        <!-- 左侧面板区域 -->
+        <div class="col-span-4 flex flex-col gap-4 pointer-events-auto">
+          <!-- 标题和操作按钮 -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-2">
+              <h1 class="text-2xl font-bold">应急响应中心</h1>
+              
+              <!-- 操作按钮 -->
+              <div class="flex space-x-3">
+                <n-button type="error" @click="activateEmergencyMode">
+                  <template #icon>
+                    <n-icon><warning-icon /></n-icon>
+                  </template>
+                  {{ emergencyModeActive ? '取消紧急状态' : '激活紧急状态' }}
+                </n-button>
                 
-                <div v-if="activeEvents.length === 0" class="py-12 text-center text-gray-400">
-                  暂无活跃紧急事件
-                </div>
-              </div>
-            </n-tab-pane>
-            
-            <n-tab-pane name="resolved" tab="已处理">
-              <div class="max-h-[300px] overflow-y-auto space-y-3 pb-2">
-                <div v-for="event in resolvedEvents" :key="event.id" 
-                     class="p-3 border-l-4 border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-                     @click="selectEvent(event)">
-                  <div class="flex justify-between">
-                    <div class="font-medium text-gray-600">{{ event.title }}</div>
-                    <div class="text-xs text-gray-500">{{ formatDateTime(event.resolved_at) }}</div>
-                  </div>
-                  <div class="mt-1 text-sm text-gray-500">{{ truncateText(event.description, 80) }}</div>
-                </div>
-                
-                <div v-if="resolvedEvents.length === 0" class="py-12 text-center text-gray-400">
-                  暂无已处理事件
-                </div>
-              </div>
-            </n-tab-pane>
-          </n-tabs>
-        </div>
-        
-        <!-- 应急预案 -->
-        <div class="card flex-1">
-          <h2 class="font-bold text-lg mb-3">应急预案</h2>
-          
-          <div v-if="selectedEvent" class="space-y-4">
-            <!-- LLM生成的应急建议 -->
-            <div>
-              <div class="font-medium mb-1">智能建议:</div>
-              <div class="text-sm p-3 bg-gray-50 rounded-md">
-                {{ selectedEvent.emergency_advice || '正在分析事件...' }}
+                <n-button @click="refreshData">
+                  <template #icon>
+                    <n-icon><reload-icon /></n-icon>
+                  </template>
+                  刷新
+                </n-button>
               </div>
             </div>
             
-            <!-- 推荐执行的预案 -->
-            <div>
-              <div class="font-medium mb-1">推荐预案:</div>
-              <n-collapse>
-                <n-collapse-item v-for="plan in selectedEvent.recommended_plans" :key="plan.id" :title="plan.name">
-                  <div class="space-y-3">
-                    <div class="text-sm">{{ plan.description }}</div>
-                    
-                    <div>
-                      <div class="font-medium text-sm">执行步骤:</div>
-                      <div class="space-y-2 mt-1">
-                        <div v-for="(step, index) in plan.steps" :key="index" class="flex items-start">
-                          <div class="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-xs mr-2 mt-0.5">
-                            {{ index + 1 }}
+            <!-- 状态指示器 -->
+            <div v-if="emergencyModeActive" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 animate-pulse-slow">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <n-icon size="24" color="#ef4444"><alert-icon /></n-icon>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-lg font-bold text-red-700">紧急状态已激活</h3>
+                  <div class="text-sm text-red-600">
+                    系统处于紧急响应模式，所有应急预案已启动，优先级调整为最高。
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 主要内容 -->
+            <div class="grid grid-cols-12 gap-4 flex-1">
+              <!-- 左侧应急事件列表 -->
+              <div class="col-span-4 flex flex-col">
+                <div class="card mb-4">
+                  <h2 class="font-bold text-lg mb-3">紧急事件</h2>
+                  <n-tabs type="line">
+                    <n-tab-pane name="active" tab="活跃事件">
+                      <div class="max-h-[300px] overflow-y-auto space-y-3 pb-2">
+                        <div v-for="event in activeEvents" :key="event.id" 
+                             class="p-3 border-l-4 rounded-md cursor-pointer"
+                             :class="[
+                               getEventBorderColor(event.level),
+                               selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
+                             ]"
+                             @click="selectEvent(event)">
+                          <div class="flex justify-between items-start">
+                            <div>
+                              <div class="font-medium">{{ event.title }}</div>
+                              <div class="text-xs text-gray-500">{{ formatDateTime(event.detected_at) }}</div>
+                            </div>
+                            <n-tag :type="getEventTagType(event.level)">{{ event.level }}</n-tag>
                           </div>
-                          <div class="text-sm">{{ step }}</div>
+                          <div class="mt-1 text-sm text-gray-600">{{ truncateText(event.description, 80) }}</div>
                         </div>
+                        
+                        <div v-if="activeEvents.length === 0" class="py-12 text-center text-gray-400">
+                          暂无活跃紧急事件
+                        </div>
+                      </div>
+                    </n-tab-pane>
+                    
+                    <n-tab-pane name="resolved" tab="已处理">
+                      <div class="max-h-[300px] overflow-y-auto space-y-3 pb-2">
+                        <div v-for="event in resolvedEvents" :key="event.id" 
+                             class="p-3 border-l-4 border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                             @click="selectEvent(event)">
+                          <div class="flex justify-between">
+                            <div class="font-medium text-gray-600">{{ event.title }}</div>
+                            <div class="text-xs text-gray-500">{{ formatDateTime(event.resolved_at) }}</div>
+                          </div>
+                          <div class="mt-1 text-sm text-gray-500">{{ truncateText(event.description, 80) }}</div>
+                        </div>
+                        
+                        <div v-if="resolvedEvents.length === 0" class="py-12 text-center text-gray-400">
+                          暂无已处理事件
+                        </div>
+                      </div>
+                    </n-tab-pane>
+                  </n-tabs>
+                </div>
+                
+                <!-- 应急预案 -->
+                <div class="card flex-1">
+                  <h2 class="font-bold text-lg mb-3">应急预案</h2>
+                  
+                  <div v-if="selectedEvent" class="space-y-4">
+                    <!-- LLM生成的应急建议 -->
+                    <div>
+                      <div class="font-medium mb-1">智能建议:</div>
+                      <div class="text-sm p-3 bg-gray-50 rounded-md">
+                        {{ selectedEvent.emergency_advice || '正在分析事件...' }}
                       </div>
                     </div>
                     
-                    <n-button block type="primary" size="small" @click="executePlan(plan)">
-                      执行此预案
-                    </n-button>
+                    <!-- 推荐执行的预案 -->
+                    <div>
+                      <div class="font-medium mb-1">推荐预案:</div>
+                      <n-collapse>
+                        <n-collapse-item v-for="plan in selectedEvent.recommended_plans" :key="plan.id" :title="plan.name">
+                          <div class="space-y-3">
+                            <div class="text-sm">{{ plan.description }}</div>
+                            
+                            <div>
+                              <div class="font-medium text-sm">执行步骤:</div>
+                              <div class="space-y-2 mt-1">
+                                <div v-for="(step, index) in plan.steps" :key="index" class="flex items-start">
+                                  <div class="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-xs mr-2 mt-0.5">
+                                    {{ index + 1 }}
+                                  </div>
+                                  <div class="text-sm">{{ step }}</div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <n-button block type="primary" size="small" @click="executePlan(plan)">
+                              执行此预案
+                            </n-button>
+                          </div>
+                        </n-collapse-item>
+                      </n-collapse>
+                    </div>
                   </div>
-                </n-collapse-item>
-              </n-collapse>
-            </div>
-          </div>
-          
-          <div v-else class="py-12 text-center text-gray-400">
-            选择事件查看应急预案
-          </div>
-        </div>
-      </div>
-      
-      <!-- 右侧详情区域 -->
-      <div class="col-span-8 flex flex-col gap-4">
-        <!-- 地图和事件详情 -->
-        <div class="card p-0 overflow-hidden flex-1">
-          <div class="relative h-full">
-            <Map3D ref="mapRef" />
-            
-            <!-- 事件详情悬浮窗 -->
-            <div v-if="selectedEvent" class="absolute top-4 right-4 w-80 bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
-              <div class="flex justify-between items-start">
-                <div>
-                  <h3 class="font-bold text-lg">{{ selectedEvent.title }}</h3>
-                  <div class="text-xs text-gray-500">ID: {{ selectedEvent.event_id }}</div>
-                </div>
-                <n-tag :type="getEventTagType(selectedEvent.level)">{{ selectedEvent.level }}</n-tag>
-              </div>
-              
-              <n-divider />
-              
-              <div class="space-y-3 text-sm">
-                <div>
-                  <div class="text-gray-500">描述</div>
-                  <div>{{ selectedEvent.description }}</div>
-                </div>
-                
-                <div>
-                  <div class="text-gray-500">位置</div>
-                  <div>{{ selectedEvent.location?.name || '未知位置' }}</div>
-                </div>
-                
-                <div>
-                  <div class="text-gray-500">检测时间</div>
-                  <div>{{ formatDateTime(selectedEvent.detected_at) }}</div>
-                </div>
-                
-                <div>
-                  <div class="text-gray-500">检测来源</div>
-                  <div>{{ selectedEvent.detected_by }}</div>
-                </div>
-                
-                <div>
-                  <div class="text-gray-500">状态</div>
-                  <div>{{ selectedEvent.status }}</div>
-                </div>
-              </div>
-              
-              <div class="flex justify-between mt-4" v-if="selectedEvent.status !== 'resolved'">
-                <n-button @click="assignDrones">分配无人机</n-button>
-                <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 应急响应进度 -->
-        <div class="card h-64">
-          <h2 class="font-bold text-lg mb-3">响应进度</h2>
-          
-          <div v-if="selectedEvent && selectedEvent.related_tasks.length > 0">
-            <div class="mb-3 grid grid-cols-4 gap-4 text-center">
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-lg font-bold">{{ 
-                  activeTasks.filter(task => task.status === 'completed').length 
-                }}</div>
-                <div class="text-xs text-gray-500">已完成任务</div>
-              </div>
-              
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-lg font-bold">{{ 
-                  activeTasks.filter(task => task.status === 'in_progress').length 
-                }}</div>
-                <div class="text-xs text-gray-500">进行中任务</div>
-              </div>
-              
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-lg font-bold">{{ 
-                  activeTasks.filter(task => task.status === 'pending').length 
-                }}</div>
-                <div class="text-xs text-gray-500">等待中任务</div>
-              </div>
-              
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-lg font-bold">{{ assignedDrones.length }}</div>
-                <div class="text-xs text-gray-500">分配的无人机</div>
-              </div>
-            </div>
-            
-            <n-timeline>
-              <n-timeline-item 
-                v-for="task in activeTasks" 
-                :key="task.task_id"
-                :type="getTaskTimelineType(task.status)"
-                :title="task.title"
-              >
-                <template #content>
-                  <div class="text-sm">{{ task.description }}</div>
-                  <div class="flex justify-between mt-1">
-                    <span class="text-xs text-gray-500">{{ formatDateTime(task.created_at) }}</span>
-                    <n-tag size="small" :type="getTaskTagType(task.status)">{{ task.status }}</n-tag>
+                  
+                  <div v-else class="py-12 text-center text-gray-400">
+                    选择事件查看应急预案
                   </div>
-                </template>
-              </n-timeline-item>
-            </n-timeline>
-          </div>
-          
-          <div v-else class="py-12 text-center text-gray-400">
-            选择事件查看响应进度
+                </div>
+              </div>
+              
+              <!-- 右侧详情区域 -->
+              <div class="col-span-8 flex flex-col gap-4">
+                <!-- 地图和事件详情 -->
+                <div class="card p-0 overflow-hidden flex-1">
+                  <div class="relative h-full">
+                    <Map3D ref="mapRef" />
+                    
+                    <!-- 事件详情悬浮窗 -->
+                    <div v-if="selectedEvent" class="absolute top-4 right-4 w-80 bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+                      <div class="flex justify-between items-start">
+                        <div>
+                          <h3 class="font-bold text-lg">{{ selectedEvent.title }}</h3>
+                          <div class="text-xs text-gray-500">ID: {{ selectedEvent.event_id }}</div>
+                        </div>
+                        <n-tag :type="getEventTagType(selectedEvent.level)">{{ selectedEvent.level }}</n-tag>
+                      </div>
+                      
+                      <n-divider />
+                      
+                      <div class="space-y-3 text-sm">
+                        <div>
+                          <div class="text-gray-500">描述</div>
+                          <div>{{ selectedEvent.description }}</div>
+                        </div>
+                        
+                        <div>
+                          <div class="text-gray-500">位置</div>
+                          <div>{{ selectedEvent.location?.name || '未知位置' }}</div>
+                        </div>
+                        
+                        <div>
+                          <div class="text-gray-500">检测时间</div>
+                          <div>{{ formatDateTime(selectedEvent.detected_at) }}</div>
+                        </div>
+                        
+                        <div>
+                          <div class="text-gray-500">检测来源</div>
+                          <div>{{ selectedEvent.detected_by }}</div>
+                        </div>
+                        
+                        <div>
+                          <div class="text-gray-500">状态</div>
+                          <div>{{ selectedEvent.status }}</div>
+                        </div>
+                      </div>
+                      
+                      <div class="flex justify-between mt-4" v-if="selectedEvent.status !== 'resolved'">
+                        <n-button @click="assignDrones">分配无人机</n-button>
+                        <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 应急响应进度 -->
+                <div class="card h-64">
+                  <h2 class="font-bold text-lg mb-3">响应进度</h2>
+                  
+                  <div v-if="selectedEvent && selectedEvent.related_tasks.length > 0">
+                    <div class="mb-3 grid grid-cols-4 gap-4 text-center">
+                      <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold">{{ 
+                          activeTasks.filter(task => task.status === 'completed').length 
+                        }}</div>
+                        <div class="text-xs text-gray-500">已完成任务</div>
+                      </div>
+                      
+                      <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold">{{ 
+                          activeTasks.filter(task => task.status === 'in_progress').length 
+                        }}</div>
+                        <div class="text-xs text-gray-500">进行中任务</div>
+                      </div>
+                      
+                      <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold">{{ 
+                          activeTasks.filter(task => task.status === 'pending').length 
+                        }}</div>
+                        <div class="text-xs text-gray-500">等待中任务</div>
+                      </div>
+                      
+                      <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-bold">{{ assignedDrones.length }}</div>
+                        <div class="text-xs text-gray-500">分配的无人机</div>
+                      </div>
+                    </div>
+                    
+                    <n-timeline>
+                      <n-timeline-item 
+                        v-for="task in activeTasks" 
+                        :key="task.task_id"
+                        :type="getTaskTimelineType(task.status)"
+                        :title="task.title"
+                      >
+                        <template #content>
+                          <div class="text-sm">{{ task.description }}</div>
+                          <div class="flex justify-between mt-1">
+                            <span class="text-xs text-gray-500">{{ formatDateTime(task.created_at) }}</span>
+                            <n-tag size="small" :type="getTaskTagType(task.status)">{{ task.status }}</n-tag>
+                          </div>
+                        </template>
+                      </n-timeline-item>
+                    </n-timeline>
+                  </div>
+                  
+                  <div v-else class="py-12 text-center text-gray-400">
+                    选择事件查看响应进度
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -289,14 +300,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useMessage } from 'naive-ui'
 import { format } from 'date-fns'
 import { WarningOutlined as WarningIcon, ReloadOutlined as ReloadIcon, AlertOutlined as AlertIcon } from '@vicons/antd'
-import Map3D from '../components/map/Map3D.vue'
+// 使用全局地图组件，不需要导入Map3D
 
 const message = useMessage()
-const mapRef = ref(null)
+// 使用全局地图引用
+const mapRef = inject('mapRef')
+const flyToLocation = inject('flyToLocation')
 
 // 紧急模式
 const emergencyModeActive = ref(false)
@@ -354,9 +367,8 @@ function selectEvent(event) {
   fetchEventTasks(event.event_id)
   
   // 在地图上定位到事件位置
-  if (event.location && mapRef.value) {
-    // 如果map组件有这个方法
-    // mapRef.value.flyToLocation(event.location.position)
+  if (event.location && flyToLocation) {
+    flyToLocation(event.location.position.coordinates)
   }
 }
 
@@ -644,4 +656,4 @@ async function fetchEventTasks(eventId) {
 onMounted(() => {
   fetchEvents()
 })
-</script> 
+</script>

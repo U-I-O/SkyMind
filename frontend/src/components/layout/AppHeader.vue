@@ -135,7 +135,7 @@ const unreadCount = ref(3)
 const mainNavItems = [
   { title: '监控中心', path: '/' },
   { title: '应急响应', path: '/emergency' },
-  { title: '物流调度', path: '/logistics' },
+ // { title: '物流调度', path: '/logistics' },
   { title: '安防巡检', path: '/security' },
   { title: '无人机管理', path: '/drones' }
 ]

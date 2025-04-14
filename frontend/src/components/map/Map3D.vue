@@ -111,7 +111,7 @@
       </div>
       
       <!-- 坐标信息 -->
-      <div class="absolute bottom-4 left-4 z-10 bg-white bg-opacity-70 p-2 rounded-md text-xs text-gray-700">
+      <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 bg-opacity-70 p-2 rounded-md text-xs text-gray-700">
         <div>经度: {{ formatCoordinate(currentPosition.lng) }}</div>
         <div>纬度: {{ formatCoordinate(currentPosition.lat) }}</div>
         <div>海拔: {{ currentPosition.altitude?.toFixed(2) || '未知' }} 米</div>

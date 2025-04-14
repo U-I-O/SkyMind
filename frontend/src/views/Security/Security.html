@@ -1,0 +1,65 @@
+<div class="security-container">  
+  <!-- 悬浮控制层 -->
+  <div class="control-layer">
+    <!-- 创建任务按钮 -->
+    <div class="floating-button">
+      <n-button type="primary" size="medium" @click="showPatrolCreator = true">
+        创建巡逻任务
+      </n-button>
+    </div>
+
+    <!-- 右侧信息面板 -->
+    <div class="side-panel">
+      <!-- 巡逻任务列表 -->
+      <patrol-task-list
+        :tasks="tasks"
+        :filter="taskFilter"
+        :filter-options="filterOptions"
+        @filter-change="handleFilterChange"
+        @open-detail="openTaskDetail"
+        @stop-task="stopTask"
+      />
+
+      <!-- 安全事件列表 -->
+      <security-event-list
+        :events="securityEvents"
+        @view-all="viewAllEvents"
+        @open-detail="openEventDetail"
+        @focus-event="focusOnEvent"
+      />
+    </div>
+  </div>
+
+  <!-- 任务创建弹窗 -->
+  <n-modal
+    v-model:show="showPatrolCreator"
+    preset="card"
+    style="max-width: 900px"
+    title="创建巡逻任务"
+    :mask-closable="false"
+  >
+    <patrol-task-creator
+      ref="patrolCreatorRef"
+      :drones="availableDrones"
+      @submit="handlePatrolTaskSubmit"
+      @waypoint-selection-change="handleWaypointSelectionChange"
+    />
+  </n-modal>
+
+  <!-- 任务详情弹窗 -->
+  <n-modal
+    v-model:show="showTaskDetail"
+    preset="card"
+    style="max-width: 800px"
+    :title="currentTask?.name"
+    :mask-closable="true"
+  >
+    <patrol-task-detail
+      v-if="currentTask"
+      :task="currentTask"
+      @close="closeTaskDetail"
+      @stop-task="stopTask"
+      @resume-task="resumeTask"
+    />
+  </n-modal>
+</div>

@@ -1,26 +1,45 @@
 <template>
   <header class="bg-white shadow-sm border-b border-gray-200 z-10">
-    <div class="container mx-auto px-4 py-2 flex justify-between items-center">
-      <!-- 左侧Logo和菜单 -->
-      <div class="flex items-center space-x-10">
-        <!-- Logo和标题 -->
+    <div class="container mx-auto px-6 py-2 flex justify-between items-center">
+      <!-- 左侧Logo -->
+      <div class="flex-shrink-0 ml-2">
         <router-link to="/" class="flex items-center space-x-2">
           <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white text-lg font-bold">
             SM
           </div>
           <h1 class="text-xl font-bold text-gray-800">SkyMind</h1>
         </router-link>
-        
-        <!-- 主导航菜单 -->
-        <nav class="hidden md:flex space-x-6">
-          <router-link v-for="item in mainNavItems" :key="item.path" :to="item.path" class="text-gray-600 hover:text-primary font-medium transition-colors">
-            {{ item.title }}
-          </router-link>
-        </nav>
       </div>
       
+      <!-- 居中的主导航菜单 -->
+      <nav class="hidden md:flex flex-1 justify-center">
+        <div class="flex space-x-8">
+          <router-link 
+            v-for="item in mainNavItems" 
+            :key="item.path" 
+            :to="item.path" 
+            class="py-2 px-1 relative transition-all duration-300 ease-in-out group"
+            :class="[
+              isActiveRoute(item.path) 
+                ? 'text-primary font-bold text-lg' 
+                : 'text-gray-600 hover:text-primary font-medium text-base'
+            ]"
+          >
+            {{ item.title }}
+            <div 
+              class="absolute bottom-0 left-0 w-full h-0.5 bg-primary transform transition-all duration-300 ease-in-out"
+              :class="[
+                isActiveRoute(item.path) 
+                  ? 'scale-x-100' 
+                  : 'scale-x-0 group-hover:scale-x-100'
+              ]"
+            ></div>
+          </router-link>
+        </div>
+      </nav>
+      
       <!-- 右侧功能区 -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-4 flex-shrink-0 mr-2">
         <!-- 搜索按钮 -->
         <n-button circle secondary @click="showSearch = true">
           <template #icon>
@@ -74,7 +93,7 @@
 
 <script setup>
 import { ref, inject, computed, h } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   SearchOutlined,
   BellOutlined,
@@ -97,6 +116,12 @@ const searchQuery = ref('')
 // 用户信息
 const userStore = useUserStore()
 const router = useRouter()
+const route = useRoute()
+
+// 检查当前路由是否活跃
+const isActiveRoute = (path) => {
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
 
 // 用户头像显示的首字母
 const userInitials = computed(() => {
@@ -108,9 +133,9 @@ const unreadCount = ref(3)
 
 // 主导航菜单项
 const mainNavItems = [
-  { title: '监控中心', path: '/monitor' },
+  { title: '监控中心', path: '/' },
   { title: '应急响应', path: '/emergency' },
-  { title: '物流调度', path: '/logistics' },
+ // { title: '物流调度', path: '/logistics' },
   { title: '安防巡检', path: '/security' },
   { title: '无人机管理', path: '/drones' }
 ]
@@ -150,4 +175,4 @@ const handleUserMenuSelect = (key) => {
     router.push('/settings')
   }
 }
-</script> 
+</script>

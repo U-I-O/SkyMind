@@ -54,6 +54,7 @@ async def init_db():
 
 async def create_initial_data():
     """创建初始数据，如默认管理员用户、示例无人机等"""
+    """创建初始数据"""
     from passlib.context import CryptContext
     
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

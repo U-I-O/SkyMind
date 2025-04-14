@@ -36,8 +36,8 @@ const routes = [
   {
     path: '/security',
     name: 'Security',
-    component: () => import('../views/Security.vue'),
-    meta: { requiresAuth: true }
+    component: () => import('../views/Security/Security.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/drones',
@@ -106,4 +106,4 @@ router.beforeEach((to, from, next) => {
   }
 })
 
-export default router 
+export default router

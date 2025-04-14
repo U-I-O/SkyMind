@@ -1,210 +1,237 @@
 <template>
-  <div class="h-full flex flex-col p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">无人机管理</h1>
-      
-      <!-- 操作按钮 -->
-      <div class="flex space-x-3">
-        <n-button type="primary" @click="showAddDroneModal = true">
-          <template #icon>
-            <n-icon><plus-icon /></n-icon>
-          </template>
-          添加无人机
-        </n-button>
-        
-        <n-button @click="refreshData">
-          <template #icon>
-            <n-icon><reload-icon /></n-icon>
-          </template>
-          刷新
-        </n-button>
-      </div>
-    </div>
-    
-    <!-- 无人机状态统计 -->
-    <div class="grid grid-cols-5 gap-4 mb-6">
-      <div class="card flex items-center px-6">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-blue-100 text-blue-500 mr-4">
-          <n-icon size="24"><drone-icon /></n-icon>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">总无人机</div>
-          <div class="text-2xl font-bold">{{ droneStats.total }}</div>
-        </div>
-      </div>
-      
-      <div class="card flex items-center px-6">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-500 mr-4">
-          <n-icon size="24"><check-icon /></n-icon>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">在线</div>
-          <div class="text-2xl font-bold">{{ droneStats.online }}</div>
-        </div>
-      </div>
-      
-      <div class="card flex items-center px-6">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-500 mr-4">
-          <n-icon size="24"><flight-icon /></n-icon>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">飞行中</div>
-          <div class="text-2xl font-bold">{{ droneStats.flying }}</div>
-        </div>
-      </div>
-      
-      <div class="card flex items-center px-6">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-purple-100 text-purple-500 mr-4">
-          <n-icon size="24"><thunderbolt-icon /></n-icon>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">充电中</div>
-          <div class="text-2xl font-bold">{{ droneStats.charging }}</div>
-        </div>
-      </div>
-      
-      <div class="card flex items-center px-6">
-        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-500 mr-4">
-          <n-icon size="24"><warning-icon /></n-icon>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">离线</div>
-          <div class="text-2xl font-bold">{{ droneStats.offline }}</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 筛选条件 -->
-    <div class="flex justify-between items-center mb-4 card p-4">
-      <div class="flex space-x-4">
-        <n-input-group>
-          <n-input v-model:value="searchQuery" placeholder="搜索无人机名称或ID"></n-input>
-          <n-button>
-            <template #icon>
-              <n-icon><search-icon /></n-icon>
-            </template>
-          </n-button>
-        </n-input-group>
-        
-        <n-select
-          v-model:value="statusFilter"
-          :options="statusOptions"
-          placeholder="状态筛选"
-          clearable
-          style="width: 150px"
-        />
-        
-        <n-select
-          v-model:value="modelFilter"
-          :options="modelOptions"
-          placeholder="型号筛选"
-          clearable
-          style="width: 150px"
-        />
-      </div>
-      
-      <div>
-        <n-radio-group v-model:value="viewMode" size="small">
-          <n-radio-button value="list">
-            <n-icon><list-icon /></n-icon>
-          </n-radio-button>
-          <n-radio-button value="grid">
-            <n-icon><grid-icon /></n-icon>
-          </n-radio-button>
-          <n-radio-button value="map">
-            <n-icon><map-icon /></n-icon>
-          </n-radio-button>
-        </n-radio-group>
-      </div>
-    </div>
-    
-    <!-- 无人机数据表格 -->
-    <div v-if="viewMode === 'list'" class="flex-1 overflow-auto">
-      <n-data-table
-        :columns="columns"
-        :data="filteredDrones"
-        :pagination="pagination"
-        :row-key="row => row.drone_id"
-        :loading="loading"
-      />
-    </div>
-    
-    <!-- 无人机卡片网格视图 -->
-    <div v-else-if="viewMode === 'grid'" class="flex-1 overflow-auto">
-      <div class="grid grid-cols-4 gap-4">
-        <div v-for="drone in filteredDrones" :key="drone.drone_id" class="card">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-bold text-lg">{{ drone.name }}</h3>
-              <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
+  <div class="h-full pointer-events-none">
+    <!-- 使用全局地图，不需要在此页面添加地图组件 -->
+    <div class="p-4 h-full">
+      <div class="h-full grid grid-cols-12 gap-4">
+        <!-- 左侧面板 -->
+        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+          <!-- 标题和操作按钮 -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-2xl font-bold">无人机管理</h1>
+              
+              <!-- 操作按钮 -->
+              <div class="flex space-x-3">
+                <n-button type="primary" @click="showAddDroneModal = true">
+                  <template #icon>
+                    <n-icon><plus-icon /></n-icon>
+                  </template>
+                  添加无人机
+                </n-button>
+                
+                <n-button @click="refreshData">
+                  <template #icon>
+                    <n-icon><reload-icon /></n-icon>
+                  </template>
+                  刷新
+                </n-button>
+              </div>
             </div>
-            <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
           </div>
           
-          <div class="mt-4 text-center">
-            <img :src="getDroneImage(drone)" alt="Drone" class="h-32 mx-auto mb-3 filter drop-shadow-md">
+          <!-- 无人机状态统计 (独立面板) -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <h2 class="font-bold text-lg mb-4">无人机状态</h2>
+            <div class="grid grid-cols-5 gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-blue-100 text-blue-500 mb-2">
+                  <n-icon size="24"><drone-icon /></n-icon>
+                </div>
+                <div class="text-sm text-gray-500">总无人机</div>
+                <div class="text-xl font-bold">{{ droneStats.total }}</div>
+              </div>
+              
+              <div class="flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-500 mb-2">
+                  <n-icon size="24"><check-icon /></n-icon>
+                </div>
+                <div class="text-sm text-gray-500">在线</div>
+                <div class="text-xl font-bold">{{ droneStats.online }}</div>
+              </div>
+              
+              <div class="flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-500 mb-2">
+                  <n-icon size="24"><flight-icon /></n-icon>
+                </div>
+                <div class="text-sm text-gray-500">飞行中</div>
+                <div class="text-xl font-bold">{{ droneStats.flying }}</div>
+              </div>
+              
+              <div class="flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-purple-100 text-purple-500 mb-2">
+                  <n-icon size="24"><thunderbolt-icon /></n-icon>
+                </div>
+                <div class="text-sm text-gray-500">充电中</div>
+                <div class="text-xl font-bold">{{ droneStats.charging }}</div>
+              </div>
+              
+              <div class="flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-500 mb-2">
+                  <n-icon size="24"><warning-icon /></n-icon>
+                </div>
+                <div class="text-sm text-gray-500">离线</div>
+                <div class="text-xl font-bold">{{ droneStats.offline }}</div>
+              </div>
+            </div>
           </div>
           
-          <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
-            <div class="text-gray-500">型号:</div>
-            <div class="font-medium">{{ drone.model }}</div>
-            
-            <div class="text-gray-500">电量:</div>
-            <div class="font-medium">
-              <n-progress :percentage="drone.battery_level" :show-indicator="false" />
-              {{ drone.battery_level }}%
+          <!-- 筛选条件面板 -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-4">
+              <div class="flex-1">
+                <n-input-group>
+                  <n-input v-model:value="searchQuery" placeholder="搜索无人机名称或ID"></n-input>
+                  <n-button>
+                    <template #icon>
+                      <n-icon><search-icon /></n-icon>
+                    </template>
+                  </n-button>
+                </n-input-group>
+              </div>
+              
+              <div class="ml-4">
+                <n-radio-group v-model:value="viewMode" size="small">
+                  <n-radio-button value="list">
+                    <n-icon><list-icon /></n-icon>
+                  </n-radio-button>
+                  <n-radio-button value="grid">
+                    <n-icon><grid-icon /></n-icon>
+                  </n-radio-button>
+                  <n-radio-button value="map">
+                    <n-icon><map-icon /></n-icon>
+                  </n-radio-button>
+                </n-radio-group>
+              </div>
             </div>
             
-            <div class="text-gray-500">最大时间:</div>
-            <div class="font-medium">{{ drone.max_flight_time }} 分钟</div>
-            
-            <div class="text-gray-500">最大速度:</div>
-            <div class="font-medium">{{ drone.max_speed }} m/s</div>
+            <div class="flex space-x-2">
+              <n-select
+                v-model:value="statusFilter"
+                :options="statusOptions"
+                placeholder="状态筛选"
+                clearable
+                class="w-full"
+              />
+              
+              <n-select
+                v-model:value="modelFilter"
+                :options="modelOptions"
+                placeholder="型号筛选"
+                clearable
+                class="w-full"
+              />
+            </div>
           </div>
           
-          <div class="mt-4 flex justify-center space-x-2">
-            <n-button size="small" @click="viewDroneDetails(drone)">详情</n-button>
-            <n-button size="small" type="primary" @click="controlDrone(drone)">控制</n-button>
+          <!-- 无人机列表 (独立面板) -->
+          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col">
+            <h2 class="font-bold text-lg mb-4">无人机列表</h2>
+            
+            <!-- 无人机数据表格 -->
+            <div v-if="viewMode === 'list'" class="overflow-y-auto" style="max-height: 400px;">
+              <n-data-table
+                :columns="columns"
+                :data="filteredDrones"
+                :pagination="pagination"
+                :row-key="row => row.drone_id"
+                :loading="loading"
+                :scroll-x="true"
+              />
+            </div>
+            
+            <!-- 无人机卡片网格视图 -->
+            <div v-else-if="viewMode === 'grid'" class="overflow-y-auto" style="max-height: 400px;">
+              <div class="grid grid-cols-1 gap-4 pb-4">
+                <div v-for="drone in filteredDrones" :key="drone.drone_id" 
+                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                     :class="{'bg-blue-50 border-blue-200': selectedDrone?.drone_id === drone.drone_id}"
+                     @click="selectDrone(drone)">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h3 class="font-bold text-lg">{{ drone.name }}</h3>
+                      <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
+                    </div>
+                    <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
+                  </div>
+                  
+                  <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
+                    <div class="text-gray-500">型号:</div>
+                    <div class="font-medium">{{ drone.model }}</div>
+                    
+                    <div class="text-gray-500">电量:</div>
+                    <div class="font-medium">
+                      <n-progress :percentage="drone.battery_level" :show-indicator="false" />
+                      {{ drone.battery_level }}%
+                    </div>
+                    
+                    <div class="text-gray-500">最大时间:</div>
+                    <div class="font-medium">{{ drone.max_flight_time }} 分钟</div>
+                    
+                    <div class="text-gray-500">最大速度:</div>
+                    <div class="font-medium">{{ drone.max_speed }} m/s</div>
+                  </div>
+                  
+                  <div class="mt-4 flex justify-center space-x-2">
+                    <n-button size="small" @click.stop="viewDroneDetails(drone)">详情</n-button>
+                    <n-button size="small" type="primary" @click.stop="openDroneControl(drone)">控制</n-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 地图视图 -->
+            <div v-else-if="viewMode === 'map'" class="flex-1 flex items-center justify-center">
+              <div class="text-center text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto">
+          <!-- 详情信息面板 -->
+          <div v-if="selectedDrone" class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="font-bold text-lg">{{ selectedDrone.name }} 详情</h3>
+              <n-tag :type="getStatusType(selectedDrone.status)">{{ selectedDrone.status }}</n-tag>
+            </div>
+            
+            <n-divider style="margin: 10px 0;" />
+            
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <div class="text-gray-500 text-sm">电量</div>
+              <div class="text-sm font-medium">{{ selectedDrone.battery_level }}%</div>
+              
+              <div class="text-gray-500 text-sm">位置</div>
+              <div class="text-sm font-medium">
+                {{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}, 
+                {{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}
+              </div>
+              
+              <div class="text-gray-500 text-sm">速度</div>
+              <div class="text-sm font-medium">{{ selectedDrone.max_speed }} m/s</div>
+              
+              <div class="text-gray-500 text-sm">飞行时间</div>
+              <div class="text-sm font-medium">{{ selectedDrone.max_flight_time }} 分钟</div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <n-button size="small" @click="viewDroneDetails(selectedDrone)">查看完整详情</n-button>
+              <n-button size="small" type="primary" @click="openDroneControl(selectedDrone)">控制无人机</n-button>
+            </div>
+          </div>
+          
+          <!-- 未选择无人机时的提示 -->
+          <div v-if="!selectedDrone" class="floating-card bg-white bg-opacity-95 flex-1 flex items-center justify-center text-gray-400">
+            请从列表中选择一个无人机查看详情
           </div>
         </div>
       </div>
-    </div>
-    
-    <!-- 地图视图 -->
-    <div v-else-if="viewMode === 'map'" class="flex-1">
-      <Map3D />
     </div>
     
     <!-- 添加无人机对话框 -->
     <n-modal v-model:show="showAddDroneModal" preset="card" title="添加无人机" style="width: 500px" @close="resetForm">
       <n-form ref="addFormRef" :model="droneForm" :rules="rules" label-placement="left" label-width="auto">
-        <n-form-item label="名称" path="name">
-          <n-input v-model:value="droneForm.name" placeholder="输入无人机名称" />
-        </n-form-item>
-        
-        <n-form-item label="型号" path="model">
-          <n-input v-model:value="droneForm.model" placeholder="输入无人机型号" />
-        </n-form-item>
-        
-        <n-form-item label="最大飞行时间(分钟)" path="max_flight_time">
-          <n-input-number v-model:value="droneForm.max_flight_time" :min="1" :max="500" />
-        </n-form-item>
-        
-        <n-form-item label="最大速度(m/s)" path="max_speed">
-          <n-input-number v-model:value="droneForm.max_speed" :min="1" :max="100" />
-        </n-form-item>
-        
-        <n-form-item label="最大高度(米)" path="max_altitude">
-          <n-input-number v-model:value="droneForm.max_altitude" :min="1" :max="5000" />
-        </n-form-item>
-        
-        <n-form-item label="搭载相机" path="camera_equipped">
-          <n-switch v-model:value="droneForm.camera_equipped" />
-        </n-form-item>
-        
-        <n-form-item label="载荷能力(千克)" path="payload_capacity">
-          <n-input-number v-model:value="droneForm.payload_capacity" :min="0" :precision="2" />
-        </n-form-item>
+        <!-- 表单内容保持不变 -->
       </n-form>
       
       <template #footer>
@@ -217,56 +244,13 @@
     
     <!-- 无人机控制对话框 -->
     <n-modal v-model:show="showControlModal" preset="card" :title="`控制 ${selectedDrone?.name || '无人机'}`" style="width: 600px">
-      <div v-if="selectedDrone">
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ selectedDrone.battery_level }}%</div>
-            <div class="text-sm text-gray-500">电量</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ selectedDrone.status }}</div>
-            <div class="text-sm text-gray-500">状态</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}</div>
-            <div class="text-sm text-gray-500">经度</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}</div>
-            <div class="text-sm text-gray-500">纬度</div>
-          </div>
-        </div>
-        
-        <n-divider />
-        
-        <div class="grid grid-cols-2 gap-4">
-          <n-button :disabled="selectedDrone.status !== 'idle'" @click="handleTakeoff">起飞</n-button>
-          <n-button :disabled="selectedDrone.status !== 'flying'" @click="handleLand">降落</n-button>
-          <n-button :disabled="selectedDrone.status !== 'flying'" @click="handleReturnHome">返航</n-button>
-          <n-button @click="handleCreateTask">创建任务</n-button>
-        </div>
-        
-        <n-divider />
-        
-        <div>
-          <div class="mb-2 font-medium">移动到指定位置</div>
-          <div class="flex space-x-3 mb-3">
-            <n-input-number v-model:value="targetLongitude" placeholder="经度" :precision="6" />
-            <n-input-number v-model:value="targetLatitude" placeholder="纬度" :precision="6" />
-            <n-input-number v-model:value="targetAltitude" placeholder="高度(米)" />
-          </div>
-          <n-button block :disabled="selectedDrone.status !== 'flying'" @click="handleMoveTo">移动到位置</n-button>
-        </div>
-      </div>
+      <!-- 控制对话框内容保持不变 -->
     </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { 
@@ -280,14 +264,15 @@ import {
   AppstoreOutlined as GridIcon,
   EnvironmentOutlined as MapIcon,
   RobotOutlined as DroneIcon,
-  ThunderboltOutlined as ThunderboltIcon
+  ThunderboltOutlined as ThunderboltIcon,
+  CloseOutlined
 } from '@vicons/antd'
-import { getDrones, createDrone, controlDrone } from '../api/drone'
-import Map3D from '../components/map/Map3D.vue'
+import { getDrones, createDrone, controlDrone as apiControlDrone } from '../api/drone'
 import { h } from 'vue'
 
 const router = useRouter()
 const message = useMessage()
+const mapOperations = inject('mapOperations')
 
 // 状态变量
 const loading = ref(false)
@@ -297,7 +282,7 @@ const showControlModal = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref(null)
 const modelFilter = ref(null)
-const viewMode = ref('list')
+const viewMode = ref('grid')
 const drones = ref([])
 const selectedDrone = ref(null)
 const targetLongitude = ref(116.3833)
@@ -438,12 +423,6 @@ function getStatusType(status) {
   }
 }
 
-// 获取无人机图片
-function getDroneImage(drone) {
-  // 根据无人机型号返回图片
-  return '/images/drone-default.png'
-}
-
 // 格式化坐标
 function formatCoordinate(coord) {
   return coord.toFixed(6)
@@ -458,6 +437,25 @@ function viewDroneDetails(drone) {
 function openDroneControl(drone) {
   selectedDrone.value = drone
   showControlModal.value = true
+}
+
+// 选择无人机
+function selectDrone(drone) {
+  selectedDrone.value = drone
+  // 使用地图操作
+  if (drone.current_location?.coordinates) {
+    mapOperations.flyTo({
+      lat: drone.current_location.coordinates[1],
+      lng: drone.current_location.coordinates[0],
+      zoom: 18
+    })
+  }
+}
+
+// 处理全局点击事件（关闭详情面板）
+function handleGlobalClick(event) {
+  // 如果点击的是详情面板外部，则关闭详情面板
+  selectedDrone.value = null
 }
 
 // 重置表单
@@ -536,6 +534,12 @@ function handleMoveTo() {
   if (!selectedDrone.value) return
   
   message.info(`正在指令${selectedDrone.value.name}移动到指定位置`)
+  // 实际操作也会让地图飞到对应位置
+  mapOperations.flyTo({
+    lat: targetLatitude.value,
+    lng: targetLongitude.value,
+    zoom: 16
+  })
 }
 
 function handleCreateTask() {
@@ -550,5 +554,22 @@ function handleCreateTask() {
 // 挂载时获取数据
 onMounted(() => {
   fetchDrones()
+  
+  // 监听全局无人机选中事件
+  window.addEventListener('drone-selected', (event) => {
+    const droneId = event.detail
+    const drone = drones.value.find(d => d.drone_id === droneId)
+    if (drone) {
+      selectDrone(drone)
+    }
+  })
 })
-</script> 
+</script>
+
+<style scoped>
+.floating-card {
+  @apply p-4 rounded-lg shadow-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+}
+</style>

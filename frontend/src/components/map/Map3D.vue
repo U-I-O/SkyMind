@@ -22,12 +22,12 @@
             </template>
             <div class="flex flex-col space-y-2 w-48 p-2">
               <div class="text-sm font-medium text-gray-700 mb-1">图层控制</div>
-              <n-checkbox v-model:checked="showBuildings">3D建筑</n-checkbox>
-              <n-checkbox v-model:checked="showTerrain">地形</n-checkbox>
-              <n-checkbox v-model:checked="showDrones">无人机</n-checkbox>
-              <n-checkbox v-model:checked="showEvents">事件标记</n-checkbox>
-              <n-checkbox v-model:checked="showNoFlyZones">禁飞区</n-checkbox>
-              <n-checkbox v-model:checked="showFlightPaths">飞行路径</n-checkbox>
+              <n-checkbox v-model:checked="showBuildingsLayer">3D建筑</n-checkbox>
+              <n-checkbox v-model:checked="showTerrainLayer">地形</n-checkbox>
+              <n-checkbox v-model:checked="showDronesLayer">无人机</n-checkbox>
+              <n-checkbox v-model:checked="showEventsLayer">事件标记</n-checkbox>
+              <n-checkbox v-model:checked="showNoFlyZonesLayer">禁飞区</n-checkbox>
+              <n-checkbox v-model:checked="showFlightPathsLayer">飞行路径</n-checkbox>
             </div>
           </n-popover>
           
@@ -107,6 +107,19 @@
               <n-icon><environment-icon /></n-icon>
             </template>
           </n-button>
+
+          <!-- 绘制巡逻区域 -->
+          <n-button 
+            circle 
+            :type="isDrawingPatrolArea ? 'primary' : 'default'" 
+            secondary 
+            class="opacity-90" 
+            @click="toggleDrawingPatrolArea"
+          >
+            <template #icon>
+              <n-icon><draw-icon /></n-icon>
+            </template>
+          </n-button>
         </div>
       </div>
       
@@ -115,6 +128,24 @@
         <div>经度: {{ formatCoordinate(currentPosition.lng) }}</div>
         <div>纬度: {{ formatCoordinate(currentPosition.lat) }}</div>
         <div>海拔: {{ currentPosition.altitude?.toFixed(2) || '未知' }} 米</div>
+      </div>
+      
+      <!-- 绘制模式提示与操作 -->
+      <div v-if="isDrawingPatrolArea" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white bg-opacity-90 p-3 rounded-md shadow-md text-sm flex flex-col items-center space-y-2">
+        <div class="font-medium text-center">绘制巡逻区域</div>
+        <div class="text-gray-600 text-xs">点击地图添加顶点，至少需要3个点。</div>
+        <div v-if="patrolAreaPoints.length > 0" class="text-xs text-gray-500">已添加 {{ patrolAreaPoints.length }} 个顶点</div>
+        <div class="flex space-x-2">
+          <n-button size="small" type="primary" :disabled="patrolAreaPoints.length < 3" @click="completeDrawingPatrolArea">
+            完成绘制
+          </n-button>
+          <n-button size="small" @click="cancelDrawingPatrolArea">
+            取消
+          </n-button>
+          <n-button v-if="patrolAreaPoints.length > 0" size="small" tertiary @click="undoLastPatrolPoint">
+            撤销上一点
+          </n-button>
+        </div>
       </div>
 
       <!-- Selected drone info popup -->
@@ -142,7 +173,7 @@
   </template>
   
   <script setup>
-  import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits } from 'vue'
+  import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits, nextTick } from 'vue'
   import mapboxgl from 'mapbox-gl'
   import { Deck } from '@deck.gl/core'
   import { ScatterplotLayer, PathLayer, PolygonLayer, IconLayer } from '@deck.gl/layers'
@@ -153,7 +184,8 @@
     GlobalOutlined as MapIcon,
     EnvironmentOutlined as EnvironmentIcon,
     BulbOutlined as SunIcon,
-    CheckOutlined as MoonIcon
+    CheckOutlined as MoonIcon,
+    HighlightOutlined as DrawIcon
   } from '@vicons/antd'
   import { NProgress, NSpin, NButton, NIcon, NPopover, NCheckbox, NRadioGroup, NRadio, NSpace, NTag } from 'naive-ui'
   
@@ -197,7 +229,12 @@
     }
   })
   
-  const emit = defineEmits(['drone-clicked', 'map-clicked', 'coordinates-selected', 'map-loaded'])
+  const emit = defineEmits([
+    'drone-clicked', 
+    'map-clicked', 
+    'map-loaded', 
+    'patrol-area-drawn'
+  ])
   
   // Map configuration
   const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibXV0aW5nIiwiYSI6ImNsdGo1OHlkZTAwbmIybHBveHkyNHl6bmgifQ.PtIzPKQRLmLUXIaUqw1XNw'
@@ -234,13 +271,17 @@
   const mapStyle = ref(import.meta.env.VITE_DEFAULT_MAP_STYLE || 'mapbox://styles/mapbox/streets-v12')
   const isDarkMode = ref(mapStyle.value.includes('dark'))
   
-  // Layer controls
-  const showBuildings = ref(true)
-  const showTerrain = ref(true)
-  const showDrones = ref(true)
-  const showEvents = ref(true)
-  const showNoFlyZones = ref(true)
-  const showFlightPaths = ref(true)
+  // 巡逻区域绘制相关状态
+  const isDrawingPatrolArea = ref(false)
+  const patrolAreaPoints = ref([])
+  
+  // Layer controls - 使用新名字避免与props冲突
+  const showBuildingsLayer = ref(true)
+  const showTerrainLayer = ref(true)
+  const showDronesLayer = ref(props.showDrones)
+  const showEventsLayer = ref(true)
+  const showNoFlyZonesLayer = ref(true)
+  const showFlightPathsLayer = ref(true)
   
   // Watch for props changes
   watch(() => props.drones, () => {
@@ -269,25 +310,35 @@
     }
   })
   
+  // Watch showDrones prop change and update internal state
+  watch(() => props.showDrones, (newVal) => {
+    showDronesLayer.value = newVal;
+  })
+  
   // Watch layers visibility changes
-  watch([showBuildings, showTerrain], () => {
+  watch([showBuildingsLayer, showTerrainLayer], () => {
     if (map) {
       // Show/hide 3D buildings
-      map.setLayoutProperty(
-        'building-extrusion',
-        'visibility',
-        showBuildings.value ? 'visible' : 'none'
-      )
+      if (map.getLayer('building-extrusion')) {
+        map.setLayoutProperty(
+          'building-extrusion',
+          'visibility',
+          showBuildingsLayer.value ? 'visible' : 'none'
+        )
+      }
       
       // Show/hide terrain
       if (map.getSource('mapbox-dem')) {
-        map.setLayoutProperty(
-          'sky',
-          'visibility',
-          showTerrain.value ? 'visible' : 'none'
-        )
+        // 确保天空层存在
+        if (map.getLayer('sky')) {
+            map.setLayoutProperty(
+              'sky',
+              'visibility',
+              showTerrainLayer.value ? 'visible' : 'none'
+            )
+        }
         // Apply terrain
-        if (showTerrain.value) {
+        if (showTerrainLayer.value) {
           map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
         } else {
           map.setTerrain(null)
@@ -297,11 +348,11 @@
   })
   
   // Watch deck.gl layers visibility changes
-  watch([showDrones, showEvents, showNoFlyZones, showFlightPaths], () => {
+  watch([showDronesLayer, showEventsLayer, showNoFlyZonesLayer, showFlightPathsLayer, isDrawingPatrolArea, patrolAreaPoints], () => {
     if (deck) {
       renderDeckLayers()
     }
-  })
+  }, { deep: true })
   
   // Format coordinate display
   const formatCoordinate = (coord) => {
@@ -440,7 +491,7 @@
   
   // 添加3D建筑方法
   const add3DBuildings = () => {
-    if (!map) return;
+    if (!map || map.getLayer('building-extrusion')) return; // 防止重复添加
     
     // 添加3D建筑层
     map.addLayer({
@@ -464,19 +515,39 @@
         ],
         'fill-extrusion-opacity': 0.6
       },
-      'visibility': showBuildings.value ? 'visible' : 'none'
+      'visibility': showBuildingsLayer.value ? 'visible' : 'none'
     });
     
     // 添加地形层
-    map.addSource('mapbox-dem', {
-      'type': 'raster-dem',
-      'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-      'tileSize': 512,
-      'maxzoom': 14
-    });
+    if (!map.getSource('mapbox-dem')) {
+      map.addSource('mapbox-dem', {
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 512,
+        'maxzoom': 14
+      });
+    }
     
     // 设置地形
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+    if (showTerrainLayer.value) {
+        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+    } else {
+        map.setTerrain(null);
+    }
+
+    // 添加天空层，与地形关联
+    if (!map.getLayer('sky')) {
+        map.addLayer({
+            'id': 'sky',
+            'type': 'sky',
+            'paint': {
+                'sky-type': 'atmosphere',
+                'sky-atmosphere-sun': [0.0, 0.0],
+                'sky-atmosphere-sun-intensity': 15
+            },
+           'visibility': showTerrainLayer.value ? 'visible' : 'none'
+        });
+    }
   };
   
   // 设置地图事件
@@ -494,12 +565,20 @@
     
     // 点击事件
     map.on('click', (e) => {
-      // 发送点击事件到父组件
-      emit('map-clicked', {
+      const coordinates = {
         lng: e.lngLat.lng,
         lat: e.lngLat.lat,
         altitude: map.queryTerrainElevation(e.lngLat) || 0
-      });
+      };
+      
+      // 如果是绘制巡逻区域模式，添加顶点
+      if (isDrawingPatrolArea.value) {
+        patrolAreaPoints.value.push([coordinates.lng, coordinates.lat]);
+        // deck layer watch 会自动更新视图
+      } else {
+        // 正常点击事件，发送到父组件
+        emit('map-clicked', coordinates);
+      }
     });
   };
   
@@ -624,7 +703,7 @@
     const layers = []
     
     // Add drone layer
-    if (showDrones.value) {
+    if (showDronesLayer.value) {
       layers.push(
         new ScatterplotLayer({
           id: 'drones-layer',
@@ -665,7 +744,7 @@
     }
     
     // Add flight paths layer
-    if (showFlightPaths.value && props.flightPaths && props.flightPaths.length > 0) {
+    if (showFlightPathsLayer.value && props.flightPaths && props.flightPaths.length > 0) {
       layers.push(
         new PathLayer({
           id: 'flight-paths-layer',
@@ -681,7 +760,7 @@
     }
     
     // Add no-fly zones layer
-    if (showNoFlyZones.value && props.noFlyZones && props.noFlyZones.length > 0) {
+    if (showNoFlyZonesLayer.value && props.noFlyZones && props.noFlyZones.length > 0) {
       layers.push(
         new PolygonLayer({
           id: 'no-fly-zones-layer',
@@ -700,7 +779,7 @@
     }
     
     // Add events layer
-    if (showEvents.value && props.events && props.events.length > 0) {
+    if (showEventsLayer.value && props.events && props.events.length > 0) {
       layers.push(
         new IconLayer({
           id: 'events-layer',
@@ -726,6 +805,64 @@
           getColor: d => d.color
         })
       )
+    }
+
+    // Add patrol area drawing layer (if drawing)
+    if (isDrawingPatrolArea.value && patrolAreaPoints.value.length > 0) {
+      // 显示已绘制的点
+      layers.push(
+        new ScatterplotLayer({
+          id: 'patrol-area-points-layer',
+          data: patrolAreaPoints.value.map((p, index) => ({ position: p, index })),
+          pickable: false,
+          stroked: true,
+          filled: true,
+          radiusScale: 1,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 8,
+          lineWidthMinPixels: 1,
+          getPosition: d => d.position,
+          getFillColor: [59, 130, 246, 200], // Blue
+          getLineColor: [255, 255, 255],
+          getRadius: 5,
+        })
+      );
+
+      // 显示连接线 (如果点数 > 1)
+      if (patrolAreaPoints.value.length > 1) {
+        layers.push(
+          new PathLayer({
+            id: 'patrol-area-path-layer',
+            data: [{ path: patrolAreaPoints.value }], // Deck.gl PathLayer 需要 data 是一个数组，每个元素包含一个 path 属性
+            pickable: false,
+            widthScale: 1,
+            widthMinPixels: 2,
+            getPath: d => d.path,
+            getColor: [59, 130, 246, 255], // Blue
+            getWidth: 2,
+            dashJustified: true,
+            getDashArray: [4, 2] // 虚线效果
+          })
+        );
+      }
+
+      // 预览闭合线 (如果点数 > 2)
+      if (patrolAreaPoints.value.length > 2) {
+         layers.push(
+          new PathLayer({
+            id: 'patrol-area-closing-path-layer',
+            data: [{ path: [patrolAreaPoints.value[patrolAreaPoints.value.length - 1], patrolAreaPoints.value[0]] }],
+            pickable: false,
+            widthScale: 1,
+            widthMinPixels: 2,
+            getPath: d => d.path,
+            getColor: [59, 130, 246, 150], // Lighter blue for closing line
+            getWidth: 2,
+            dashJustified: true,
+            getDashArray: [3, 3] // Different dash for closing line
+          })
+        );
+      }
     }
     
     deck.setProps({ layers })
@@ -823,7 +960,7 @@
       map.setStyle(style);
       
       // 样式加载完成后恢复视角
-      map.once('style.load', () => {
+      map.once('style.load', async () => {
         map.jumpTo({
           center: currentCenter,
           zoom: currentZoom,
@@ -831,7 +968,8 @@
           bearing: currentBearing
         });
         
-        // 重新添加3D建筑层
+        // 重新添加图层和地形
+        await nextTick(); // 确保DOM更新
         add3DBuildings();
         
         // 更新isDarkMode状态
@@ -929,6 +1067,46 @@
     return patrolStatus.value;
   };
   
+  // 新增巡逻区域绘制相关方法
+  const toggleDrawingPatrolArea = () => {
+    isDrawingPatrolArea.value = !isDrawingPatrolArea.value;
+    if (!isDrawingPatrolArea.value) {
+      // 如果关闭绘制模式，清除当前绘制的点
+      patrolAreaPoints.value = [];
+    } else {
+      // 进入绘制模式，可以添加提示或改变光标样式
+      map.getCanvas().style.cursor = 'crosshair';
+    }
+    if (!isDrawingPatrolArea.value) {
+        map.getCanvas().style.cursor = ''; // 恢复默认光标
+    }
+  };
+
+  const completeDrawingPatrolArea = () => {
+    if (patrolAreaPoints.value.length >= 3) {
+      const finalPolygon = [...patrolAreaPoints.value, patrolAreaPoints.value[0]]; // 闭合多边形
+      emit('patrol-area-drawn', finalPolygon); // 发送包含闭合点的完整路径
+      isDrawingPatrolArea.value = false;
+      patrolAreaPoints.value = []; // 清空
+      map.getCanvas().style.cursor = ''; // 恢复默认光标
+    } else {
+      console.warn("需要至少3个点来完成绘制");
+      // 可以添加用户提示
+    }
+  };
+
+  const cancelDrawingPatrolArea = () => {
+    isDrawingPatrolArea.value = false;
+    patrolAreaPoints.value = []; // 清空
+    map.getCanvas().style.cursor = ''; // 恢复默认光标
+  };
+
+  const undoLastPatrolPoint = () => {
+    if (patrolAreaPoints.value.length > 0) {
+      patrolAreaPoints.value.pop();
+    }
+  };
+  
   // Mount component
   onMounted(() => {
     console.log('Map3D component mounted.');
@@ -975,7 +1153,9 @@
     startDronePatrol,
     stopDronePatrol,
     getPatrolStatus,
-    changeMapStyle
+    changeMapStyle,
+    startDrawingPatrolArea: toggleDrawingPatrolArea,
+    cancelDrawingPatrolArea
   })
   </script>
   

@@ -27,7 +27,27 @@
   top: 2vh;
   right: 2vw;
   width: 30vw;
+  max-height: 90vh;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.left-panel {
+  position: absolute;
+  top: 2vh;
+  left: 2vw;
+  width: 30vw;
+  max-height: 90vh;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .n-drawer {
@@ -51,4 +71,11 @@
   flex: 1;
   border-left: 1px solid #eee;
   min-width: 500px;
+}
+
+.info-card {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }

@@ -3,9 +3,28 @@
   <div class="control-layer">
     <!-- 创建任务按钮 -->
     <div class="floating-button">
-      <n-button type="primary" size="medium" @click="showPatrolCreator = true">
-        创建巡逻任务
+      <n-button type="primary" size="medium" @click="showPatrolCreator = !showPatrolCreator">
+        {{ showPatrolCreator ? '关闭创建' : '创建巡逻任务' }}
       </n-button>
+    </div>
+
+    <!-- 左侧任务创建面板 -->
+    <div v-if="showPatrolCreator" class="left-panel">
+      <div class="info-card">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-medium">创建巡逻任务</h3>
+          <n-button quaternary circle size="small" @click="closePatrolCreator">
+            <template #icon>
+              <n-icon><close-icon /></n-icon>
+            </template>
+          </n-button>
+        </div>
+        <patrol-task-creator
+          ref="patrolCreatorRef"
+          :drones="availableDrones"
+          @submit="handlePatrolTaskSubmit"
+        />
+      </div>
     </div>
 
     <!-- 右侧信息面板 -->
@@ -29,22 +48,6 @@
       />
     </div>
   </div>
-
-  <!-- 任务创建抽屉 -->
-  <n-drawer
-    v-model:show="showPatrolCreator"
-    width="800"
-    placement="left"
-  >
-    <n-drawer-content title="创建巡逻任务">
-      <patrol-task-creator
-        ref="patrolCreatorRef"
-        :drones="availableDrones"
-        @submit="handlePatrolTaskSubmit"
-        @waypoint-selection-change="handleWaypointSelectionChange"
-      />
-    </n-drawer-content>
-  </n-drawer>
 
   <!-- 任务详情弹窗 -->
   <n-modal

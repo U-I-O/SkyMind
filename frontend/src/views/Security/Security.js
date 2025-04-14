@@ -6,6 +6,7 @@ import PatrolTaskList from '@/components/patrol/PatrolTaskList.vue';
 import PatrolTaskCreator from '@/components/patrol/PatrolTaskCreator.vue';
 import PatrolTaskDetail from '@/components/patrol/PatrolTaskDetail.vue';
 import SecurityEventList from '@/components/security/SecurityEventList.vue';
+import { CloseOutline as CloseIcon } from '@vicons/ionicons5';
 
 export default {
   name: 'SecurityView',
@@ -18,7 +19,8 @@ export default {
     PatrolTaskList,
     PatrolTaskCreator,
     PatrolTaskDetail,
-    SecurityEventList
+    SecurityEventList,
+    CloseIcon
   },
 
   setup() {
@@ -38,13 +40,12 @@ export default {
         status: 'active',
         createTime: new Date().toISOString(),
         drones: ['drone-001', 'drone-002'],
-        altitude: 100,
         speed: 5,
-        mode: 'loop',
-        waypoints: [
-          { lng: 114.367, lat: 30.54, altitude: 100 },
-          { lng: 114.368, lat: 30.542, altitude: 100 },
-          { lng: 114.366, lat: 30.538, altitude: 100 }
+        patrolArea: [
+          [114.367, 30.54], 
+          [114.368, 30.542], 
+          [114.366, 30.538],
+          [114.367, 30.54]
         ]
       },
       {
@@ -53,12 +54,12 @@ export default {
         status: 'stopped',
         createTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         drones: ['drone-003'],
-        altitude: 80,
         speed: 4,
-        mode: 'single',
-        waypoints: [
-          { lng: 114.365, lat: 30.535, altitude: 80 },
-          { lng: 114.366, lat: 30.536, altitude: 80 }
+        patrolArea: [
+          [114.365, 30.535], 
+          [114.366, 30.536],
+          [114.364, 30.5365], 
+          [114.365, 30.535]
         ]
       }
     ]);
@@ -106,25 +107,20 @@ export default {
       }
     };
 
-    const handleMapClick = (event) => {
-      if (patrolCreatorRef.value?.isSelectingWaypoints) {
-        patrolCreatorRef.value.addWaypoint(event.coordinates);
-      }
-    };
-
-    const handleWaypointSelectionChange = (isSelecting) => {
-      // 处理选点模式变化
-    };
-
     const handlePatrolTaskSubmit = (taskData) => {
+      const selectedDroneIds = ['drone-001'];
+      
       tasks.value.unshift({
         id: `task-${Date.now()}`,
         ...taskData,
-        status: 'active',
+        drones: selectedDroneIds,
+        status: 'pending',
         createTime: new Date().toISOString()
       });
       showPatrolCreator.value = false;
       message.success('巡逻任务创建成功');
+      
+      console.log("New task created:", tasks.value[0]);
     };
 
     const openTaskDetail = (task) => {
@@ -174,6 +170,13 @@ export default {
       }
     };
 
+    const closePatrolCreator = () => {
+      showPatrolCreator.value = false;
+      if (patrolCreatorRef.value && patrolCreatorRef.value.isDrawingArea) {
+        patrolCreatorRef.value.cancelDrawing();
+      }
+    };
+
     return {
       mapRef,
       tasks,
@@ -186,8 +189,6 @@ export default {
       taskFilter,
       filterOptions,
       handleMapLoaded,
-      handleMapClick,
-      handleWaypointSelectionChange,
       handlePatrolTaskSubmit,
       openTaskDetail,
       closeTaskDetail,
@@ -196,7 +197,8 @@ export default {
       handleFilterChange,
       viewAllEvents,
       openEventDetail,
-      focusOnEvent
+      focusOnEvent,
+      closePatrolCreator
     };
   }
 };

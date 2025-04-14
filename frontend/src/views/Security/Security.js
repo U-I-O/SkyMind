@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { NButton, NModal, useMessage } from 'naive-ui';
+import { NButton, NModal, NDrawer, NDrawerContent, useMessage } from 'naive-ui';
 import Map3D from '@/components/map/Map3D.vue';
 import PatrolTaskList from '@/components/patrol/PatrolTaskList.vue';
 import PatrolTaskCreator from '@/components/patrol/PatrolTaskCreator.vue';
@@ -13,6 +13,8 @@ export default {
     Map3D,
     NButton,
     NModal,
+    NDrawer,
+    NDrawerContent,
     PatrolTaskList,
     PatrolTaskCreator,
     PatrolTaskDetail,

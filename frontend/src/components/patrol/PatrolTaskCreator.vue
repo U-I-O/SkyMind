@@ -1,5 +1,6 @@
 <template>
-  <div class="patrol-task-creator">
+  <div class="patrol-task-creator drawer-container">
+    <div class="form-container">
     <n-form
       ref="formRef"
       :model="formModel"
@@ -11,24 +12,8 @@
       <n-form-item label="任务名称" path="name">
         <n-input v-model:value="formModel.name" placeholder="请输入任务名称" />
       </n-form-item>
-      
-      <n-form-item label="选择无人机" path="droneIds">
-        <n-select
-          v-model:value="formModel.droneIds"
-          multiple
-          :options="drones"
-          placeholder="请选择执行任务的无人机"
-        />
-      </n-form-item>
 
-      <n-form-item label="巡逻高度" path="altitude">
-        <n-input-number
-          v-model:value="formModel.altitude"
-          :min="0"
-          :max="500"
-          placeholder="巡逻高度(米)"
-        />
-      </n-form-item>
+
 
       <n-form-item label="巡逻速度" path="speed">
         <n-input-number
@@ -46,6 +31,53 @@
             <n-radio value="loop">循环巡逻</n-radio>
           </n-space>
         </n-radio-group>
+      </n-form-item>
+
+      <n-form-item label="任务时段" path="scheduleType">
+        <n-radio-group v-model:value="formModel.scheduleType">
+          <n-space>
+            <n-radio value="date">指定日期</n-radio>
+            <n-radio value="week">每周</n-radio>
+          </n-space>
+        </n-radio-group>
+        <n-space vertical>
+          <n-date-picker
+            v-if="formModel.scheduleType === 'date'"
+            v-model:value="formModel.date"
+            type="date"
+            placeholder="选择日期"
+            clearable
+          />
+          <n-select
+            v-if="formModel.scheduleType === 'week'"
+            v-model:value="formModel.weekdays"
+            multiple
+            :options="[
+              { label: '周一', value: 1 },
+              { label: '周二', value: 2 },
+              { label: '周三', value: 3 },
+              { label: '周四', value: 4 },
+              { label: '周五', value: 5 },
+              { label: '周六', value: 6 },
+              { label: '周日', value: 0 }
+            ]"
+            placeholder="选择周几"
+          />
+          <n-time-picker
+            v-model:value="formModel.time"
+            format="HH:mm"
+            placeholder="选择时间"
+            clearable
+          />
+        </n-space>
+      </n-form-item>
+
+      <n-form-item label="执行趟数" path="rounds">
+        <n-input-number
+          v-model:value="formModel.rounds"
+          :min="1"
+          placeholder="执行趟数"
+        />
       </n-form-item>
 
       <n-form-item label="巡逻路径" path="waypoints">
@@ -81,8 +113,8 @@
               <tbody>
                 <tr v-for="(point, index) in formModel.waypoints" :key="index">
                   <td>{{ index + 1 }}</td>
-                  <td>{{ point.lng }}</td>
-                  <td>{{ point.lat }}</td>
+                  <td>{{ point.lng.toFixed(4) }}</td>
+                  <td>{{ point.lat.toFixed(4) }}</td>
                   <td>
                     <n-button 
                       size="tiny" 
@@ -106,6 +138,13 @@
         </n-space>
       </div>
     </n-form>
+    </div>
+    <div class="map-container">
+      <SecurityMap3D 
+        ref="map3dRef"
+        @waypoint-added="addWaypoint"
+      />
+    </div>
   </div>
 </template>
 
@@ -116,19 +155,21 @@ import {
   NFormItem, 
   NInput, 
   NInputNumber, 
-  NSelect, 
   NRadioGroup, 
   NRadio, 
   NSpace, 
   NButton,
   NTable,
+  NDatePicker,
+  NTimePicker,
   useMessage
 } from 'naive-ui';
+import SecurityMap3D from './SecurityMap3D.vue';
 
 const props = defineProps({
-  drones: {
-    type: Array,
-    default: () => []
+  map3dRef: {
+    type: Object,
+    required: false
   }
 });
 
@@ -143,7 +184,12 @@ const formModel = ref({
   altitude: 100,
   speed: 5,
   mode: 'single',
-  waypoints: []
+  waypoints: [],
+  scheduleType: 'date',
+  date: null,
+  weekdays: [],
+  time: null,
+  rounds: 1
 });
 
 const rules = {
@@ -177,12 +223,51 @@ const rules = {
     min: 2,
     message: '请至少选择两个路径点',
     trigger: 'change'
+  },
+  date: {
+    required: true,
+    validator: (rule, value) => {
+      if (formModel.value.scheduleType === 'date' && !value) {
+        return false;
+      }
+      return true;
+    },
+    message: '请选择任务日期',
+    trigger: 'change'
+  },
+  weekdays: {
+    required: true,
+    validator: (rule, value) => {
+      if (formModel.value.scheduleType === 'week' && value.length === 0) {
+        return false;
+      }
+      return true;
+    },
+    message: '请选择周几执行',
+    trigger: 'change'
+  },
+  time: {
+    required: true,
+    message: '请选择任务时间',
+    trigger: 'change'
+  },
+  rounds: {
+    required: true,
+    type: 'number',
+    min: 1,
+    message: '请输入执行趟数',
+    trigger: 'change'
   }
 };
 
 const toggleWaypointSelection = () => {
   isSelectingWaypoints.value = !isSelectingWaypoints.value;
   emit('waypoint-selection-change', isSelectingWaypoints.value);
+  if (isSelectingWaypoints.value) {
+    props.map3dRef.startWaypointSelection(addWaypoint);
+  } else {
+    props.map3dRef.stopWaypointSelection();
+  }
 };
 
 const addWaypoint = (coordinates) => {
@@ -205,7 +290,12 @@ const resetForm = () => {
     altitude: 100,
     speed: 5,
     mode: 'single',
-    waypoints: []
+    waypoints: [],
+    scheduleType: 'date',
+    date: null,
+    weekdays: [],
+    time: null,
+    rounds: 1
   };
 };
 
@@ -226,8 +316,23 @@ defineExpose({
 </script>
 
 <style scoped>
-.patrol-task-creator {
-  padding: 16px;
+.patrol-task-creator.drawer-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  
+  .form-container {
+    width: 40%;
+    min-width: 500px;
+    padding: 2vh 2vw;
+    overflow-y: auto;
+  }
+  
+  .map-container {
+    flex: 1;
+    border-left: 1px solid #eee;
+    min-width: 60%
+  }
 }
 
 .waypoints-container {
@@ -237,15 +342,37 @@ defineExpose({
 }
 
 .waypoints-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 12px;
+  
+  .waypoints-info {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .waypoints-actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
 .waypoints-list {
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
+  
+  :deep(table) {
+    width: 100%;
+    
+    th, td {
+      padding: 12px;
+      text-align: center;
+    }
+    
+    td:nth-child(2),
+    td:nth-child(3) {
+      font-family: monospace;
+    }
+  }
 }
 
 .form-actions {

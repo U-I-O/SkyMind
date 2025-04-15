@@ -75,7 +75,47 @@
             </div>
           </div>
           
-          <!-- 筛选条件面板 -->
+          <!-- 详情信息面板 (移到左侧) -->
+          <div v-if="selectedDrone" class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="font-bold text-lg">{{ selectedDrone.name }} 详情</h3>
+              <n-tag :type="getStatusType(selectedDrone.status)">{{ selectedDrone.status }}</n-tag>
+            </div>
+            
+            <n-divider style="margin: 10px 0;" />
+            
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <div class="text-gray-500 text-sm">电量</div>
+              <div class="text-sm font-medium">{{ selectedDrone.battery_level }}%</div>
+              
+              <div class="text-gray-500 text-sm">位置</div>
+              <div class="text-sm font-medium">
+                {{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}, 
+                {{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}
+              </div>
+              
+              <div class="text-gray-500 text-sm">速度</div>
+              <div class="text-sm font-medium">{{ selectedDrone.max_speed }} m/s</div>
+              
+              <div class="text-gray-500 text-sm">飞行时间</div>
+              <div class="text-sm font-medium">{{ selectedDrone.max_flight_time }} 分钟</div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <n-button size="small" @click="viewDroneDetails(selectedDrone)">查看完整详情</n-button>
+              <n-button size="small" type="primary" @click="openDroneControl(selectedDrone)">控制无人机</n-button>
+            </div>
+          </div>
+          
+          <!-- 未选择无人机时的提示 -->
+          <div v-if="!selectedDrone" class="floating-card bg-white bg-opacity-95 flex-1 flex items-center justify-center text-gray-400">
+            请从右侧列表中选择一个无人机查看详情
+          </div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto">
+          <!-- 筛选条件面板 (移到右侧) -->
           <div class="floating-card bg-white bg-opacity-95">
             <div class="flex justify-between items-center mb-4">
               <div class="flex-1">
@@ -123,7 +163,7 @@
             </div>
           </div>
           
-          <!-- 无人机列表 (独立面板) -->
+          <!-- 无人机列表 (移到右侧) -->
           <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col">
             <h2 class="font-bold text-lg mb-4">无人机列表</h2>
             
@@ -183,46 +223,6 @@
             <div v-else-if="viewMode === 'map'" class="flex-1 flex items-center justify-center">
               <div class="text-center text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
             </div>
-          </div>
-        </div>
-        
-        <!-- 右侧面板 -->
-        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto">
-          <!-- 详情信息面板 -->
-          <div v-if="selectedDrone" class="floating-card bg-white bg-opacity-95">
-            <div class="flex justify-between items-center mb-2">
-              <h3 class="font-bold text-lg">{{ selectedDrone.name }} 详情</h3>
-              <n-tag :type="getStatusType(selectedDrone.status)">{{ selectedDrone.status }}</n-tag>
-            </div>
-            
-            <n-divider style="margin: 10px 0;" />
-            
-            <div class="grid grid-cols-2 gap-2 mb-4">
-              <div class="text-gray-500 text-sm">电量</div>
-              <div class="text-sm font-medium">{{ selectedDrone.battery_level }}%</div>
-              
-              <div class="text-gray-500 text-sm">位置</div>
-              <div class="text-sm font-medium">
-                {{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}, 
-                {{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}
-              </div>
-              
-              <div class="text-gray-500 text-sm">速度</div>
-              <div class="text-sm font-medium">{{ selectedDrone.max_speed }} m/s</div>
-              
-              <div class="text-gray-500 text-sm">飞行时间</div>
-              <div class="text-sm font-medium">{{ selectedDrone.max_flight_time }} 分钟</div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-2">
-              <n-button size="small" @click="viewDroneDetails(selectedDrone)">查看完整详情</n-button>
-              <n-button size="small" type="primary" @click="openDroneControl(selectedDrone)">控制无人机</n-button>
-            </div>
-          </div>
-          
-          <!-- 未选择无人机时的提示 -->
-          <div v-if="!selectedDrone" class="floating-card bg-white bg-opacity-95 flex-1 flex items-center justify-center text-gray-400">
-            请从列表中选择一个无人机查看详情
           </div>
         </div>
       </div>
@@ -568,7 +568,9 @@ onMounted(() => {
 
 <style scoped>
 .floating-card {
-  @apply p-4 rounded-lg shadow-lg;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
 }

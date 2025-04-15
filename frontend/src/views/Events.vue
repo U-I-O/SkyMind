@@ -1,120 +1,122 @@
 <template>
-  <div class="h-full flex flex-col p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">事件中心</h1>
-      <div>
-        <n-button 
-          type="primary" 
-          :loading="loading" 
-          @click="refreshData"
-        >
-          <template #icon>
-            <n-icon><reload-outlined /></n-icon>
-          </template>
-          刷新
-        </n-button>
-      </div>
-    </div>
-    
-    <div class="grid grid-cols-12 gap-4 flex-1">
-      <!-- 左侧事件列表 -->
-      <div class="col-span-8 flex flex-col gap-4">
-        <div class="bg-white p-4 rounded-lg shadow">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium">事件列表</h3>
-            <n-select 
-              v-model:value="eventTypeFilter" 
-              :options="eventTypeOptions"
-              placeholder="筛选事件类型"
-              style="width: 180px"
-            />
-          </div>
-          
-          <n-data-table
-            :columns="columns"
-            :data="filteredEvents"
-            :loading="loading"
-            :pagination="pagination"
-            :row-key="row => row.id"
-            @update:page="handlePageChange"
-          />
-        </div>
-        
-        <div class="bg-white p-4 rounded-lg shadow flex-1">
-          <h3 class="text-lg font-medium mb-4">事件分布</h3>
-          <div class="h-full min-h-[300px] bg-gray-50 rounded-lg">
-            <Map3D ref="mapRef" />
-          </div>
-        </div>
-      </div>
-      
-      <!-- 右侧事件详情 -->
-      <div class="col-span-4 flex flex-col gap-4">
-        <div class="bg-white p-4 rounded-lg shadow">
-          <h3 class="text-lg font-medium mb-4">事件统计</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div class="text-2xl font-bold">{{ events.length }}</div>
-              <div class="text-sm text-gray-500">总事件数</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div class="text-2xl font-bold">{{ unhandledEvents.length }}</div>
-              <div class="text-sm text-gray-500">未处理事件</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div class="text-2xl font-bold">{{ highPriorityEvents.length }}</div>
-              <div class="text-sm text-gray-500">高优先级事件</div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg text-center">
-              <div class="text-2xl font-bold">{{ todayEvents.length }}</div>
-              <div class="text-sm text-gray-500">今日事件</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white p-4 rounded-lg shadow flex-1">
-          <h3 class="text-lg font-medium mb-4">事件详情</h3>
-          <div v-if="selectedEvent" class="space-y-4">
-            <n-descriptions bordered size="small" :column="1">
-              <n-descriptions-item label="ID">{{ selectedEvent.id }}</n-descriptions-item>
-              <n-descriptions-item label="标题">{{ selectedEvent.title }}</n-descriptions-item>
-              <n-descriptions-item label="类型">
-                <n-tag :type="getEventTypeTag(selectedEvent.type)">
-                  {{ selectedEvent.type }}
-                </n-tag>
-              </n-descriptions-item>
-              <n-descriptions-item label="优先级">
-                <n-tag :type="getPriorityTag(selectedEvent.priority)">
-                  {{ selectedEvent.priority }}
-                </n-tag>
-              </n-descriptions-item>
-              <n-descriptions-item label="状态">
-                <n-tag :type="getStatusTag(selectedEvent.status)">
-                  {{ selectedEvent.status }}
-                </n-tag>
-              </n-descriptions-item>
-              <n-descriptions-item label="报告时间">
-                {{ formatTime(selectedEvent.reportTime) }}
-              </n-descriptions-item>
-              <n-descriptions-item label="位置">
-                {{ selectedEvent.location }}
-              </n-descriptions-item>
-            </n-descriptions>
-            
-            <div>
-              <div class="font-medium mb-2">描述:</div>
-              <div class="text-sm p-3 bg-gray-50 rounded-md">
-                {{ selectedEvent.description }}
+  <div class="h-full pointer-events-none">
+    <!-- 漂浮面板容器 -->
+    <div class="p-4 h-full">
+      <div class="h-full grid grid-cols-12 gap-4">
+        <!-- 左侧事件列表面板 -->
+        <div class="col-span-6 flex flex-col gap-4 pointer-events-auto">
+          <!-- 标题、筛选和统计面板 -->
+          <div class="floating-card bg-white bg-opacity-95">
+            <div class="flex justify-between items-center mb-4">
+              <h1 class="text-2xl font-bold">事件中心</h1>
+              <div>
+                <n-button 
+                  :loading="loading" 
+                  @click="refreshData"
+                >
+                  <template #icon>
+                    <n-icon><reload-outlined /></n-icon>
+                  </template>
+                  刷新
+                </n-button>
               </div>
             </div>
             
-            <div v-if="selectedEvent.status !== 'resolved'" class="flex justify-between">
-              <n-button @click="assignTask(selectedEvent)">分配任务</n-button>
-              <n-button type="primary" @click="resolveEvent(selectedEvent)">标记为已解决</n-button>
+            <!-- 事件类型筛选 -->
+            <div class="mb-4">
+              <n-select 
+                v-model:value="eventTypeFilter" 
+                :options="eventTypeOptions"
+                placeholder="筛选事件类型"
+                style="width: 100%"
+              />
+            </div>
+            
+            <!-- 事件统计 - 从右侧面板移到这里 -->
+            <div class="grid grid-cols-4 gap-3">
+              <div class="p-2 bg-gray-50 rounded-lg text-center">
+                <div class="text-xl font-bold">{{ events.length }}</div>
+                <div class="text-xs text-gray-500">总事件数</div>
+              </div>
+              <div class="p-2 bg-gray-50 rounded-lg text-center">
+                <div class="text-xl font-bold">{{ unhandledEvents.length }}</div>
+                <div class="text-xs text-gray-500">未处理事件</div>
+              </div>
+              <div class="p-2 bg-gray-50 rounded-lg text-center">
+                <div class="text-xl font-bold">{{ highPriorityEvents.length }}</div>
+                <div class="text-xs text-gray-500">高优先级事件</div>
+              </div>
+              <div class="p-2 bg-gray-50 rounded-lg text-center">
+                <div class="text-xl font-bold">{{ todayEvents.length }}</div>
+                <div class="text-xs text-gray-500">今日事件</div>
+              </div>
             </div>
           </div>
-          <div v-else class="h-full flex items-center justify-center text-gray-400">
-            选择一个事件查看详情
+          
+          <!-- 事件列表面板 -->
+          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col">
+            <h3 class="text-lg font-medium mb-3">事件列表</h3>
+            
+            <n-data-table
+              :columns="columns"
+              :data="filteredEvents"
+              :loading="loading"
+              :pagination="pagination"
+              :row-key="row => row.id"
+              @update:page="handlePageChange"
+              class="flex-1 overflow-auto"
+              :row-props="(row) => ({ class: 'compact-row' })"
+            />
+          </div>
+        </div>
+        
+        <!-- 右侧事件详情面板 -->
+        <div class="col-span-6 flex flex-col gap-4 pointer-events-auto">
+          <!-- 事件详情面板 -->
+          <div class="floating-card bg-white bg-opacity-95 flex-1">
+            <h3 class="text-lg font-medium mb-4">事件详情</h3>
+            <div v-if="selectedEvent" class="space-y-4">
+              <n-descriptions bordered size="small" :column="1">
+                <n-descriptions-item label="ID">{{ selectedEvent.id }}</n-descriptions-item>
+                <n-descriptions-item label="标题">{{ selectedEvent.title }}</n-descriptions-item>
+                <n-descriptions-item label="类型">
+                  <n-tag :type="getEventTypeTag(selectedEvent.type)">
+                    {{ selectedEvent.type }}
+                  </n-tag>
+                </n-descriptions-item>
+                <n-descriptions-item label="优先级">
+                  <n-tag :type="getPriorityTag(selectedEvent.priority)">
+                    {{ selectedEvent.priority }}
+                  </n-tag>
+                </n-descriptions-item>
+                <n-descriptions-item label="状态">
+                  <n-tag :type="getStatusTag(selectedEvent.status)">
+                    {{ selectedEvent.status }}
+                  </n-tag>
+                </n-descriptions-item>
+                <n-descriptions-item label="报告时间">
+                  {{ formatTime(selectedEvent.reportTime) }}
+                </n-descriptions-item>
+                <n-descriptions-item label="位置">
+                  {{ selectedEvent.location }}
+                </n-descriptions-item>
+              </n-descriptions>
+              
+              <div>
+                <div class="font-medium mb-2">描述:</div>
+                <div class="text-sm p-3 bg-gray-50 rounded-md">
+                  {{ selectedEvent.description }}
+                </div>
+              </div>
+              
+              <div v-if="selectedEvent.status !== 'resolved'" class="flex justify-between">
+                <n-button @click="assignTask(selectedEvent)">分配任务</n-button>
+                <n-button type="primary" @click="resolveEvent(selectedEvent)">标记为已解决</n-button>
+              </div>
+            </div>
+            <div v-else class="h-full flex items-center justify-center text-gray-400">
+              选择一个事件查看详情
+            </div>
           </div>
         </div>
       </div>
@@ -143,7 +145,10 @@
         <n-form-item label="任务类型" path="type">
           <n-select
             v-model:value="taskForm.type"
-            :options="taskTypeOptions"
+            :options="[
+              { label: '安防巡检', value: 'surveillance' },
+              { label: '应急响应', value: 'emergency' }
+            ]"
             placeholder="选择任务类型"
           />
         </n-form-item>
@@ -244,22 +249,23 @@ const columns = [
   {
     title: 'ID',
     key: 'id',
-    width: 80
+    width: 60
   },
   {
     title: '标题',
     key: 'title',
-    width: 200
+    width: 140
   },
   {
     title: '类型',
     key: 'type',
-    width: 100,
+    width: 80,
     render(row) {
       return h(
         NTag,
         {
-          type: getEventTypeTag(row.type)
+          type: getEventTypeTag(row.type),
+          size: 'small'
         },
         { default: () => row.type }
       )
@@ -268,12 +274,13 @@ const columns = [
   {
     title: '优先级',
     key: 'priority',
-    width: 100,
+    width: 70,
     render(row) {
       return h(
         NTag,
         {
-          type: getPriorityTag(row.priority)
+          type: getPriorityTag(row.priority),
+          size: 'small'
         },
         { default: () => row.priority }
       )
@@ -282,12 +289,13 @@ const columns = [
   {
     title: '状态',
     key: 'status',
-    width: 100,
+    width: 70,
     render(row) {
       return h(
         NTag,
         {
-          type: getStatusTag(row.status)
+          type: getStatusTag(row.status),
+          size: 'small'
         },
         { default: () => row.status }
       )
@@ -296,7 +304,7 @@ const columns = [
   {
     title: '报告时间',
     key: 'reportTime',
-    width: 180,
+    width: 150,
     render(row) {
       return formatTime(row.reportTime)
     }
@@ -304,7 +312,7 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 180,
+    width: 120,
     render(row) {
       return h('div', [
         h(
@@ -340,11 +348,10 @@ const eventTypeOptions = [
   { label: '任务', value: 'task' }
 ]
 
+// 将任务类型选项修改为只包含安防巡检和应急响应
 const taskTypeOptions = [
-  { label: '巡检', value: 'inspection' },
-  { label: '监控', value: 'surveillance' },
-  { label: '修复', value: 'repair' },
-  { label: '应急', value: 'emergency' }
+  { label: '安防巡检', value: 'surveillance' },
+  { label: '应急响应', value: 'emergency' }
 ]
 
 const droneOptions = [
@@ -591,3 +598,20 @@ onMounted(() => {
 // 导入h函数用于渲染函数
 import { h } from 'vue'
 </script> 
+
+<style scoped>
+.floating-card {
+  @apply p-4 rounded-lg shadow-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+/* 更紧凑的表格行 */
+:deep(.compact-row) td {
+  padding: 6px 8px !important;
+}
+
+:deep(.n-tag) {
+  padding: 0 6px !important;
+}
+</style>

@@ -108,8 +108,9 @@
             </template>
           </n-button>
 
-          <!-- 绘制巡逻区域 -->
+          <!-- 绘制巡逻区域 - 仅在任务创建模式下显示 -->
           <n-button 
+            v-if="taskStore.isDrawingPatrolArea"
             circle 
             :type="isDrawingPatrolArea ? 'primary' : 'default'" 
             secondary 
@@ -169,6 +170,19 @@
           <span class="ml-2 text-xs">{{ hoveredDroneInfo.battery_level }}%</span>
         </div>
       </div>
+      
+      <!-- 巡逻区域信息弹窗 -->
+      <div v-if="hoveredPatrolArea" class="absolute top-4 left-4 z-20 bg-white rounded-md shadow-md p-3 text-sm max-w-xs">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-medium">{{ hoveredPatrolArea.taskName || '巡逻任务' }}</div>
+          <n-tag size="small" type="info">巡逻区域</n-tag>
+        </div>
+        <div v-if="hoveredPatrolArea.taskId" class="text-gray-600 text-xs mb-1">任务ID: {{ hoveredPatrolArea.taskId }}</div>
+        <div v-if="hoveredPatrolArea.speed" class="text-gray-600 text-xs mb-1">速度: {{ hoveredPatrolArea.speed }}米/秒</div>
+        <div v-if="hoveredPatrolArea.createdAt" class="text-gray-600 text-xs mb-1">
+          创建时间: {{ new Date(hoveredPatrolArea.createdAt).toLocaleString() }}
+        </div>
+      </div>
     </div>
   </template>
   
@@ -185,6 +199,7 @@
     HighlightOutlined as DrawIcon
   } from '@vicons/antd'
   import { NProgress, NSpin, NButton, NIcon, NPopover, NCheckbox, NRadioGroup, NRadio, NSpace, NTag } from 'naive-ui'
+  import { useTaskStore } from '@/store/task'
   
   // 导入地图工具函数
   import {
@@ -199,6 +214,10 @@
     // 巡逻区域管理
     toggleDrawingMode, addPatrolPoint, removeLastPoint, completePatrolArea, isValidPatrolArea
   } from '@/utils/map'
+  import { PolygonLayer, ScatterplotLayer } from '@deck.gl/layers'
+  
+  // 初始化任务store
+  const taskStore = useTaskStore()
   
   // Props and emits
   const props = defineProps({
@@ -273,13 +292,28 @@
     altitude: 0 
   })
   const hoveredDroneInfo = ref(null)
+  const hoveredPatrolArea = ref(null)
   const clickedDroneId = ref(null)
   const mapStyle = ref(import.meta.env.VITE_DEFAULT_MAP_STYLE || MAP_STYLES.STREETS)
   const isDarkMode = computed(() => mapStyle.value.includes('dark'))
   
-  // 巡逻区域绘制相关状态
-  const isDrawingPatrolArea = ref(false)
-  const patrolAreaPoints = ref([])
+  // 存储已完成的巡逻区域
+  const completedPatrolAreas = ref([])
+  
+  // 临时巡逻区域 - 用于完成绘制但还未正式创建任务时
+  const tempPatrolArea = ref(null)
+  
+  // 巡逻区域绘制相关状态 - 使用计算属性与store联动
+  const isDrawingPatrolArea = computed({
+    get: () => taskStore.isDrawingPatrolArea,
+    set: (value) => {
+      if (!value) {
+        taskStore.cancelDrawingPatrolArea()
+      }
+    }
+  })
+  
+  const patrolAreaPoints = computed(() => taskStore.patrolAreaCoordinates)
   
   // Layer controls
   const showBuildingsLayer = ref(true)
@@ -299,8 +333,9 @@
     showEventsLayer.value,
     showNoFlyZonesLayer.value,
     showFlightPathsLayer.value,
-    isDrawingPatrolArea.value,
-    patrolAreaPoints.value,
+    taskStore.isDrawingPatrolArea,
+    taskStore.patrolAreaCoordinates,
+    taskStore.patrolAreaGeoJSON,
     props.selectedDroneId
   ], () => {
     if (deck) renderDeckLayers()
@@ -481,12 +516,9 @@
       }
       
       // 如果在绘制模式，则添加点位
-      if (isDrawingPatrolArea.value) {
-        patrolAreaPoints.value = addPatrolPoint(
-          patrolAreaPoints.value,
-          coordinates.lng,
-          coordinates.lat
-        )
+      if (taskStore.isDrawingPatrolArea) {
+        // 使用store添加点位
+        taskStore.addPatrolAreaPoint([coordinates.lng, coordinates.lat])
       } else {
         // 正常点击事件，通知父组件
         emit('map-clicked', coordinates)
@@ -509,11 +541,17 @@
         onHover: ({ object }) => {
             if (!object) {
               hoveredDroneInfo.value = null
+            hoveredPatrolArea.value = null
               return null
             }
             
             if (object.type === 'drone') {
               hoveredDroneInfo.value = object
+            hoveredPatrolArea.value = null
+          } else if (object.taskId || object.taskFormId) {
+            // 识别为巡逻区域
+            hoveredPatrolArea.value = object
+            hoveredDroneInfo.value = null
             }
             
             return null
@@ -524,6 +562,9 @@
             if (object.type === 'drone') {
               clickedDroneId.value = object.drone_id
               emit('drone-clicked', object.drone_id)
+          } else if (object.taskId || object.taskFormId) {
+            // 点击巡逻区域，可以添加处理逻辑
+            console.log('巡逻区域被点击:', object)
             }
           }
         })
@@ -561,10 +602,85 @@
       layers.push(createEventsLayer(props.events))
     }
     
-    // 添加巡逻区域绘制图层
+    // 添加临时巡逻区域图层 - 绘制完成但未创建任务时
+    if (tempPatrolArea.value && tempPatrolArea.value.geojson && 
+        tempPatrolArea.value.geojson.geometry && 
+        tempPatrolArea.value.geojson.geometry.coordinates) {
+      layers.push(
+        new PolygonLayer({
+          id: 'temp-patrol-area',
+          data: [{
+            polygon: tempPatrolArea.value.geojson.geometry.coordinates,
+            color: [255, 165, 0, 100], // 橙色半透明填充，表示临时状态
+            taskFormId: tempPatrolArea.value.taskFormId
+          }],
+          pickable: true,
+          stroked: true,
+          filled: true,
+          wireframe: false,
+          lineWidthMinPixels: 2,
+          getPolygon: d => d.polygon,
+          getFillColor: d => d.color,
+          getLineColor: [255, 165, 0, 200], // 橙色边框
+          getLineWidth: 2
+        })
+      )
+      
+      // 显示临时区域的点
+      if (tempPatrolArea.value.points && tempPatrolArea.value.points.length > 0) {
+      layers.push(
+        new ScatterplotLayer({
+            id: 'temp-patrol-area-points',
+            data: tempPatrolArea.value.points.map((p, index) => ({ position: p, index })),
+          pickable: false,
+          stroked: true,
+          filled: true,
+          radiusScale: 1,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 8,
+          lineWidthMinPixels: 1,
+          getPosition: d => d.position,
+            getFillColor: [255, 165, 0, 200], // 橙色
+          getLineColor: [255, 255, 255],
+          getRadius: 5,
+        })
+        )
+      }
+    }
+    
+    // 添加已完成的巡逻区域图层
+    if (completedPatrolAreas.value.length > 0) {
+      // 为每个完成的巡逻区域创建一个多边形图层
+      completedPatrolAreas.value.forEach((area, index) => {
+        if (area.geojson && area.geojson.geometry && area.geojson.geometry.coordinates) {
+         layers.push(
+            new PolygonLayer({
+              id: `completed-patrol-area-${index}`,
+              data: [{
+                polygon: area.geojson.geometry.coordinates,
+                color: [59, 130, 246, 100], // 蓝色半透明填充
+                taskId: area.taskId || area.taskFormId
+              }],
+              pickable: true,
+              stroked: true,
+              filled: true,
+              wireframe: false,
+              lineWidthMinPixels: 2,
+              getPolygon: d => d.polygon,
+              getFillColor: d => d.color,
+              getLineColor: [59, 130, 246, 200],
+              getLineWidth: 2
+            })
+          )
+        }
+      });
+    }
+    
+    // 添加巡逻区域绘制图层 - 使用taskStore中的数据
     const patrolLayers = createPatrolAreaLayers(
-      isDrawingPatrolArea.value,
-      patrolAreaPoints.value
+      taskStore.isDrawingPatrolArea,
+      taskStore.patrolAreaCoordinates,
+      taskStore.patrolAreaGeoJSON
     )
     layers.push(...patrolLayers)
     
@@ -668,38 +784,125 @@
   // 获取巡逻状态
   const getPatrolStatus = () => patrolStatus.value
   
-  // 切换巡逻区域绘制模式
+  // 切换巡逻区域绘制模式 - 更新为使用store
   const toggleDrawingPatrolArea = () => {
-    isDrawingPatrolArea.value = !isDrawingPatrolArea.value
-    toggleDrawingMode(map, isDrawingPatrolArea.value, () => {
-      patrolAreaPoints.value = []
-    })
+    if (taskStore.isDrawingPatrolArea) {
+      // 取消绘制
+      taskStore.cancelDrawingPatrolArea()
+      // 更新UI
+      map.getCanvas().style.cursor = ''
+    } else {
+      // 不允许从地图直接开始绘制，需要从任务表单触发
+      console.warn('必须从巡逻任务表单开始绘制操作')
+    }
+    renderDeckLayers()
   }
   
-  // 完成巡逻区域绘制
+  /**
+   * 添加巡逻区域到地图
+   * @param {Object} patrolArea 巡逻区域对象
+   * @param {Boolean} isConfirmed 是否是已确认的任务
+   */
+  const addPatrolAreaToMap = (patrolArea, isConfirmed = true) => {
+    if (!patrolArea || !patrolArea.geojson) return;
+    
+    // 如果是确认的任务，则添加到已完成巡逻区域列表
+    if (isConfirmed) {
+      // 清除临时巡逻区域
+      tempPatrolArea.value = null;
+      
+      // 添加到已完成巡逻区域列表
+      completedPatrolAreas.value.push({
+        ...patrolArea,
+        addedAt: new Date()
+      });
+      
+      // 重新渲染图层
+      renderDeckLayers();
+    } else {
+      // 如果不是确认的任务，只设置为临时巡逻区域
+      tempPatrolArea.value = {
+        ...patrolArea,
+        isTemporary: true,
+        createdAt: new Date()
+      };
+      
+      // 重新渲染图层
+      renderDeckLayers();
+    }
+  }
+  
+  // 完成巡逻区域绘制 - 更新为使用store
   const completeDrawingPatrolArea = () => {
-    if (isValidPatrolArea(patrolAreaPoints.value)) {
-      const finalPolygon = completePatrolArea(patrolAreaPoints.value)
-      emit('patrol-area-drawn', finalPolygon)
-      isDrawingPatrolArea.value = false
-      patrolAreaPoints.value = []
+    if (taskStore.patrolAreaCoordinates.length >= 3) {
+      // 完成绘制，获取GeoJSON结果
+      const result = taskStore.completePatrolArea()
+      
+      // 设置为临时巡逻区域，等待任务创建完成后再永久保存
+      tempPatrolArea.value = {
+        ...result,
+        isTemporary: true,
+        createdAt: new Date()
+      }
+      
+      // 派发事件
+      emit('patrol-area-drawn', result)
+      
+      // 恢复光标
       map.getCanvas().style.cursor = ''
     } else {
       console.warn('需要至少3个点来完成绘制')
     }
   }
 
-  // 取消绘制
+  // 取消绘制 - 更新为使用store
   const cancelDrawingPatrolArea = () => {
-    isDrawingPatrolArea.value = false
-    patrolAreaPoints.value = []
+    // 取消绘制
+    taskStore.cancelDrawingPatrolArea()
+    
+    // 清除临时巡逻区域
+    tempPatrolArea.value = null
+    
+    // 恢复光标
     map.getCanvas().style.cursor = ''
+    
+    // 刷新图层
+    renderDeckLayers()
   }
   
   // 撤销上一个点
   const undoLastPatrolPoint = () => {
-    patrolAreaPoints.value = removeLastPoint(patrolAreaPoints.value)
+    if (taskStore.patrolAreaCoordinates.length > 0) {
+      // 使用 taskStore 的方法移除最后一个点
+      const removed = taskStore.removeLastPatrolAreaPoint();
+      if (removed) {
+        // 视图更新会通过 watch 自动触发
+      }
     }
+  }
+  
+  // 开始绘制巡逻区域 - 由父组件调用
+  const startDrawingPatrolArea = (taskFormId) => {
+    if (!map) {
+      console.warn('地图未初始化，无法开始绘制')
+      return
+    }
+    
+    // 使用store开始绘制
+    taskStore.startDrawingPatrolArea(taskFormId)
+    // 更新光标
+    map.getCanvas().style.cursor = 'crosshair'
+    // 渲染图层
+    renderDeckLayers()
+  }
+  
+  /**
+   * 清除临时巡逻区域
+   */
+  const clearTempPatrolArea = () => {
+    tempPatrolArea.value = null;
+    renderDeckLayers();
+  }
   
   // Component lifecycle hooks
   onMounted(() => {
@@ -727,6 +930,11 @@
       deck.finalize()
       deck = null
     }
+    
+    // 确保绘制模式被取消
+    if (taskStore.isDrawingPatrolArea) {
+      taskStore.cancelDrawingPatrolArea()
+    }
   })
   
   // 暴露公共方法
@@ -740,8 +948,11 @@
     stopDronePatrol,
     getPatrolStatus,
     changeMapStyle,
-    startDrawingPatrolArea: toggleDrawingPatrolArea,
-    cancelDrawingPatrolArea
+    startDrawingPatrolArea,
+    cancelDrawingPatrolArea,
+    completeDrawingPatrolArea,
+    addPatrolAreaToMap,
+    clearTempPatrolArea
   })
   </script>
   

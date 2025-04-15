@@ -212,20 +212,35 @@ export const createEventsLayer = (events) => {
  * 创建巡逻区域绘制相关图层
  * @param {Boolean} isDrawing 是否处于绘制模式
  * @param {Array} points 点位数组，每个点为[longitude, latitude]
+ * @param {Object} geoJson 凸包计算结果的GeoJSON对象
  * @returns {Array} 图层数组
  */
-export const createPatrolAreaLayers = (isDrawing, points) => {
+export const createPatrolAreaLayers = (isDrawing, points, geoJson) => {
   const layers = []
   
   if (!isDrawing || points.length === 0) {
     return layers
   }
 
-  // 显示已绘制的点
+  // 确定要显示的点 - 如果有凸包，则只显示凸包上的点
+  let pointsToShow = points;
+  
+  // 如果存在凸包数据，则只显示凸包上的点
+  if (geoJson && geoJson.geometry && geoJson.geometry.coordinates && geoJson.geometry.coordinates.length > 0) {
+    // 从 GeoJSON 中提取凸包上的点
+    // 注意：GeoJSON 中的坐标是闭合的(最后一个点与第一个点相同)，所以需要去掉最后一个
+    const hullPoints = geoJson.geometry.coordinates[0];
+    if (hullPoints.length > 1) {
+      // 去掉最后一个点（与第一个点重复）
+      pointsToShow = hullPoints.slice(0, -1);
+    }
+  }
+
+  // 显示凸包上的点
   layers.push(
     new ScatterplotLayer({
       id: 'patrol-area-points-layer',
-      data: points.map((p, index) => ({ position: p, index })),
+      data: pointsToShow.map((p, index) => ({ position: p, index })),
       pickable: false,
       stroked: true,
       filled: true,
@@ -240,12 +255,12 @@ export const createPatrolAreaLayers = (isDrawing, points) => {
     })
   )
 
-  // 显示连接线 (如果点数 > 1)
-  if (points.length > 1) {
+  // 显示凸包边缘连接线
+  if (pointsToShow.length > 1) {
     layers.push(
       new PathLayer({
         id: 'patrol-area-path-layer',
-        data: [{ path: points }], // Deck.gl PathLayer 需要 data 是一个数组，每个元素包含一个 path 属性
+        data: [{ path: pointsToShow }],
         pickable: false,
         widthScale: 1,
         widthMinPixels: 2,
@@ -258,16 +273,28 @@ export const createPatrolAreaLayers = (isDrawing, points) => {
 
   // 如果点数 > 2，显示一个填充的多边形预览
   if (points.length > 2) {
-    // 创建一个闭合的多边形（包括最后连回第一个点）
-    const closedPolygon = [...points]
+    let polygonData;
+    
+    // 优先使用凸包计算结果
+    if (geoJson && geoJson.geometry && geoJson.geometry.coordinates && geoJson.geometry.coordinates.length > 0) {
+      // 使用凸包坐标
+      polygonData = [{
+        polygon: geoJson.geometry.coordinates, // 使用GeoJSON中的坐标
+        color: [59, 130, 246, 80] // 浅蓝色半透明填充
+      }];
+    } else {
+      // 创建一个闭合的多边形（包括最后连回第一个点）
+      const closedPolygon = [...points];
+      polygonData = [{
+        polygon: [closedPolygon], // 注意 PolygonLayer 需要二维数组 [[p1, p2, p3, ...]]
+        color: [59, 130, 246, 80] // 浅蓝色半透明填充
+      }];
+    }
     
     layers.push(
       new PolygonLayer({
         id: 'patrol-area-preview-layer',
-        data: [{
-          polygon: [closedPolygon], // 注意 PolygonLayer 需要二维数组 [[p1, p2, p3, ...]]
-          color: [59, 130, 246, 80] // 浅蓝色半透明填充
-        }],
+        data: polygonData,
         pickable: false,
         stroked: true,
         filled: true,
@@ -280,19 +307,7 @@ export const createPatrolAreaLayers = (isDrawing, points) => {
       })
     )
     
-    // 闭合线使用实线
-    layers.push(
-      new PathLayer({
-        id: 'patrol-area-closing-path-layer',
-        data: [{ path: [points[points.length - 1], points[0]] }],
-        pickable: false,
-        widthScale: 1,
-        widthMinPixels: 2,
-        getPath: d => d.path,
-        getColor: [59, 130, 246, 255], // 蓝色
-        getWidth: 2
-      })
-    )
+    // 不再需要单独的闭合线，因为多边形边界已经是闭合的
   }
 
   return layers

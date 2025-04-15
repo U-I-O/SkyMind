@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as taskApi from '@/api/task'
+import { calculateConvexHull, coordsToGeoJSON } from '@/utils/map/patrolAreaManager'
 
 /**
  * Store for managing task state
@@ -14,6 +15,14 @@ export const useTaskStore = defineStore('task', () => {
   const loading = ref(false)
   const error = ref(null)
   const lastUpdated = ref(null)
+  
+  // 巡逻区域草稿状态
+  const patrolAreaDraft = ref({
+    isDrawing: false,     // 是否正在绘制巡逻区域
+    points: [],           // 绘制的点数组 [[lng, lat], ...]
+    geojson: null,        // GeoJSON 格式的巡逻区域
+    taskFormId: null      // 关联的任务表单ID
+  })
   
   // Computed
   const activeTasks = computed(() => 
@@ -79,6 +88,27 @@ export const useTaskStore = defineStore('task', () => {
   
   const totalTaskCount = computed(() => tasks.value.length)
   const activeTaskCount = computed(() => activeTasks.value.length)
+  
+  // 获取巡逻区域GeoJSON数据
+  const patrolAreaGeoJSON = computed(() => {
+    return patrolAreaDraft.value.geojson
+  })
+  
+  // 获取巡逻区域坐标数组
+  const patrolAreaCoordinates = computed(() => {
+    return patrolAreaDraft.value.points
+  })
+  
+  // 是否正在绘制巡逻区域
+  const isDrawingPatrolArea = computed(() => {
+    return patrolAreaDraft.value.isDrawing
+  })
+  
+  // 获取巡逻区域凸包(最外围点)
+  const patrolAreaConvexHull = computed(() => {
+    if (patrolAreaDraft.value.points.length < 3) return [];
+    return calculateConvexHull(patrolAreaDraft.value.points);
+  })
   
   // Actions
   
@@ -247,6 +277,108 @@ export const useTaskStore = defineStore('task', () => {
   }
   
   /**
+   * 开始绘制巡逻区域
+   * @param {string} taskFormId - 关联的任务表单ID
+   */
+  function startDrawingPatrolArea(taskFormId) {
+    patrolAreaDraft.value = {
+      isDrawing: true,
+      points: [],
+      geojson: null,
+      taskFormId
+    }
+  }
+  
+  /**
+   * 取消绘制巡逻区域
+   */
+  function cancelDrawingPatrolArea() {
+    patrolAreaDraft.value = {
+      isDrawing: false,
+      points: [],
+      geojson: null,
+      taskFormId: null
+    }
+  }
+  
+  /**
+   * 添加巡逻区域点位
+   * @param {Array} point - 点位坐标 [lng, lat]
+   */
+  function addPatrolAreaPoint(point) {
+    patrolAreaDraft.value.points.push(point)
+    // 每次添加点位后更新GeoJSON
+    updatePatrolAreaGeoJSON()
+  }
+  
+  /**
+   * 移除最后一个巡逻区域点位
+   * @returns {Boolean} 是否成功移除
+   */
+  function removeLastPatrolAreaPoint() {
+    if (patrolAreaDraft.value.points.length === 0) {
+      return false
+    }
+    
+    // 移除最后一个点
+    patrolAreaDraft.value.points.pop()
+    
+    // 更新GeoJSON
+    updatePatrolAreaGeoJSON()
+    return true
+  }
+  
+  /**
+   * 更新GeoJSON数据
+   * 使用凸包算法创建最外围的巡逻区域
+   * 并更新点位数组，只保留凸包上的点
+   */
+  function updatePatrolAreaGeoJSON() {
+    if (patrolAreaDraft.value.points.length < 3) {
+      patrolAreaDraft.value.geojson = null
+      return
+    }
+    
+    // 计算凸包（最外围的点）
+    const hullPoints = calculateConvexHull(patrolAreaDraft.value.points);
+    
+    // 使用凸包创建GeoJSON
+    patrolAreaDraft.value.geojson = coordsToGeoJSON(hullPoints, {
+      taskFormId: patrolAreaDraft.value.taskFormId
+    });
+    
+    // 更新点位数组，只保留凸包上的点
+    // 这样用户添加的内部点会被自动移除
+    patrolAreaDraft.value.points = [...hullPoints];
+  }
+  
+  /**
+   * 完成巡逻区域绘制
+   * @returns {Object} 完成的巡逻区域GeoJSON
+   */
+  function completePatrolArea() {
+    updatePatrolAreaGeoJSON()
+    
+    // 获取凸包（最外围点）- 此时 patrolAreaDraft.value.points 已经只包含凸包上的点
+    const convexHull = patrolAreaDraft.value.points;
+    
+    const result = { 
+      ...patrolAreaDraft.value,
+      convexHull // 添加凸包数据
+    }
+    
+    // 提交后重置状态
+    patrolAreaDraft.value.isDrawing = false
+    
+    return {
+      geojson: result.geojson,
+      points: [...convexHull], // 只包含凸包上的点
+      convexHull: [...convexHull], // 包含凸包
+      taskFormId: result.taskFormId
+    }
+  }
+
+  /**
    * Reset the store to its initial state
    */
   function reset() {
@@ -254,6 +386,14 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = false
     error.value = null
     lastUpdated.value = null
+    
+    // 重置巡逻区域草稿
+    patrolAreaDraft.value = {
+      isDrawing: false,
+      points: [],
+      geojson: null,
+      taskFormId: null
+    }
   }
   
   return {
@@ -262,6 +402,7 @@ export const useTaskStore = defineStore('task', () => {
     loading,
     error,
     lastUpdated,
+    patrolAreaDraft,
     
     // Computed
     activeTasks,
@@ -272,6 +413,10 @@ export const useTaskStore = defineStore('task', () => {
     tasksByDroneId,
     totalTaskCount,
     activeTaskCount,
+    patrolAreaGeoJSON,
+    patrolAreaCoordinates,
+    isDrawingPatrolArea,
+    patrolAreaConvexHull,
     
     // Actions
     fetchTasks,
@@ -284,6 +429,14 @@ export const useTaskStore = defineStore('task', () => {
     updateTaskStatus,
     assignTaskToDrone,
     removeTask,
-    reset
+    reset,
+    
+    // 巡逻区域相关方法
+    startDrawingPatrolArea,
+    cancelDrawingPatrolArea,
+    addPatrolAreaPoint,
+    removeLastPatrolAreaPoint,
+    updatePatrolAreaGeoJSON,
+    completePatrolArea
   }
 }) 

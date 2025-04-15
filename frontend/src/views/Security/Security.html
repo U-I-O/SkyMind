@@ -1,53 +1,67 @@
-<div class="security-container">  
-  <!-- 悬浮控制层 -->
-  <div class="control-layer">
-    <!-- 创建任务按钮 -->
-    <div class="floating-button">
-      <n-button type="primary" size="medium" @click="showPatrolCreator = !showPatrolCreator">
-        {{ showPatrolCreator ? '关闭创建' : '创建巡逻任务' }}
-      </n-button>
-    </div>
-
-    <!-- 左侧任务创建面板 -->
-    <div v-if="showPatrolCreator" class="left-panel">
-      <div class="info-card">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-medium">创建巡逻任务</h3>
-          <n-button quaternary circle size="small" @click="closePatrolCreator">
-            <template #icon>
-              <n-icon><close-icon /></n-icon>
-            </template>
-          </n-button>
+<div class="security-container h-full pointer-events-none">  
+  <!-- 使用全局地图，不需要在此页面添加地图组件 -->
+  <div class="p-4 h-full">
+    <div class="h-full grid grid-cols-12 gap-4">
+      <!-- 左侧面板区域 -->
+      <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+        <!-- 标题和操作按钮 -->
+        <div class="floating-card bg-white bg-opacity-95">
+          <div class="flex justify-between items-center mb-2">
+            <h1 class="text-2xl font-bold">安防巡逻中心</h1>
+            
+            <!-- 操作按钮 -->
+            <div class="flex space-x-3">
+              <n-button type="primary" @click="showPatrolCreator = !showPatrolCreator">
+                {{ showPatrolCreator ? '关闭创建' : '创建巡逻任务' }}
+              </n-button>
+            </div>
+          </div>
+          
+          <!-- 创建任务表单 -->
+          <div v-if="showPatrolCreator" class="mt-4 animate-fade-in">
+            <patrol-task-creator
+              ref="patrolCreatorRef"
+              :drones="availableDrones"
+              @submit="handlePatrolTaskSubmit"
+            />
+          </div>
         </div>
-        <patrol-task-creator
-          ref="patrolCreatorRef"
-          :drones="availableDrones"
-          @submit="handlePatrolTaskSubmit"
-        />
-      </div>
-    </div>
 
-    <!-- 右侧信息面板 -->
-    <div class="side-panel">
-      <!-- 巡逻任务列表 -->
-      <patrol-task-list
-        :tasks="tasks"
-        :filter="taskFilter"
-        :filter-options="filterOptions"
-        @filter-change="handleFilterChange"
-        @open-detail="openTaskDetail"
-        @stop-task="stopTask"
-      />
-
-      <!-- 安全事件列表 -->
-      <security-event-list
-        :events="securityEvents"
-        @view-all="viewAllEvents"
-        @open-detail="openEventDetail"
-        @focus-event="focusOnEvent"
-      />
-    </div>
-  </div>
+       </div>
+       
+       <!-- 中间区域（地图区域） -->
+       <div class="col-span-6">
+         <!-- 地图由全局组件提供，这里不需要额外添加 -->
+       </div>
+       
+       <!-- 右侧面板区域 -->
+       <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+         <!-- 巡逻任务列表 -->
+         <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+           <h2 class="font-bold text-lg mb-3">巡逻任务列表</h2>
+           <patrol-task-list
+             :tasks="tasks"
+             :filter="taskFilter"
+             :filter-options="filterOptions"
+             @filter-change="handleFilterChange"
+             @open-detail="openTaskDetail"
+             @stop-task="stopTask"
+           />
+         </div>
+         
+         <!-- 安全事件列表 -->
+         <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+           <h2 class="font-bold text-lg mb-3">安全事件列表</h2>
+           <security-event-list
+             :events="securityEvents"
+             @view-all="viewAllEvents"
+             @open-detail="openEventDetail"
+             @focus-event="focusOnEvent"
+           />
+         </div>
+       </div>
+     </div>
+   </div>
 
   <!-- 任务详情弹窗 -->
   <n-modal

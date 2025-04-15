@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { NButton, NModal, NDrawer, NDrawerContent, useMessage } from 'naive-ui';
 import Map3D from '@/components/map/Map3D.vue';
@@ -6,7 +6,7 @@ import PatrolTaskList from '@/components/patrol/PatrolTaskList.vue';
 import PatrolTaskCreator from '@/components/patrol/PatrolTaskCreator.vue';
 import PatrolTaskDetail from '@/components/patrol/PatrolTaskDetail.vue';
 import SecurityEventList from '@/components/security/SecurityEventList.vue';
-import { CloseOutline as CloseIcon } from '@vicons/ionicons5';
+import { CloseOutline as CloseIcon, ReloadOutline as ReloadIcon } from '@vicons/ionicons5';
 
 export default {
   name: 'SecurityView',
@@ -20,7 +20,8 @@ export default {
     PatrolTaskCreator,
     PatrolTaskDetail,
     SecurityEventList,
-    CloseIcon
+    CloseIcon,
+    ReloadIcon
   },
 
   setup() {
@@ -176,6 +177,19 @@ export default {
         patrolCreatorRef.value.cancelDrawing();
       }
     };
+    
+    // 监听创建任务表单的显示状态变化
+    watch(showPatrolCreator, (newValue) => {
+      if (!newValue && patrolCreatorRef.value && patrolCreatorRef.value.isDrawingArea) {
+        patrolCreatorRef.value.cancelDrawing();
+      }
+    });
+    
+    // 刷新数据
+    const refreshData = () => {
+      message.success('数据已刷新');
+      // 这里可以添加实际的数据刷新逻辑
+    };
 
     return {
       mapRef,
@@ -198,7 +212,8 @@ export default {
       viewAllEvents,
       openEventDetail,
       focusOnEvent,
-      closePatrolCreator
+      closePatrolCreator,
+      refreshData
     };
   }
 };

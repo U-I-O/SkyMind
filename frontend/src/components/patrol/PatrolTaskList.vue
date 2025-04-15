@@ -2,13 +2,18 @@
   <div class="info-card">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-medium">巡逻任务</h3>
-      <n-select
-        :value="filter"
-        :options="filterOptions"
-        size="small"
-        style="width: 100px"
-        @update:value="$emit('filter-change', $event)"
-      />
+      <div class="flex items-center">
+        <n-select
+          :value="filter"
+          :options="filterOptions"
+          size="small"
+          style="width: 100px"
+          @update:value="$emit('filter-change', $event)"
+        />
+        <n-button text size="small" type="primary" class="ml-2" @click="$emit('view-all')">
+          查看全部
+        </n-button>
+      </div>
     </div>
     
     <div v-if="tasks.length === 0" class="text-center text-gray-400 py-6">
@@ -74,7 +79,7 @@ const props = defineProps({
   }
 });
 
-defineEmits(['filter-change', 'open-detail', 'stop-task']);
+defineEmits(['filter-change', 'open-detail', 'stop-task', 'view-all']);
 
 const getTaskStatusType = (status) => {
   const statusMap = {

@@ -1,7 +1,6 @@
 <template>
   <div class="patrol-task-creator">
     <div class="form-container">
-      
       <n-form
         ref="formRef"
         :model="formModel"
@@ -24,7 +23,45 @@
               <n-form-item label="执行趟数" path="rounds" style="flex: 1">
                 <n-input-number v-model:value="formModel.rounds" :min="1" placeholder="执行趟数" />
               </n-form-item>
+            </div>
+          </div>
+        </div>
 
+        <!-- 飞行参数 -->
+        <div class="form-section">
+          <div class="section-title">飞行参数</div>
+          <div class="section-content">
+            <div class="form-row">
+              <n-form-item label="飞行高度(米)" path="altitude" style="flex: 1">
+                <n-input-number 
+                  v-model:value="formModel.altitude" 
+                  :min="10" 
+                  :max="500"
+                  placeholder="飞行高度"
+                />
+              </n-form-item>
+            </div>
+            <div class="form-row">
+              <n-form-item label="飞行速度(m/s)" path="speed" style="flex: 1">
+                <n-input-number 
+                  v-model:value="formModel.speed" 
+                  :min="1" 
+                  :max="20"
+                  placeholder="飞行速度"
+                />
+              </n-form-item>
+            </div>
+            <div class="form-row">
+              <n-form-item label="关联无人机" path="droneIds">
+                <n-select
+                  v-model:value="formModel.droneIds"
+                  multiple
+                  filterable
+                  :options="droneOptions"
+                  placeholder="选择执行任务的无人机"
+                  style="width:16vw"
+                />
+              </n-form-item>
             </div>
           </div>
         </div>
@@ -170,39 +207,38 @@ import {
   useMessage
 } from 'naive-ui';
 import { useTaskStore } from '@/store/task';
+import { useDroneStore } from '@/store/drone';
 
 const props = defineProps({
   // 移除 map3dRef prop，我们将注入全局 mapRef
 });
 
 const emit = defineEmits(['submit']); // 移除 'waypoint-selection-change'
+const droneStore = useDroneStore();
 const message = useMessage();
 const formRef = ref(null);
 const taskStore = useTaskStore(); // 导入任务store
 
-// 注入全局地图引用
-const mapRef = inject('mapRef', ref(null)); // 提供默认值以防万一
-
-// 使用计算属性将 isDrawingArea 连接到store
-const isDrawingArea = computed({
-  get: () => taskStore.isDrawingPatrolArea,
-  set: (value) => {
-    // 我们通过调用方法来设置值
-    if (!value && taskStore.isDrawingPatrolArea) {
-      taskStore.cancelDrawingPatrolArea();
-    }
-    // 开始绘制会在 toggleAreaDrawing 方法中处理
-  }
+// 无人机选项
+const droneOptions = computed(() => {
+  return droneStore.drones.map(drone => ({
+    label: `${drone.name} (${drone.drone_id}) - 电量: ${drone.battery}%`,
+    value: drone.drone_id
+  }));
 });
 
 const formModel = ref({
   name: '',
-  patrolArea: [], // 替换 waypoints
+  patrolArea: [],
   scheduleType: 'date',
   date: null,
   weekdays: [],
   time: null,
-  rounds: 1
+  rounds: 1,
+  isManual: false,
+  altitude: 50, // 默认飞行高度50米
+  speed: 5,    // 默认飞行速度5m/s
+  droneIds: [] // 关联的无人机ID数组
 });
 
 // 使用watch监听taskStore中patrolAreaCoordinates的变化
@@ -266,8 +302,93 @@ const rules = {
     min: 1,
     message: '请输入执行趟数 (至少1趟)',
     trigger: ['input', 'blur']
+  },
+  altitude: {
+    required: true,
+    type: 'number',
+    min: 10,
+    max: 500,
+    message: '请输入有效的飞行高度(10-500米)',
+    trigger: ['input', 'blur']
+  },
+  speed: {
+    required: true,
+    type: 'number',
+    min: 1,
+    max: 20,
+    message: '请输入有效的飞行速度(1-20m/s)',
+    trigger: ['input', 'blur']
+  },
+  droneIds: {
+    required: true,
+    type: 'array',
+    validator: (rule, value) => value && value.length > 0,
+    message: '请至少选择一架无人机',
+    trigger: 'change'
   }
 };
+
+// 在组件挂载时加载无人机列表
+onMounted(async () => {
+  await droneStore.fetchDrones();
+  
+  // 监听地图组件的patrol-area-drawn事件
+  if (mapRef.value) {
+    mapRef.value.$el.addEventListener('patrol-area-drawn', (event) => {
+      handleAreaDrawn(event.detail);
+    });
+  }
+});
+
+// 在组件卸载时取消监听和清理状态
+onUnmounted(() => {
+  // 移除事件监听
+  if (mapRef.value) {
+    mapRef.value.$el.removeEventListener('patrol-area-drawn', handleAreaDrawn);
+  }
+  
+  // 如果正在绘制，确保取消
+  if (isDrawingArea.value) {
+    taskStore.cancelDrawingPatrolArea();
+    if (mapRef.value && mapRef.value.cancelDrawingPatrolArea) {
+      mapRef.value.cancelDrawingPatrolArea();
+    }
+  }
+  
+  // 清除临时巡逻区域
+  if (mapRef.value && typeof mapRef.value.clearTempPatrolArea === 'function') {
+    mapRef.value.clearTempPatrolArea();
+  }
+});
+
+// 使用计算属性将 isDrawingArea 连接到store
+const isDrawingArea = computed({
+  get: () => taskStore.isDrawingPatrolArea,
+  set: (value) => {
+    // 我们通过调用方法来设置值
+    if (!value && taskStore.isDrawingPatrolArea) {
+      taskStore.cancelDrawingPatrolArea();
+    }
+    // 开始绘制会在 toggleAreaDrawing 方法中处理
+  }
+});
+
+// 注入全局地图引用
+const mapRef = inject('mapRef', ref(null)); // 提供默认值以防万一
+
+// 使用watch监听taskStore中patrolAreaCoordinates的变化
+watch(() => taskStore.patrolAreaCoordinates, (newCoords) => {
+  // 更新表单中的巡逻区域
+  formModel.value.patrolArea = [...newCoords];
+}, { deep: true });
+
+// 使用watch监听taskStore中patrolAreaGeoJSON的变化
+watch(() => taskStore.patrolAreaGeoJSON, (newGeoJSON) => {
+  if (newGeoJSON) {
+    console.log('巡逻区域GeoJSON已更新:', newGeoJSON);
+    // 这里可以进一步处理GeoJSON数据，例如显示详细信息或保存到其他地方
+  }
+}, { deep: true });
 
 const toggleAreaDrawing = () => {
   if (!mapRef.value) {
@@ -348,7 +469,11 @@ const resetForm = () => {
     date: null,
     weekdays: [],
     time: null,
-    rounds: 1
+    rounds: 1,
+    isManual: false,
+    altitude: 50,
+    speed: 5,
+    droneIds: []
   };
 };
 
@@ -362,7 +487,16 @@ const handleSubmit = () => {
       }
       
       // 准备提交数据
-      const taskData = { ...formModel.value };
+      
+      const taskData = { 
+        ...formModel.value,
+        // 添加无人机详情
+        assignedDrones: formModel.value.droneIds.map(id => ({
+          drone_id: id,
+          // 从store中获取无人机详情
+          ...droneStore.getDroneById(id)
+        }))
+      };
       
       // 如果有GeoJSON，添加到提交数据中
       if (taskStore.patrolAreaGeoJSON) {
@@ -409,50 +543,21 @@ const cancelTaskCreation = () => {
   message.info("已取消任务创建");
   resetForm();
 };
-
-// 在组件挂载时设置监听
-onMounted(() => {
-  // 监听地图组件的patrol-area-drawn事件
-  if (mapRef.value) {
-    mapRef.value.$el.addEventListener('patrol-area-drawn', (event) => {
-      handleAreaDrawn(event.detail);
-    });
-  }
-});
-
-// 在组件卸载时取消监听和清理状态
-onUnmounted(() => {
-  // 移除事件监听
-  if (mapRef.value) {
-    mapRef.value.$el.removeEventListener('patrol-area-drawn', handleAreaDrawn);
-  }
-  
-  // 如果正在绘制，确保取消
-  if (isDrawingArea.value) {
-    taskStore.cancelDrawingPatrolArea();
-    if (mapRef.value && mapRef.value.cancelDrawingPatrolArea) {
-      mapRef.value.cancelDrawingPatrolArea();
-    }
-  }
-  
-  // 清除临时巡逻区域
-  if (mapRef.value && typeof mapRef.value.clearTempPatrolArea === 'function') {
-    mapRef.value.clearTempPatrolArea();
-  }
-});
 </script>
 
 <style scoped>
+
 .patrol-task-creator {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
+  position: relative; /* 添加相对定位 */
 }
 
 .form-container {
-  width: 370px;
-  padding: 12px 16px;
+  width: 25vw;
+  padding: 12px 16px 60px; /* 底部增加内边距给按钮留空间 */
   overflow-y: auto;
   max-height: 90vh;
   background-color: #fff;
@@ -461,7 +566,20 @@ onUnmounted(() => {
   position: relative;
 }
 
-
+.form-actions {
+  position: sticky; /* 或者使用 fixed */
+  bottom: 5vh; /* 固定在底部 */
+  left: 0;
+  right: 0;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid #e0e0e6;
+  background-color: #fff; /* 确保背景色 */
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1; /* 确保按钮在内容之上 */
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05); /* 添加轻微阴影增强层次感 */
+}
 
 .form-section {
   margin-bottom: 12px;
@@ -595,13 +713,6 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-.form-actions {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #e0e0e6;
-  display: flex;
-  justify-content: flex-end;
-}
 
 .ml-2 {
   margin-left: 8px;

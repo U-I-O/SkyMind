@@ -16,16 +16,17 @@
               </n-button>
             </div>
           </div>
-          
-          <!-- 创建任务表单 -->
+
+          </div>
+                    <!-- 创建任务表单 -->
           <div v-if="showPatrolCreator" class="mt-4 animate-fade-in">
             <patrol-task-creator
               ref="patrolCreatorRef"
               :drones="availableDrones"
               @submit="handlePatrolTaskSubmit"
             />
-          </div>
         </div>
+          
 
        </div>
        

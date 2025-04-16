@@ -2,7 +2,7 @@
   <div class="h-full pointer-events-none">
     <!-- 漂浮面板容器 -->
     <div class="p-4 h-full">
-      <div class="h-full">
+      <div class="h-full grid">
         <!-- 事件列表面板 - 占据左半部分 -->
         <div class="w-1/2 pointer-events-auto">
           <!-- 标题、筛选和统计面板 -->
@@ -567,7 +567,9 @@ import { h } from 'vue'
 </script> 
 
 <style scoped>
+
 .floating-card {
+  position: relative; /* 或absolute, fixed, sticky */
   padding: 1rem;
   border-radius: 0.5rem;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);

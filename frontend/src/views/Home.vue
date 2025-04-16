@@ -363,6 +363,7 @@ onMounted(async () => {
   @apply p-4 rounded-lg shadow-lg;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
+  z-index: 100; 
 }
 
 .border-danger {

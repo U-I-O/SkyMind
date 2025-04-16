@@ -2,11 +2,11 @@
   <div class="h-full pointer-events-none">
     <!-- 漂浮面板容器 -->
     <div class="p-4 h-full">
-      <div class="h-full grid grid-cols-12 gap-4">
-        <!-- 左侧事件列表面板 -->
-        <div class="col-span-6 flex flex-col gap-4 pointer-events-auto">
+      <div class="h-full">
+        <!-- 事件列表面板 - 占据左半部分 -->
+        <div class="w-1/2 pointer-events-auto">
           <!-- 标题、筛选和统计面板 -->
-          <div class="floating-card bg-white bg-opacity-95">
+          <div class="floating-card bg-white bg-opacity-95 mb-4">
             <div class="flex justify-between items-center mb-4">
               <h1 class="text-2xl font-bold">事件中心</h1>
               <div>
@@ -32,7 +32,7 @@
               />
             </div>
             
-            <!-- 事件统计 - 从右侧面板移到这里 -->
+            <!-- 事件统计 -->
             <div class="grid grid-cols-4 gap-3">
               <div class="p-2 bg-gray-50 rounded-lg text-center">
                 <div class="text-xl font-bold">{{ events.length }}</div>
@@ -54,7 +54,7 @@
           </div>
           
           <!-- 事件列表面板 -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col">
+          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col h-96">
             <h3 class="text-lg font-medium mb-3">事件列表</h3>
             
             <n-data-table
@@ -66,57 +66,8 @@
               @update:page="handlePageChange"
               class="flex-1 overflow-auto"
               :row-props="(row) => ({ class: 'compact-row' })"
+              max-height="calc(100vh - 350px)"
             />
-          </div>
-        </div>
-        
-        <!-- 右侧事件详情面板 -->
-        <div class="col-span-6 flex flex-col gap-4 pointer-events-auto">
-          <!-- 事件详情面板 -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1">
-            <h3 class="text-lg font-medium mb-4">事件详情</h3>
-            <div v-if="selectedEvent" class="space-y-4">
-              <n-descriptions bordered size="small" :column="1">
-                <n-descriptions-item label="ID">{{ selectedEvent.id }}</n-descriptions-item>
-                <n-descriptions-item label="标题">{{ selectedEvent.title }}</n-descriptions-item>
-                <n-descriptions-item label="类型">
-                  <n-tag :type="getEventTypeTag(selectedEvent.type)">
-                    {{ selectedEvent.type }}
-                  </n-tag>
-                </n-descriptions-item>
-                <n-descriptions-item label="优先级">
-                  <n-tag :type="getPriorityTag(selectedEvent.priority)">
-                    {{ selectedEvent.priority }}
-                  </n-tag>
-                </n-descriptions-item>
-                <n-descriptions-item label="状态">
-                  <n-tag :type="getStatusTag(selectedEvent.status)">
-                    {{ selectedEvent.status }}
-                  </n-tag>
-                </n-descriptions-item>
-                <n-descriptions-item label="报告时间">
-                  {{ formatTime(selectedEvent.reportTime) }}
-                </n-descriptions-item>
-                <n-descriptions-item label="位置">
-                  {{ selectedEvent.location }}
-                </n-descriptions-item>
-              </n-descriptions>
-              
-              <div>
-                <div class="font-medium mb-2">描述:</div>
-                <div class="text-sm p-3 bg-gray-50 rounded-md">
-                  {{ selectedEvent.description }}
-                </div>
-              </div>
-              
-              <div v-if="selectedEvent.status !== 'resolved'" class="flex justify-between">
-                <n-button @click="assignTask(selectedEvent)">分配任务</n-button>
-                <n-button type="primary" @click="resolveEvent(selectedEvent)">标记为已解决</n-button>
-              </div>
-            </div>
-            <div v-else class="h-full flex items-center justify-center text-gray-400">
-              选择一个事件查看详情
-            </div>
           </div>
         </div>
       </div>
@@ -184,13 +135,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { format } from 'date-fns'
 import { 
   NButton, 
   NTag, 
-  NDescriptions, 
-  NDescriptionsItem,
   NDataTable,
   NSelect,
   NModal,
@@ -205,13 +154,11 @@ import {
 import { 
   ReloadOutlined,
 } from '@vicons/antd'
-import Map3D from '../components/map/Map3D.vue'
 
 // 组件状态
 const loading = ref(false)
 const events = ref([])
 const selectedEvent = ref(null)
-const mapRef = ref(null)
 const pagination = ref({
   page: 1,
   pageSize: 10,
@@ -243,6 +190,11 @@ const eventTypeFilter = ref(null)
 // UI组件
 const message = useMessage()
 const notification = useNotification()
+
+// 注入全局地图引用
+const mapRef = inject('mapRef')
+const flyToLocation = inject('flyToLocation')
+const setMapEvents = inject('setMapEvents')
 
 // 表格列定义
 const columns = [
@@ -302,14 +254,6 @@ const columns = [
     }
   },
   {
-    title: '报告时间',
-    key: 'reportTime',
-    width: 150,
-    render(row) {
-      return formatTime(row.reportTime)
-    }
-  },
-  {
     title: '操作',
     key: 'actions',
     width: 120,
@@ -319,7 +263,7 @@ const columns = [
           NButton,
           {
             size: 'small',
-            onClick: () => selectEvent(row)
+            onClick: () => showEventOnMap(row)
           },
           { default: () => '查看' }
         ),
@@ -346,12 +290,6 @@ const eventTypeOptions = [
   { label: '安全', value: 'security' },
   { label: '告警', value: 'alert' },
   { label: '任务', value: 'task' }
-]
-
-// 将任务类型选项修改为只包含安防巡检和应急响应
-const taskTypeOptions = [
-  { label: '安防巡检', value: 'surveillance' },
-  { label: '应急响应', value: 'emergency' }
 ]
 
 const droneOptions = [
@@ -386,6 +324,12 @@ const refreshData = async () => {
   try {
     // 这里应该是API调用，现在用模拟数据
     await mockFetchEvents()
+    
+    // 更新地图事件
+    if (setMapEvents) {
+      setMapEvents(events.value)
+    }
+    
     message.success('数据已刷新')
   } catch (error) {
     console.error('刷新数据出错:', error)
@@ -399,12 +343,25 @@ const refreshData = async () => {
   }
 }
 
-const selectEvent = (event) => {
+// 在地图上显示事件并弹出信息窗口
+const showEventOnMap = (event) => {
   selectedEvent.value = event
   
-  // 如果地图组件有这个方法，可以定位到事件位置
-  if (mapRef.value && event.coordinates) {
-    // mapRef.value.flyTo(event.coordinates)
+  // 先飞行到事件位置
+  if (flyToLocation && event.location && event.location.coordinates) {
+    flyToLocation({
+      lng: event.location.coordinates[0],
+      lat: event.location.coordinates[1],
+      zoom: 16,
+      pitch: 45
+    })
+    
+    // 然后显示事件信息
+    setTimeout(() => {
+      if (mapRef.value) {
+        mapRef.value.showEventInfo(event)
+      }
+    }, 500)
   }
 }
 
@@ -522,8 +479,10 @@ const mockFetchEvents = () => {
           priority: 'high',
           status: 'new',
           reportTime: '2025-04-15T13:45:30Z',
-          location: '南区门口',
-          coordinates: [116.375, 39.895],
+          location: {
+            name: '南区门口',
+            coordinates: [114.367, 30.531, 0]
+          },
           description: '南区门口摄像头检测到多名可疑人员徘徊，行为异常，请派无人机前往查看。'
         },
         {
@@ -533,8 +492,10 @@ const mockFetchEvents = () => {
           priority: 'medium',
           status: 'processing',
           reportTime: '2025-04-15T12:30:00Z',
-          location: '北区巡逻点',
-          coordinates: [116.383, 39.91],
+          location: {
+            name: '北区巡逻点',
+            coordinates: [114.373, 30.543, 0]
+          },
           description: '北区巡逻无人机报告电池故障，需要更换电池或维修。'
         },
         {
@@ -544,8 +505,10 @@ const mockFetchEvents = () => {
           priority: 'medium',
           status: 'new',
           reportTime: '2025-04-15T14:10:15Z',
-          location: '东区电力设施',
-          coordinates: [116.39, 39.9],
+          location: {
+            name: '东区电力设施',
+            coordinates: [114.382, 30.538, 0]
+          },
           description: '东区电力设施温度传感器报告温度异常，请派遣无人机前往检查是否有火灾隐患。'
         },
         {
@@ -555,8 +518,10 @@ const mockFetchEvents = () => {
           priority: 'low',
           status: 'resolved',
           reportTime: '2025-04-15T11:20:00Z',
-          location: '主仓库',
-          coordinates: [116.38, 39.895],
+          location: {
+            name: '主仓库',
+            coordinates: [114.365, 30.535, 0]
+          },
           description: '主仓库巡检任务已完成，所有设施正常，无异常情况。'
         },
         {
@@ -566,8 +531,10 @@ const mockFetchEvents = () => {
           priority: 'high',
           status: 'processing',
           reportTime: '2025-04-15T10:15:00Z',
-          location: '西区围栏',
-          coordinates: [116.37, 39.9],
+          location: {
+            name: '西区围栏',
+            coordinates: [114.358, 30.541, 0]
+          },
           description: '西区围栏发现破损，可能有入侵风险，已派遣安保人员前往。'
         }
       ]
@@ -601,9 +568,12 @@ import { h } from 'vue'
 
 <style scoped>
 .floating-card {
-  @apply p-4 rounded-lg shadow-lg;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
+  z-index: 100; 
 }
 
 /* 更紧凑的表格行 */

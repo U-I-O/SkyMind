@@ -139,853 +139,1030 @@
         </div>
       </div>
     </div>
-  </template>
+</template>
   
-  <script setup>
-  import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits } from 'vue'
-  import mapboxgl from 'mapbox-gl'
-  import { Deck } from '@deck.gl/core'
-  import { ScatterplotLayer, PathLayer, PolygonLayer, IconLayer } from '@deck.gl/layers'
-  import { 
-    BuildOutlined as LayersIcon, 
-    AppstoreOutlined as CubeIcon, 
-    HomeOutlined as HomeIcon, 
-    GlobalOutlined as MapIcon,
-    EnvironmentOutlined as EnvironmentIcon,
-    BulbOutlined as SunIcon,
-    CheckOutlined as MoonIcon
-  } from '@vicons/antd'
-  import { NProgress, NSpin, NButton, NIcon, NPopover, NCheckbox, NRadioGroup, NRadio, NSpace, NTag } from 'naive-ui'
-  
-  // Props and emits
-  const props = defineProps({
-    drones: {
-      type: Array,
-      default: () => []
-    },
-    events: {
-      type: Array,
-      default: () => []
-    },
-    noFlyZones: {
-      type: Array,
-      default: () => []
-    },
-    flightPaths: {
-      type: Array,
-      default: () => []
-    },
-    showLiveUpdates: {
-      type: Boolean,
-      default: true
-    },
-    centerOnSelected: {
-      type: Boolean,
-      default: false
-    },
-    selectedDroneId: {
-      type: String,
-      default: null
-    },
-    initialView: {
-      type: Object,
-      default: () => null
-    },
-    showDrones: {
-      type: Boolean,
-      default: true
-    }
-  })
-  
-  const emit = defineEmits(['drone-clicked', 'map-clicked', 'coordinates-selected', 'map-loaded'])
-  
-  // Map configuration
-  const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibXV0aW5nIiwiYSI6ImNsdGo1OHlkZTAwbmIybHBveHkyNHl6bmgifQ.PtIzPKQRLmLUXIaUqw1XNw'
-  console.log('Mapbox Token:', MAPBOX_TOKEN)
-  
-  // 武汉大学位置
-  const WHU_LOCATION = {
-    longitude: 114.367, 
-    latitude: 30.54,
-    zoom: 15,
-    pitch: 60,
-    bearing: 30
+<script setup>
+import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits } from 'vue'
+import mapboxgl from 'mapbox-gl'
+import { Deck } from '@deck.gl/core'
+import { ScatterplotLayer, PathLayer, PolygonLayer, IconLayer } from '@deck.gl/layers'
+import { 
+  BuildOutlined as LayersIcon, 
+  AppstoreOutlined as CubeIcon, 
+  HomeOutlined as HomeIcon, 
+  GlobalOutlined as MapIcon,
+  EnvironmentOutlined as EnvironmentIcon,
+  BulbOutlined as SunIcon,
+  CheckOutlined as MoonIcon
+} from '@vicons/antd'
+import { NProgress, NSpin, NButton, NIcon, NPopover, NCheckbox, NRadioGroup, NRadio, NSpace, NTag } from 'naive-ui'
+
+// Props and emits
+const props = defineProps({
+  drones: {
+    type: Array,
+    default: () => []
+  },
+  events: {
+    type: Array,
+    default: () => []
+  },
+  noFlyZones: {
+    type: Array,
+    default: () => []
+  },
+  flightPaths: {
+    type: Array,
+    default: () => []
+  },
+  showLiveUpdates: {
+    type: Boolean,
+    default: true
+  },
+  centerOnSelected: {
+    type: Boolean,
+    default: false
+  },
+  selectedDroneId: {
+    type: String,
+    default: null
+  },
+  initialView: {
+    type: Object,
+    default: () => null
+  },
+  showDrones: {
+    type: Boolean,
+    default: true
   }
-  
-  const INITIAL_VIEW_STATE = {
-    longitude: props.initialView ? props.initialView.center[0] : 114.367,
-    latitude: props.initialView ? props.initialView.center[1] : 30.54,
-    zoom: props.initialView ? props.initialView.zoom : 14,
-    pitch: 45,
-    bearing: 0
-  }
-  
-  // Map and deck.gl instances
-  let map = null
-  let deck = null
-  
-  // Component state
-  const mapContainer = ref(null)
-  const isLoading = ref(true)
-  const is3DView = ref(true)
-  const currentPosition = ref({ lng: INITIAL_VIEW_STATE.longitude, lat: INITIAL_VIEW_STATE.latitude, altitude: 0 })
-  const hoveredDroneInfo = ref(null)
-  const clickedDroneId = ref(null)
-  const mapStyle = ref(import.meta.env.VITE_DEFAULT_MAP_STYLE || 'mapbox://styles/mapbox/streets-v12')
-  const isDarkMode = ref(mapStyle.value.includes('dark'))
-  
-  // Layer controls
-  const showBuildings = ref(true)
-  const showTerrain = ref(true)
-  const showDrones = ref(true)
-  const showEvents = ref(true)
-  const showNoFlyZones = ref(true)
-  const showFlightPaths = ref(true)
-  
-  // Watch for props changes
-  watch(() => props.drones, () => {
-    if (deck) renderDeckLayers()
-  }, { deep: true })
-  
-  watch(() => props.events, () => {
-    if (deck) renderDeckLayers()
-  }, { deep: true })
-  
-  watch(() => props.noFlyZones, () => {
-    if (deck) renderDeckLayers()
-  }, { deep: true })
-  
-  watch(() => props.flightPaths, () => {
-    if (deck) renderDeckLayers()
-  }, { deep: true })
-  
-  // Watch for selected drone changes to center map
-  watch(() => props.selectedDroneId, (newVal) => {
-    if (newVal && props.centerOnSelected) {
-      const drone = props.drones.find(d => d.drone_id === newVal)
-      if (drone && drone.current_location && map) {
-        centerMapOnDrone(drone)
-      }
+})
+
+const emit = defineEmits(['drone-clicked', 'map-clicked', 'coordinates-selected', 'map-loaded', 'event-clicked'])
+
+// Map configuration
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibXV0aW5nIiwiYSI6ImNsdGo1OHlkZTAwbmIybHBveHkyNHl6bmgifQ.PtIzPKQRLmLUXIaUqw1XNw'
+console.log('Mapbox Token:', MAPBOX_TOKEN)
+
+// 武汉大学位置
+const WHU_LOCATION = {
+  longitude: 114.367, 
+  latitude: 30.54,
+  zoom: 15,
+  pitch: 60,
+  bearing: 30
+}
+
+const INITIAL_VIEW_STATE = {
+  longitude: props.initialView ? props.initialView.center[0] : 114.367,
+  latitude: props.initialView ? props.initialView.center[1] : 30.54,
+  zoom: props.initialView ? props.initialView.zoom : 14,
+  pitch: 45,
+  bearing: 0
+}
+
+// Map and deck.gl instances
+let map = null
+let deck = null
+
+// Icon Atlas definition - this is what we need to add!
+const ICON_ATLAS = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png';
+const ICON_MAPPING = {
+  marker: {x: 0, y: 0, width: 128, height: 128, mask: true},
+  marker1: {x: 128, y: 0, width: 128, height: 128, mask: true},
+  marker2: {x: 256, y: 0, width: 128, height: 128, mask: true},
+  marker3: {x: 384, y: 0, width: 128, height: 128, mask: true},
+  info: {x: 0, y: 128, width: 128, height: 128, mask: true},
+  warning: {x: 128, y: 128, width: 128, height: 128, mask: true},
+  danger: {x: 256, y: 128, width: 128, height: 128, mask: true},
+  triangle: {x: 384, y: 128, width: 128, height: 128, mask: true}
+};
+
+// Component state
+const mapContainer = ref(null)
+const isLoading = ref(true)
+const is3DView = ref(true)
+const currentPosition = ref({ lng: INITIAL_VIEW_STATE.longitude, lat: INITIAL_VIEW_STATE.latitude, altitude: 0 })
+const hoveredDroneInfo = ref(null)
+const selectedEventInfo = ref(null)
+const selectedEventPosition = ref(null) // 存储选中事件的屏幕坐标
+const eventMarkers = ref([]) // 存储所有事件标记的引用
+const eventPopups = ref(new Map()); // 存储事件ID到popup对象的映射
+const clickedDroneId = ref(null)
+const mapStyle = ref(import.meta.env.VITE_DEFAULT_MAP_STYLE || 'mapbox://styles/mapbox/streets-v12')
+const isDarkMode = ref(mapStyle.value.includes('dark'))
+
+// Layer controls
+const showBuildings = ref(true)
+const showTerrain = ref(true)
+const showDrones = ref(true)
+const showEvents = ref(true)
+const showNoFlyZones = ref(true)
+const showFlightPaths = ref(true)
+
+// Watch for props changes
+watch(() => props.drones, () => {
+  if (deck) renderDeckLayers()
+}, { deep: true })
+
+watch(() => props.events, () => {
+  if (deck) renderDeckLayers()
+}, { deep: true })
+
+watch(() => props.noFlyZones, () => {
+  if (deck) renderDeckLayers()
+}, { deep: true })
+
+watch(() => props.flightPaths, () => {
+  if (deck) renderDeckLayers()
+}, { deep: true })
+
+// Watch for selected drone changes to center map
+watch(() => props.selectedDroneId, (newVal) => {
+  if (newVal && props.centerOnSelected) {
+    const drone = props.drones.find(d => d.drone_id === newVal)
+    if (drone && drone.current_location && map) {
+      centerMapOnDrone(drone)
     }
-  })
-  
-  // Watch layers visibility changes
-  watch([showBuildings, showTerrain], () => {
-    if (map) {
-      // Show/hide 3D buildings
+  }
+})
+
+// Watch layers visibility changes
+watch([showBuildings, showTerrain], () => {
+  if (map) {
+    // Show/hide 3D buildings
+    map.setLayoutProperty(
+      'building-extrusion',
+      'visibility',
+      showBuildings.value ? 'visible' : 'none'
+    )
+    
+    // Show/hide terrain
+    if (map.getSource('mapbox-dem')) {
       map.setLayoutProperty(
-        'building-extrusion',
+        'sky',
         'visibility',
-        showBuildings.value ? 'visible' : 'none'
+        showTerrain.value ? 'visible' : 'none'
       )
-      
-      // Show/hide terrain
-      if (map.getSource('mapbox-dem')) {
-        map.setLayoutProperty(
-          'sky',
-          'visibility',
-          showTerrain.value ? 'visible' : 'none'
-        )
-        // Apply terrain
-        if (showTerrain.value) {
-          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
-        } else {
-          map.setTerrain(null)
-        }
+      // Apply terrain
+      if (showTerrain.value) {
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 })
+      } else {
+        map.setTerrain(null)
       }
     }
-  })
-  
-  // Watch deck.gl layers visibility changes
-  watch([showDrones, showEvents, showNoFlyZones, showFlightPaths], () => {
-    if (deck) {
-      renderDeckLayers()
-    }
-  })
-  
-  // Format coordinate display
-  const formatCoordinate = (coord) => {
-    return coord.toFixed(6)
   }
-  
-  // Get drone status tag type
-  const getDroneStatusType = (status) => {
-    const statusMap = {
-      'idle': 'info',
-      'flying': 'success',
-      'charging': 'warning',
-      'maintenance': 'warning',
-      'offline': 'error',
-      'error': 'error'
-    }
-    return statusMap[status] || 'default'
+})
+
+// Watch deck.gl layers visibility changes
+watch([showDrones, showEvents, showNoFlyZones, showFlightPaths], () => {
+  if (deck) {
+    renderDeckLayers()
   }
-  
-  // Get drone battery color
-  const getDroneBatteryColor = (level) => {
-    if (level <= 20) return '#ff4d4f'
-    if (level <= 50) return '#faad14'
-    return '#52c41a'
+})
+
+// Format coordinate display
+const formatCoordinate = (coord) => {
+  return coord.toFixed(6)
+}
+
+// Get drone status tag type
+const getDroneStatusType = (status) => {
+  const statusMap = {
+    'idle': 'info',
+    'flying': 'success',
+    'charging': 'warning',
+    'maintenance': 'warning',
+    'offline': 'error',
+    'error': 'error'
   }
-  
-  // Center map on a specific drone
-  const centerMapOnDrone = (drone) => {
-    if (!map || !drone.current_location) return
-    
-    const coords = drone.current_location.coordinates
-    if (coords && coords.length >= 2) {
-      // [longitude, latitude]
-      map.flyTo({
-        center: [coords[0], coords[1]],
-        zoom: 15,
-        pitch: 60,
-        bearing: 0,
-        duration: 1500
-      })
-    }
+  return statusMap[status] || 'default'
+}
+
+// Get event status tag type
+const getEventStatusType = (status) => {
+  const statusMap = {
+    'new': 'info',
+    'processing': 'warning',
+    'resolved': 'success'
   }
+  return statusMap[status] || 'default'
+}
+
+// Format time
+const formatTime = (timeStr) => {
+  try {
+    return new Date(timeStr).toLocaleString('zh-CN')
+  } catch (e) {
+    return timeStr || '未知'
+  }
+}
+
+// Get drone battery color
+const getDroneBatteryColor = (level) => {
+  if (level <= 20) return '#ff4d4f'
+  if (level <= 50) return '#faad14'
+  return '#52c41a'
+}
+
+// Center map on a specific drone
+const centerMapOnDrone = (drone) => {
+  if (!map || !drone.current_location) return
   
-  // Initialize map
-  const initializeMap = () => {
-    if (!mapContainer.value) {
-      console.error('Cannot initialize map: mapContainer ref is not available');
-      isLoading.value = false;
-      return;
-    }
-    
-    isLoading.value = true;
-    
-    try {
-      // 确保mapboxgl已加载
-      if (!mapboxgl) {
-        throw new Error('Mapbox GL JS not loaded');
-      }
-      
-      mapboxgl.accessToken = MAPBOX_TOKEN;
-      
-      // 尝试创建地图实例
-      map = new mapboxgl.Map({
-        container: mapContainer.value,
-        style: mapStyle.value, // 使用环境变量或默认样式
-        center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
-        zoom: INITIAL_VIEW_STATE.zoom,
-        pitch: INITIAL_VIEW_STATE.pitch,
-        bearing: INITIAL_VIEW_STATE.bearing,
-        antialias: true,
-        failIfMajorPerformanceCaveat: false, // 允许在性能受限的设备上运行
-      });
-      
-      console.log('地图实例已创建，初始化位置:', [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude]);
-      
-      // 添加错误事件监听器
-      map.on('error', (e) => {
-        console.error('地图加载错误:', e);
-        // 不设置isLoading = false，让load事件处理
-        
-        // 尝试使用备选样式
-        if (e.error && e.error.status === 401) {
-          console.log('尝试使用备选地图样式');
-          try {
-            map.setStyle('mapbox://styles/mapbox/streets-v12');
-          } catch (styleError) {
-            console.error('设置备选样式失败:', styleError);
-          }
-        }
-      });
-      
-      // 添加加载事件监听器
-      map.on('load', () => {
-        console.log('地图加载完成');
-        isLoading.value = false;
-        
-        try {
-          // 初始化3D建筑层
-          add3DBuildings();
-          
-          // 初始化DeckGL
-          if (typeof Deck !== 'undefined') {
-            initDeck();
-          } else {
-            console.warn('Deck.gl未加载，跳过图层初始化');
-          }
-          
-          // 设置地图交互事件
-          setupMapEvents();
-          
-          // 添加初始动画效果
-          initializeWithAnimation();
-        } catch (error) {
-          console.error('地图加载后初始化图层出错:', error);
-        }
-        
-        // 无论如何都通知父组件地图已加载
-        emit('map-loaded', { success: true });
-      });
-      
-      // 添加超时处理，防止地图加载卡住
-      setTimeout(() => {
-        if (isLoading.value) {
-          console.warn('地图加载超时，强制完成初始化');
-          isLoading.value = false;
-          emit('map-loaded', { success: false, error: 'timeout' });
-        }
-      }, 10000); // 10秒超时
-      
-    } catch (error) {
-      console.error('初始化地图时出错:', error);
-      isLoading.value = false;
-      emit('map-loaded', { success: false, error: error.message });
-    }
-  };
-  
-  // 添加3D建筑方法
-  const add3DBuildings = () => {
-    if (!map) return;
-    
-    // 添加3D建筑层
-    map.addLayer({
-      'id': 'building-extrusion',
-      'type': 'fill-extrusion',
-      'source': 'composite',
-      'source-layer': 'building',
-      'filter': ['==', 'extrude', 'true'],
-      'minzoom': 12,
-      'paint': {
-        'fill-extrusion-color': '#3b82f6',
-        'fill-extrusion-height': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 0,
-          12.5, ['get', 'height']
-        ],
-        'fill-extrusion-base': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 0,
-          12.5, ['get', 'min_height']
-        ],
-        'fill-extrusion-opacity': 0.6
-      },
-      'visibility': showBuildings.value ? 'visible' : 'none'
-    });
-    
-    // 添加地形层
-    map.addSource('mapbox-dem', {
-      'type': 'raster-dem',
-      'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-      'tileSize': 512,
-      'maxzoom': 14
-    });
-    
-    // 设置地形
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-  };
-  
-  // 设置地图事件
-  const setupMapEvents = () => {
-    if (!map) return;
-    
-    // 鼠标移动事件，更新坐标
-    map.on('mousemove', (e) => {
-      currentPosition.value = {
-        lng: e.lngLat.lng,
-        lat: e.lngLat.lat,
-        altitude: map.queryTerrainElevation(e.lngLat) || 0
-      };
-    });
-    
-    // 点击事件
-    map.on('click', (e) => {
-      // 发送点击事件到父组件
-      emit('map-clicked', {
-        lng: e.lngLat.lng,
-        lat: e.lngLat.lat,
-        altitude: map.queryTerrainElevation(e.lngLat) || 0
-      });
-    });
-  };
-  
-  // 飞行到指定位置
-  const flyTo = (position) => {
-    if (!map) return;
-    
-    try {
-      console.log('飞行到位置:', position);
-      
-      // 确保位置对象包含必要的属性
-      const lng = position.lng || position.longitude || 114.367;
-      const lat = position.lat || position.latitude || 30.54;
-      const zoom = position.zoom || 14;
-      
-      map.flyTo({
-        center: [lng, lat],
-        zoom: zoom,
-        pitch: position.pitch !== undefined ? position.pitch : 45,
-        bearing: position.bearing !== undefined ? position.bearing : 0,
-        duration: position.duration || 2000,
-        essential: true
-      });
-    } catch (error) {
-      console.error('飞行到位置时出错:', error);
-    }
-  };
-  
-  // 重置视图到初始状态
-  const resetView = () => {
-    if (!map) return;
-    
+  const coords = drone.current_location.coordinates
+  if (coords && coords.length >= 2) {
+    // [longitude, latitude]
     map.flyTo({
+      center: [coords[0], coords[1]],
+      zoom: 15,
+      pitch: 60,
+      bearing: 0,
+      duration: 1500
+    })
+  }
+}
+
+// Initialize map
+const initializeMap = () => {
+  if (!mapContainer.value) {
+    console.error('Cannot initialize map: mapContainer ref is not available');
+    isLoading.value = false;
+    return;
+  }
+  
+  isLoading.value = true;
+  
+  try {
+    // 确保mapboxgl已加载
+    if (!mapboxgl) {
+      throw new Error('Mapbox GL JS not loaded');
+    }
+    
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    // 尝试创建地图实例
+    map = new mapboxgl.Map({
+      container: mapContainer.value,
+      style: mapStyle.value, // 使用环境变量或默认样式
       center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
       zoom: INITIAL_VIEW_STATE.zoom,
       pitch: INITIAL_VIEW_STATE.pitch,
       bearing: INITIAL_VIEW_STATE.bearing,
-      duration: 1000
+      antialias: true,
+      failIfMajorPerformanceCaveat: false, // 允许在性能受限的设备上运行
     });
-  };
-  
-  // Initialize deck.gl
-  const initDeck = () => {
-    console.log('Initializing Deck.gl...')
-    try {
-        // Create deck.gl instance, share map's viewport
-        deck = new Deck({
-          canvas: 'deck-canvas',
-          width: '100%',
-          height: '100%',
-          initialViewState: INITIAL_VIEW_STATE,
-          controller: false,
-          onViewStateChange: ({ viewState }) => {
-            // Sync view state with map
-            map.jumpTo({
-              center: [viewState.longitude, viewState.latitude],
-              zoom: viewState.zoom,
-              bearing: viewState.bearing,
-              pitch: viewState.pitch
-            })
-            return viewState
-          },
-          layers: [],
-          getTooltip: ({ object }) => {
-            if (!object) {
-              hoveredDroneInfo.value = null
-              return null
-            }
-            
-            if (object.type === 'drone') {
-              hoveredDroneInfo.value = object
-            }
-            
-            return null
-          },
-          onClick: ({ object }) => {
-            if (!object) return
-            
-            if (object.type === 'drone') {
-              clickedDroneId.value = object.drone_id
-              emit('drone-clicked', object.drone_id)
-            }
-          }
-        })
-        console.log('Deck.gl instance created.')
-        
-        // Render deck.gl layers
-        renderDeckLayers()
-        
-        // There's a hidden canvas, used for deck.gl rendering
-        const deckCanvas = document.createElement('canvas')
-        deckCanvas.id = 'deck-canvas'
-        deckCanvas.style.position = 'absolute'
-        deckCanvas.style.top = '0'
-        deckCanvas.style.left = '0'
-        deckCanvas.style.width = '100%'
-        deckCanvas.style.height = '100%'
-        deckCanvas.style.pointerEvents = 'none'
-        mapContainer.value.appendChild(deckCanvas)
-        
-        // Add deck.gl as a map overlay
-        map.on('render', () => {
-          deck.setProps({
-            viewState: {
-              longitude: map.getCenter().lng,
-              latitude: map.getCenter().lat,
-              zoom: map.getZoom(),
-              pitch: map.getPitch(),
-              bearing: map.getBearing()
-            }
-          })
-        })
-    } catch(error) {
-        console.error('Error initializing Deck.gl:', error)
-    }
-  }
-  
-  // Render deck.gl layers
-  const renderDeckLayers = () => {
-    if (!deck) return
     
-    const layers = []
+    console.log('地图实例已创建，初始化位置:', [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude]);
     
-    // Add drone layer
-    if (showDrones.value) {
-      layers.push(
-        new ScatterplotLayer({
-          id: 'drones-layer',
-          data: props.drones.map(drone => {
-            // Standardize data format
-            if (!drone.current_location) return null
-            
-            const coordinates = drone.current_location.coordinates
-            if (!coordinates || coordinates.length < 2) return null
-            
-            return {
-              ...drone,
-              type: 'drone',
-              position: [coordinates[0], coordinates[1], coordinates[2] || (drone.current_location.altitude || 100)],
-              color: getDroneColor(drone),
-              radius: drone.drone_id === props.selectedDroneId ? 300 : 200
-            }
-          }).filter(Boolean),
-          pickable: true,
-          stroked: true,
-          filled: true,
-          radiusScale: 1,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 20,
-          lineWidthMinPixels: 1,
-          getPosition: d => d.position,
-          getFillColor: d => d.color,
-          getLineColor: d => [255, 255, 255],
-          getRadius: d => d.radius,
-          getLineWidth: d => d.drone_id === props.selectedDroneId ? 3 : 1,
-          updateTriggers: {
-            getFillColor: [props.drones],
-            getLineWidth: [props.selectedDroneId],
-            getRadius: [props.selectedDroneId]
-          }
-        })
-      )
-    }
-    
-    // Add flight paths layer
-    if (showFlightPaths.value && props.flightPaths && props.flightPaths.length > 0) {
-      layers.push(
-        new PathLayer({
-          id: 'flight-paths-layer',
-          data: props.flightPaths,
-          pickable: true,
-          widthScale: 1,
-          widthMinPixels: 2,
-          getPath: d => d.path,
-          getColor: d => d.color || [30, 144, 255, 200],
-          getWidth: d => d.width || 5
-        })
-      )
-    }
-    
-    // Add no-fly zones layer
-    if (showNoFlyZones.value && props.noFlyZones && props.noFlyZones.length > 0) {
-      layers.push(
-        new PolygonLayer({
-          id: 'no-fly-zones-layer',
-          data: props.noFlyZones,
-          pickable: true,
-          stroked: true,
-          filled: true,
-          wireframe: true,
-          lineWidthMinPixels: 1,
-          getPolygon: d => d.polygon,
-          getFillColor: d => d.color || [255, 0, 0, 50],
-          getLineColor: [255, 0, 0],
-          getLineWidth: 1
-        })
-      )
-    }
-    
-    // Add events layer
-    if (showEvents.value && props.events && props.events.length > 0) {
-      layers.push(
-        new IconLayer({
-          id: 'events-layer',
-          data: props.events.map(event => {
-            if (!event.location || !event.location.position) return null
-            
-            const coordinates = event.location.position.coordinates
-            if (!coordinates || coordinates.length < 2) return null
-            
-            return {
-              ...event,
-              position: [coordinates[0], coordinates[1], coordinates[2] || 0],
-              icon: getEventIcon(event),
-              size: getEventSize(event),
-              color: getEventColor(event)
-            }
-          }).filter(Boolean),
-          pickable: true,
-          sizeScale: 15,
-          getPosition: d => d.position,
-          getIcon: d => d.icon,
-          getSize: d => d.size,
-          getColor: d => d.color
-        })
-      )
-    }
-    
-    deck.setProps({ layers })
-  }
-  
-  // Get color based on drone status
-  const getDroneColor = (drone) => {
-    switch (drone.status) {
-      case 'idle':
-        return [0, 122, 255, 255]  // Blue
-      case 'flying':
-        return [52, 199, 89, 255]  // Green
-      case 'charging':
-        return [255, 149, 0, 255]  // Orange
-      case 'maintenance':
-        return [255, 204, 0, 255]  // Yellow
-      case 'offline':
-        return [210, 210, 210, 180] // Gray
-      case 'error':
-        return [255, 59, 48, 255]  // Red
-      default:
-        return [128, 128, 128, 255] // Gray
-    }
-  }
-  
-  // Get icon for event
-  const getEventIcon = (event) => {
-    switch (event.type) {
-      case 'emergency':
-        return 'warning'
-      case 'security':
-        return 'shield'
-      case 'anomaly':
-        return 'location'
-      case 'logistics':
-        return 'package'
-      default:
-        return 'marker'
-    }
-  }
-  
-  // Get size for event
-  const getEventSize = (event) => {
-    switch (event.level) {
-      case 'high':
-        return 5
-      case 'medium':
-        return 4
-      case 'low':
-        return 3
-      default:
-        return 3
-    }
-  }
-  
-  // Get color for event
-  const getEventColor = (event) => {
-    switch (event.level) {
-      case 'high':
-        return [255, 59, 48, 255]  // Red
-      case 'medium':
-        return [255, 149, 0, 255]  // Orange
-      case 'low':
-        return [255, 204, 0, 255]  // Yellow
-      default:
-        return [0, 122, 255, 255]  // Blue
-    }
-  }
-  
-  // Toggle 3D view
-  const toggle3DView = () => {
-    is3DView.value = !is3DView.value
-    if (map) {
-      map.easeTo({
-        pitch: is3DView.value ? 60 : 0,
-        bearing: is3DView.value ? 30 : 0,
-        duration: 1000
-      })
-    }
-  }
-  
-  // 修改地图样式切换方法
-  const changeMapStyle = (style) => {
-    if (!map) return;
-    
-    try {
-      console.log('切换地图样式:', style);
-      // 保存当前视角状态
-      const currentCenter = map.getCenter();
-      const currentZoom = map.getZoom();
-      const currentPitch = map.getPitch();
-      const currentBearing = map.getBearing();
+    // 添加错误事件监听器
+    map.on('error', (e) => {
+      console.error('地图加载错误:', e);
+      // 不设置isLoading = false，让load事件处理
       
-      // 设置新样式
-      map.setStyle(style);
+      // 尝试使用备选样式
+      if (e.error && e.error.status === 401) {
+        console.log('尝试使用备选地图样式');
+        try {
+          map.setStyle('mapbox://styles/mapbox/streets-v12');
+        } catch (styleError) {
+          console.error('设置备选样式失败:', styleError);
+        }
+      }
+    });
+    
+    // 添加加载事件监听器
+    map.on('load', () => {
+      console.log('地图加载完成');
+      isLoading.value = false;
       
-      // 样式加载完成后恢复视角
-      map.once('style.load', () => {
-        map.jumpTo({
-          center: currentCenter,
-          zoom: currentZoom,
-          pitch: currentPitch,
-          bearing: currentBearing
-        });
-        
-        // 重新添加3D建筑层
+      try {
+        // 初始化3D建筑层
         add3DBuildings();
         
-        // 更新isDarkMode状态
-        isDarkMode.value = style.includes('dark');
-      });
-    } catch (error) {
-      console.error('切换地图样式时出错:', error);
-    }
-  };
-  
-  // 飞行到武汉大学
-  const flyToWhu = () => {
-    if (!map) return;
-    
-    try {
-      console.log('飞行到武汉大学');
-      
-      // 添加动画效果
-      map.flyTo({
-        center: [WHU_LOCATION.longitude, WHU_LOCATION.latitude],
-        zoom: WHU_LOCATION.zoom,
-        pitch: WHU_LOCATION.pitch,
-        bearing: WHU_LOCATION.bearing,
-        duration: 3000, // 较长的动画时间
-        essential: true
-      });
-    } catch (error) {
-      console.error('飞行到武汉大学时出错:', error);
-    }
-  };
-
-  // 初始化时添加动态跳转到武汉大学
-  const initializeWithAnimation = () => {
-    // 首先定位到默认位置的较远视角
-    if (map) {
-      console.log('初始化动态飞行到武汉大学');
-      
-      // 设置初始视角为较远的视角
-      map.jumpTo({
-        center: [114.36, 30.52], // 稍微偏离武汉大学的位置
-        zoom: 10, // 较小的缩放级别表示更远的视角
-        pitch: 0,
-        bearing: 0
-      });
-      
-      // 延迟一秒后执行飞行动画
-      setTimeout(() => {
-        flyToWhu();
-      }, 1000);
-    }
-  };
-  
-  // 模拟无人机巡逻状态的标记
-  const patrolStatus = ref(false);
-
-  // 修改开始巡逻方法
-  const startDronePatrol = (drones) => {
-    if (!map) {
-      console.warn('地图实例未初始化，无法开始无人机巡逻');
-      return;
-    }
-    console.log('开始无人机巡逻模拟:', drones);
-    
-    try {
-      // 设置巡逻状态为真
-      patrolStatus.value = true;
-      // 这里可以实现实际的巡逻路径动画
-      // 简单实现：为每个无人机创建一个随机巡逻路径
-      renderDeckLayers(); // 刷新图层
-    } catch (error) {
-      console.error('开始巡逻时出错:', error);
-    }
-  };
-  
-  // 修改停止巡逻方法
-  const stopDronePatrol = (droneIds) => {
-    if (!map) {
-      console.warn('地图实例未初始化，无法停止无人机巡逻');
-      return;
-    }
-    console.log('停止无人机巡逻:', droneIds);
-    
-    try {
-      // 设置巡逻状态为假
-      patrolStatus.value = false;
-      // 清除巡逻路径
-      renderDeckLayers(); // 刷新图层
-    } catch (error) {
-      console.error('停止巡逻时出错:', error);
-    }
-  };
-  
-  // 公开巡逻状态
-  const getPatrolStatus = () => {
-    return patrolStatus.value;
-  };
-  
-  // Mount component
-  onMounted(() => {
-    console.log('Map3D component mounted.');
-    
-    // 使用延迟初始化，确保DOM已完全准备好
-    setTimeout(() => {
-      if (mapContainer.value) {
-        console.log('mapContainer is available, initializing map...');
-        try {
-          initializeMap();
-        } catch (error) {
-          console.error('Map initialization failed:', error);
-          isLoading.value = false;
-          
-          // 通知父组件地图初始化失败
-          emit('map-loaded', { success: false, error: error.message });
+        // 初始化DeckGL
+        if (typeof Deck !== 'undefined') {
+          initDeck();
+        } else {
+          console.warn('Deck.gl未加载，跳过图层初始化');
         }
-      } else {
-        console.error('mapContainer ref not found even after delay!');
-        isLoading.value = false;
+        
+        // 设置地图交互事件
+        setupMapEvents();
+        
+        // 添加初始动画效果
+        initializeWithAnimation();
+      } catch (error) {
+        console.error('地图加载后初始化图层出错:', error);
       }
-    }, 100);
-  })
+      
+      // 无论如何都通知父组件地图已加载
+      emit('map-loaded', { success: true });
+    });
+    
+    // 添加超时处理，防止地图加载卡住
+    setTimeout(() => {
+      if (isLoading.value) {
+        console.warn('地图加载超时，强制完成初始化');
+        isLoading.value = false;
+        emit('map-loaded', { success: false, error: 'timeout' });
+      }
+    }, 10000); // 10秒超时
+    
+  } catch (error) {
+    console.error('初始化地图时出错:', error);
+    isLoading.value = false;
+    emit('map-loaded', { success: false, error: error.message });
+  }
+};
+
+// 添加3D建筑方法
+const add3DBuildings = () => {
+  if (!map) return;
   
-  // Cleanup on unmount
-  onUnmounted(() => {
-    if (map) {
-      map.remove()
-      map = null
+  // 添加3D建筑层
+  map.addLayer({
+    'id': 'building-extrusion',
+    'type': 'fill-extrusion',
+    'source': 'composite',
+    'source-layer': 'building',
+    'filter': ['==', 'extrude', 'true'],
+    'minzoom': 12,
+    'paint': {
+      'fill-extrusion-color': '#3b82f6',
+      'fill-extrusion-height': [
+        'interpolate', ['linear'], ['zoom'],
+        12, 0,
+        12.5, ['get', 'height']
+      ],
+      'fill-extrusion-base': [
+        'interpolate', ['linear'], ['zoom'],
+        12, 0,
+        12.5, ['get', 'min_height']
+      ],
+      'fill-extrusion-opacity': 0.6
+    },
+    'visibility': showBuildings.value ? 'visible' : 'none'
+  });
+  
+  // 添加地形层
+  map.addSource('mapbox-dem', {
+    'type': 'raster-dem',
+    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+    'tileSize': 512,
+    'maxzoom': 14
+  });
+  
+  // 设置地形
+  map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+};
+
+// 使用原生Mapbox标记添加事件图标
+const addEventsAsMapboxMarkers = () => {
+  if (!map || !props.events || props.events.length === 0) return;
+
+  // 清除之前的标记和弹窗
+  eventMarkers.value.forEach(marker => marker.remove());
+  eventMarkers.value = [];
+  eventPopups.value.forEach(popup => popup.remove());
+  eventPopups.value.clear();
+  
+  // 为每个事件创建标记
+  props.events.forEach(event => {
+    if (!event.location || !event.location.coordinates) return;
+    
+    // 创建DOM元素作为标记
+    const el = document.createElement('div');
+    el.className = 'mapboxgl-event-marker';
+    el.style.backgroundColor = getEventPriorityColor(event.priority);
+    el.style.width = '30px';
+    el.style.height = '30px';
+    el.style.borderRadius = '50%';
+    el.style.border = '2px solid white';
+    el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+    el.style.cursor = 'pointer';
+    
+    // 添加感叹号
+    const exclamation = document.createElement('div');
+    exclamation.textContent = '!';
+    exclamation.style.textAlign = 'center';
+    exclamation.style.color = 'white';
+    exclamation.style.fontWeight = 'bold';
+    exclamation.style.fontSize = '18px';
+    exclamation.style.lineHeight = '28px';
+    el.appendChild(exclamation);
+    
+    // 创建标记
+    const marker = new mapboxgl.Marker({
+      element: el,
+      anchor: 'bottom',
+    })
+      .setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+      .addTo(map);
+    
+    // 设置较低的z-index
+    const markerElement = marker.getElement();
+    markerElement.style.zIndex = '0';
+    
+    // 保存标记引用
+    eventMarkers.value.push(marker);
+    
+    // 创建弹窗但不立即显示
+    const popupContent = document.createElement('div');
+    popupContent.className = 'event-popup-content';
+    popupContent.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-medium">${event.title}</div>
+        <span class="popup-tag popup-tag-${getEventStatusType(event.status)}">${event.status}</span>
+      </div>
+      <div class="text-gray-600 text-xs mb-1">ID: ${event.id}</div>
+      <div class="text-gray-600 text-xs mb-2">${formatTime(event.reportTime)}</div>
+      <div class="text-xs text-gray-700 p-2 bg-gray-50 rounded mb-2">
+        ${event.description}
+      </div>
+      <div class="flex justify-end">
+        <button class="popup-close-btn">关闭</button>
+      </div>
+    `;
+    
+    // 创建popup对象
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      anchor: 'bottom',
+      offset: [0, -15],
+      className: 'custom-mapbox-popup'
+    }).setDOMContent(popupContent);
+    
+    // 存储popup引用
+    eventPopups.value.set(event.id, popup);
+    
+    // 点击事件处理
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      // 如果其他弹窗打开，先关闭
+      eventPopups.value.forEach((p, id) => {
+        if (id !== event.id) p.remove();
+      });
+      
+      // 显示此事件的弹窗
+      popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+        .addTo(map);
+      
+      // 设置选中的事件
+      selectedEventInfo.value = event;
+      
+      // 触发事件点击事件
+      emit('event-clicked', event);
+    });
+    
+    // 弹窗中的关闭按钮点击事件
+    popupContent.querySelector('.popup-close-btn').addEventListener('click', () => {
+      popup.remove();
+      selectedEventInfo.value = null;
+    });
+  });
+};
+
+// 获取事件优先级颜色
+const getEventPriorityColor = (priority) => {
+  switch (priority) {
+    case 'high': return '#ff4d4f'; // 红色
+    case 'medium': return '#faad14'; // 橙色
+    case 'low': return '#52c41a'; // 绿色
+    default: return '#1890ff'; // 蓝色
+  }
+};
+
+// 监听事件变化，更新地图标记
+watch(() => props.events, () => {
+  if (map && showEvents.value) {
+    addEventsAsMapboxMarkers();
+  }
+}, { deep: true });
+
+// 监听showEvents变化
+watch(() => showEvents.value, (newVal) => {
+  if (map) {
+    if (newVal) {
+      addEventsAsMapboxMarkers();
+    } else {
+      // 移除所有事件标记
+      document.querySelectorAll('.mapboxgl-event-marker').forEach(el => el.remove());
     }
-    if (deck) {
-      deck.finalize()
-      deck = null
+  }
+});
+
+// 在地图点击事件中添加关闭弹窗逻辑
+const setupMapEvents = () => {
+  if (!map) return;
+  
+  // 鼠标移动事件，更新坐标
+  map.on('mousemove', (e) => {
+    currentPosition.value = {
+      lng: e.lngLat.lng,
+      lat: e.lngLat.lat,
+      altitude: map.queryTerrainElevation(e.lngLat) || 0
+    };
+  });
+  
+  // 点击事件 - 修改为关闭弹窗
+  map.on('click', (e) => {
+    // 关闭事件信息窗口
+    closeEventInfo();
+    
+    // 发送点击事件到父组件
+    emit('map-clicked', {
+      lng: e.lngLat.lng,
+      lat: e.lngLat.lat,
+      altitude: map.queryTerrainElevation(e.lngLat) || 0
+    });
+  });
+
+  // 地图样式加载时添加事件图标
+  map.on('style.load', () => {
+    if (showEvents.value) {
+      addEventsAsMapboxMarkers();
     }
-  })
+  });
+};
+
+const showEventInfo = (event) => {
+  // 获取对应的popup
+  const popup = eventPopups.value.get(event.id);
+  if (popup && event.location && event.location.coordinates) {
+    // 如果其他弹窗打开，先关闭
+    eventPopups.value.forEach((p, id) => {
+      if (id !== event.id) p.remove();
+    });
+    
+    // 显示此事件的弹窗
+    popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+      .addTo(map);
+    
+    // 设置选中的事件
+    selectedEventInfo.value = event;
+  }
+};
+
+const closeEventInfo = () => {
+  if (selectedEventInfo.value) {
+    const popup = eventPopups.value.get(selectedEventInfo.value.id);
+    if (popup) popup.remove();
+  }
+  selectedEventInfo.value = null;
+};
+
+// 飞行到指定位置
+const flyTo = (position) => {
+  if (!map) return;
   
-  // Methods to expose
-  defineExpose({
-    centerOnDrone: centerMapOnDrone,
-    resetView,
-    toggleView: toggle3DView,
-    flyTo,
-    flyToWhu,
-    startDronePatrol,
-    stopDronePatrol,
-    getPatrolStatus,
-    changeMapStyle
-  })
-  </script>
+  try {
+    console.log('飞行到位置:', position);
+    
+    // 确保位置对象包含必要的属性
+    const lng = position.lng || position.longitude || 114.367;
+    const lat = position.lat || position.latitude || 30.54;
+    const zoom = position.zoom || 14;
+    
+    map.flyTo({
+      center: [lng, lat],
+      zoom: zoom,
+      pitch: position.pitch !== undefined ? position.pitch : 45,
+      bearing: position.bearing !== undefined ? position.bearing : 0,
+      duration: position.duration || 2000,
+      essential: true
+    });
+  } catch (error) {
+    console.error('飞行到位置时出错:', error);
+  }
+};
+
+// 重置视图到初始状态
+const resetView = () => {
+  if (!map) return;
   
-  <style scoped>
-  .mapboxgl-canvas {
-    outline: none;
+  map.flyTo({
+    center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
+    zoom: INITIAL_VIEW_STATE.zoom,
+    pitch: INITIAL_VIEW_STATE.pitch,
+    bearing: INITIAL_VIEW_STATE.bearing,
+    duration: 1000
+  });
+};
+
+// Initialize deck.gl
+const initDeck = () => {
+  console.log('Initializing Deck.gl...')
+  try {
+      // Create deck.gl instance, share map's viewport
+      deck = new Deck({
+        canvas: 'deck-canvas',
+        width: '100%',
+        height: '100%',
+        initialViewState: INITIAL_VIEW_STATE,
+        controller: false,
+        onViewStateChange: ({ viewState }) => {
+          // Sync view state with map
+          map.jumpTo({
+            center: [viewState.longitude, viewState.latitude],
+            zoom: viewState.zoom,
+            bearing: viewState.bearing,
+            pitch: viewState.pitch
+          })
+          return viewState
+        },
+        layers: [],
+        getTooltip: ({ object }) => {
+          if (!object) {
+            hoveredDroneInfo.value = null
+            return null
+          }
+          
+          if (object.type === 'drone') {
+            hoveredDroneInfo.value = object
+          }
+          
+          return null
+        },
+        onClick: ({ object }) => {
+          if (!object) return
+          
+          if (object.type === 'drone') {
+            clickedDroneId.value = object.drone_id
+            emit('drone-clicked', object.drone_id)
+            return true
+          }
+        }
+      })
+      console.log('Deck.gl instance created.')
+      
+      // Render deck.gl layers
+      renderDeckLayers()
+      
+      // There's a hidden canvas, used for deck.gl rendering
+      const deckCanvas = document.createElement('canvas')
+      deckCanvas.id = 'deck-canvas'
+      deckCanvas.style.position = 'absolute'
+      deckCanvas.style.top = '0'
+      deckCanvas.style.left = '0'
+      deckCanvas.style.width = '100%'
+      deckCanvas.style.height = '100%'
+      deckCanvas.style.pointerEvents = 'none'
+      mapContainer.value.appendChild(deckCanvas)
+      
+      // Add deck.gl as a map overlay
+      map.on('render', () => {
+        deck.setProps({
+          viewState: {
+            longitude: map.getCenter().lng,
+            latitude: map.getCenter().lat,
+            zoom: map.getZoom(),
+            pitch: map.getPitch(),
+            bearing: map.getBearing()
+          }
+        })
+      })
+  } catch(error) {
+      console.error('Error initializing Deck.gl:', error)
+  }
+}
+
+// Render deck.gl layers
+const renderDeckLayers = () => {
+  if (!deck) return
+  
+  const layers = []
+  
+  // Add drone layer
+  if (showDrones.value) {
+    layers.push(
+      new ScatterplotLayer({
+        id: 'drones-layer',
+        data: props.drones.map(drone => {
+          // Standardize data format
+          if (!drone.current_location) return null
+          
+          const coordinates = drone.current_location.coordinates
+          if (!coordinates || coordinates.length < 2) return null
+          
+          return {
+            ...drone,
+            type: 'drone',
+            position: [coordinates[0], coordinates[1], coordinates[2] || (drone.current_location.altitude || 100)],
+            color: getDroneColor(drone),
+            radius: drone.drone_id === props.selectedDroneId ? 300 : 200
+          }
+        }).filter(Boolean),
+        pickable: true,
+        stroked: true,
+        filled: true,
+        radiusScale: 1,
+        radiusMinPixels: 5,
+        radiusMaxPixels: 20,
+        lineWidthMinPixels: 1,
+        getPosition: d => d.position,
+        getFillColor: d => d.color,
+        getLineColor: d => [255, 255, 255],
+        getRadius: d => d.radius,
+        getLineWidth: d => d.drone_id === props.selectedDroneId ? 3 : 1,
+        updateTriggers: {
+          getFillColor: [props.drones],
+          getLineWidth: [props.selectedDroneId],
+          getRadius: [props.selectedDroneId]
+        }
+      })
+    )
   }
   
-  /* deck.gl canvas occupies the same position as mapbox */
-  #deck-canvas {
-    z-index: 2;
+  // Add flight paths layer
+  if (showFlightPaths.value && props.flightPaths && props.flightPaths.length > 0) {
+    layers.push(
+      new PathLayer({
+        id: 'flight-paths-layer',
+        data: props.flightPaths,
+        pickable: true,
+        widthScale: 1,
+        widthMinPixels: 2,
+        getPath: d => d.path,
+        getColor: d => d.color || [30, 144, 255, 200],
+        getWidth: d => d.width || 5
+      })
+    )
   }
-  </style>
+  
+  // Add no-fly zones layer
+  if (showNoFlyZones.value && props.noFlyZones && props.noFlyZones.length > 0) {
+    layers.push(
+      new PolygonLayer({
+        id: 'no-fly-zones-layer',
+        data: props.noFlyZones,
+        pickable: true,
+        stroked: true,
+        filled: true,
+        wireframe: true,
+        lineWidthMinPixels: 1,
+        getPolygon: d => d.polygon,
+        getFillColor: d => d.color || [255, 0, 0, 50],
+        getLineColor: [255, 0, 0],
+        getLineWidth: 1
+      })
+    )
+  }
+
+  deck.setProps({ layers })
+}
+
+// Get color based on drone status
+const getDroneColor = (drone) => {
+  switch (drone.status) {
+    case 'idle':
+      return [0, 122, 255, 255]  // Blue
+    case 'flying':
+      return [52, 199, 89, 255]  // Green
+    case 'charging':
+      return [255, 149, 0, 255]  // Orange
+    case 'maintenance':
+      return [255, 204, 0, 255]  // Yellow
+    case 'offline':
+      return [210, 210, 210, 180] // Gray
+    case 'error':
+      return [255, 59, 48, 255]  // Red
+    default:
+      return [128, 128, 128, 255] // Gray
+  }
+}
+
+// Get icon for event
+const getEventIcon = (event) => {
+  // Deck.gl预定义的图标名称
+  return 'warning'
+}
+
+// Get size for event
+const getEventSize = (event) => {
+  switch (event.priority) {
+    case 'high':
+      return 5
+    case 'medium':
+      return 4
+    case 'low':
+      return 3
+    default:
+      return 3
+  }
+}
+
+// Get color for event
+const getEventColor = (event) => {
+  switch (event.priority) {
+    case 'high':
+      return [255, 59, 48, 255]  // Red
+    case 'medium':
+      return [255, 149, 0, 255]  // Orange
+    case 'low':
+      return [255, 204, 0, 255]  // Yellow
+    default:
+      return [0, 122, 255, 255]  // Blue
+  }
+}
+
+// Toggle 3D view
+const toggle3DView = () => {
+  is3DView.value = !is3DView.value
+  if (map) {
+    map.easeTo({
+      pitch: is3DView.value ? 60 : 0,
+      bearing: is3DView.value ? 30 : 0,
+      duration: 1000
+    })
+  }
+}
+
+// 修改地图样式切换方法
+const changeMapStyle = (style) => {
+  if (!map) return;
+  
+  try {
+    console.log('切换地图样式:', style);
+    // 保存当前视角状态
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+    const currentPitch = map.getPitch();
+    const currentBearing = map.getBearing();
+    
+    // 设置新样式
+    map.setStyle(style);
+    
+    // 样式加载完成后恢复视角
+    map.once('style.load', () => {
+      map.jumpTo({
+        center: currentCenter,
+        zoom: currentZoom,
+        pitch: currentPitch,
+        bearing: currentBearing
+      });
+      
+      // 重新添加3D建筑层
+      add3DBuildings();
+      
+      // 更新isDarkMode状态
+      isDarkMode.value = style.includes('dark');
+    });
+  } catch (error) {
+    console.error('切换地图样式时出错:', error);
+  }
+};
+
+// 飞行到武汉大学
+const flyToWhu = () => {
+  if (!map) return;
+  
+  try {
+    console.log('飞行到武汉大学');
+    
+    // 添加动画效果
+    map.flyTo({
+      center: [WHU_LOCATION.longitude, WHU_LOCATION.latitude],
+      zoom: WHU_LOCATION.zoom,
+      pitch: WHU_LOCATION.pitch,
+      bearing: WHU_LOCATION.bearing,
+      duration: 3000, // 较长的动画时间
+      essential: true
+    });
+  } catch (error) {
+    console.error('飞行到武汉大学时出错:', error);
+  }
+};
+
+// 初始化时添加动态跳转到武汉大学
+const initializeWithAnimation = () => {
+  // 首先定位到默认位置的较远视角
+  if (map) {
+    console.log('初始化动态飞行到武汉大学');
+    
+    // 设置初始视角为较远的视角
+    map.jumpTo({
+      center: [114.36, 30.52], // 稍微偏离武汉大学的位置
+      zoom: 10, // 较小的缩放级别表示更远的视角
+      pitch: 0,
+      bearing: 0
+    });
+    
+    // 延迟一秒后执行飞行动画
+    setTimeout(() => {
+      flyToWhu();
+    }, 1000);
+  }
+};
+
+// 模拟无人机巡逻状态的标记
+const patrolStatus = ref(false);
+
+// 修改开始巡逻方法
+const startDronePatrol = (drones) => {
+  if (!map) {
+    console.warn('地图实例未初始化，无法开始无人机巡逻');
+    return;
+  }
+  console.log('开始无人机巡逻模拟:', drones);
+  
+  try {
+    // 设置巡逻状态为真
+    patrolStatus.value = true;
+    // 这里可以实现实际的巡逻路径动画
+    // 简单实现：为每个无人机创建一个随机巡逻路径
+    renderDeckLayers(); // 刷新图层
+  } catch (error) {
+    console.error('开始巡逻时出错:', error);
+  }
+};
+
+// 修改停止巡逻方法
+const stopDronePatrol = (droneIds) => {
+  if (!map) {
+    console.warn('地图实例未初始化，无法停止无人机巡逻');
+    return;
+  }
+  console.log('停止无人机巡逻:', droneIds);
+  
+  try {
+    // 设置巡逻状态为假
+    patrolStatus.value = false;
+    // 清除巡逻路径
+    renderDeckLayers(); // 刷新图层
+  } catch (error) {
+    console.error('停止巡逻时出错:', error);
+  }
+};
+
+// 公开巡逻状态
+const getPatrolStatus = () => {
+  return patrolStatus.value;
+};
+
+// Mount component
+onMounted(() => {
+  console.log('Map3D component mounted.');
+  
+  // 使用延迟初始化，确保DOM已完全准备好
+  setTimeout(() => {
+    if (mapContainer.value) {
+      console.log('mapContainer is available, initializing map...');
+      try {
+        initializeMap();
+      } catch (error) {
+        console.error('Map initialization failed:', error);
+        isLoading.value = false;
+        
+        // 通知父组件地图初始化失败
+        emit('map-loaded', { success: false, error: error.message });
+      }
+    } else {
+      console.error('mapContainer ref not found even after delay!');
+      isLoading.value = false;
+    }
+  }, 100);
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (map) {
+    // 移除事件标记
+    document.querySelectorAll('.mapboxgl-event-marker').forEach(el => el.remove());
+    
+    map.remove()
+    map = null
+  }
+  if (deck) {
+    deck.finalize()
+    deck = null
+  }
+})
+
+// Methods to expose
+defineExpose({
+  centerOnDrone: centerMapOnDrone,
+  resetView,
+  toggleView: toggle3DView,
+  flyTo,
+  flyToWhu,
+  startDronePatrol,
+  stopDronePatrol,
+  getPatrolStatus,
+  changeMapStyle,
+  showEventInfo,
+  closeEventInfo
+})
+</script>
+  
+<style scoped>
+.mapboxgl-canvas {
+  outline: none;
+}
+
+/* deck.gl canvas occupies the same position as mapbox */
+#deck-canvas {
+  z-index: 2;
+}
+</style>
+

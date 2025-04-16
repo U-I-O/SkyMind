@@ -845,11 +845,12 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="postcss">
 .floating-card {
   @apply p-4 rounded-lg shadow-lg;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
+  z-index: 100; 
 }
 
 /* 美化表格行 */

@@ -1,10 +1,10 @@
 <template>
-  <div class="h-full pointer-events-none">
+  <div class="h-full">
     <!-- 使用全局地图，不需要在此页面添加地图组件 -->
-    <div class="p-4 h-full">
+    <div class="p-4 h-full overflow-hidden">
       <div class="h-full grid grid-cols-12 gap-4">
         <!-- 左侧面板 -->
-        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto h-full overflow-hidden">
           <!-- 标题和操作按钮 -->
           <div class="floating-card bg-white bg-opacity-95">
             <div class="flex justify-between items-center mb-4">
@@ -114,7 +114,7 @@
         </div>
         
         <!-- 右侧面板 -->
-        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto">
+        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto h-full overflow-hidden">
           <!-- 筛选条件面板 (移到右侧) -->
           <div class="floating-card bg-white bg-opacity-95">
             <div class="flex justify-between items-center mb-4">
@@ -164,64 +164,70 @@
           </div>
           
           <!-- 无人机列表 (移到右侧) -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col">
+          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col overflow-hidden">
             <h2 class="font-bold text-lg mb-4">无人机列表</h2>
             
             <!-- 无人机数据表格 -->
-            <div v-if="viewMode === 'list'" class="overflow-y-auto" style="max-height: 400px;">
-              <n-data-table
-                :columns="columns"
-                :data="filteredDrones"
-                :pagination="pagination"
-                :row-key="row => row.drone_id"
-                :loading="loading"
-                :scroll-x="true"
-              />
+            <div v-if="viewMode === 'list'" class="flex-1 overflow-hidden" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto h-full">
+                <n-data-table
+                  :columns="columns"
+                  :data="filteredDrones"
+                  :pagination="pagination"
+                  :row-key="row => row.drone_id"
+                  :loading="loading"
+                  :scroll-x="true"
+                />
+              </div>
             </div>
             
             <!-- 无人机卡片网格视图 -->
-            <div v-else-if="viewMode === 'grid'" class="overflow-y-auto" style="max-height: 400px;">
-              <div class="grid grid-cols-1 gap-4 pb-4">
-                <div v-for="drone in filteredDrones" :key="drone.drone_id" 
-                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                     :class="{'bg-blue-50 border-blue-200': selectedDrone?.drone_id === drone.drone_id}"
-                     @click="selectDrone(drone)">
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <h3 class="font-bold text-lg">{{ drone.name }}</h3>
-                      <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
-                    </div>
-                    <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
-                  </div>
-                  
-                  <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
-                    <div class="text-gray-500">型号:</div>
-                    <div class="font-medium">{{ drone.model }}</div>
-                    
-                    <div class="text-gray-500">电量:</div>
-                    <div class="font-medium">
-                      <n-progress :percentage="drone.battery_level" :show-indicator="false" />
-                      {{ drone.battery_level }}%
+            <div v-else-if="viewMode === 'grid'" class="flex-1 overflow-hidden" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto h-full">
+                <div class="grid grid-cols-1 gap-4 pb-4">
+                  <div v-for="drone in filteredDrones" :key="drone.drone_id" 
+                       class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                       :class="{'bg-blue-50 border-blue-200': selectedDrone?.drone_id === drone.drone_id}"
+                       @click="selectDrone(drone)">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <h3 class="font-bold text-lg">{{ drone.name }}</h3>
+                        <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
+                      </div>
+                      <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
                     </div>
                     
-                    <div class="text-gray-500">最大时间:</div>
-                    <div class="font-medium">{{ drone.max_flight_time }} 分钟</div>
+                    <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
+                      <div class="text-gray-500">型号:</div>
+                      <div class="font-medium">{{ drone.model }}</div>
+                      
+                      <div class="text-gray-500">电量:</div>
+                      <div class="font-medium">
+                        <n-progress :percentage="drone.battery_level" :show-indicator="false" />
+                        {{ drone.battery_level }}%
+                      </div>
+                      
+                      <div class="text-gray-500">最大时间:</div>
+                      <div class="font-medium">{{ drone.max_flight_time }} 分钟</div>
+                      
+                      <div class="text-gray-500">最大速度:</div>
+                      <div class="font-medium">{{ drone.max_speed }} m/s</div>
+                    </div>
                     
-                    <div class="text-gray-500">最大速度:</div>
-                    <div class="font-medium">{{ drone.max_speed }} m/s</div>
-                  </div>
-                  
-                  <div class="mt-4 flex justify-center space-x-2">
-                    <n-button size="small" @click.stop="viewDroneDetails(drone)">详情</n-button>
-                    <n-button size="small" type="primary" @click.stop="openDroneControl(drone)">控制</n-button>
+                    <div class="mt-4 flex justify-center space-x-2">
+                      <n-button size="small" @click.stop="viewDroneDetails(drone)">详情</n-button>
+                      <n-button size="small" type="primary" @click.stop="openDroneControl(drone)">控制</n-button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
             <!-- 地图视图 -->
-            <div v-else-if="viewMode === 'map'" class="flex-1 flex items-center justify-center">
-              <div class="text-center text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
+            <div v-else-if="viewMode === 'map'" class="flex-1" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto h-full flex items-center justify-center">
+                <div class="text-center text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
+              </div>
             </div>
           </div>
         </div>
@@ -573,5 +579,19 @@ onMounted(() => {
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
+  z-index: 100; 
+}
+
+/* 确保面板内容可滚动且不超出页面 */
+.h-full {
+  height: 100%;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
 }
 </style>

@@ -1051,6 +1051,7 @@ onMounted(() => {
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
+  z-index: 100;
 }
 
 .animate-pulse-slow {

@@ -6,82 +6,68 @@
           <!-- 左侧信息面板 -->
           <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
             <!-- 系统状态卡片 -->
-            <div class="light-card">
-              <div class="card-border">
-                <div class="flex justify-between items-center mb-4 title-bar">
-                  <div class="light-title">
-                    <div class="title-dot"></div>
-                    <h2 class="font-bold text-lg text-slate-700 flex items-center">
-                      <span class="status-icon mr-2"></span>
-                      系统状态
-                      <span class="light-badge">01</span>
-                    </h2>
-                  </div>
-                  <n-tag type="success" size="small" class="light-tag">运行中</n-tag>
+            <div class="floating-card bg-white bg-opacity-95">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg">系统状态</h2>
+                <n-tag type="success" size="small">运行中</n-tag>
+              </div>
+              
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">在线无人机</div>
+                  <div class="font-medium">{{ onlineDrones }}/{{ totalDrones }}</div>
                 </div>
-                
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center hover:bg-blue-50 p-2 rounded-md transition-all">
-                    <div class="text-slate-600">在线无人机</div>
-                    <div class="font-medium light-number">{{ onlineDrones }}/{{ totalDrones }}</div>
-                  </div>
-                  <div class="flex justify-between items-center hover:bg-blue-50 p-2 rounded-md transition-all">
-                    <div class="text-slate-600">活跃智能体</div>
-                    <div class="font-medium light-number">{{ summaryData.activeAgents }}/{{ summaryData.totalAgents }}</div>
-                  </div>
-                  <div class="flex justify-between items-center hover:bg-blue-50 p-2 rounded-md transition-all">
-                    <div class="text-slate-600">未处理事件</div>
-                    <div class="font-medium light-number">{{ summaryData.pendingEvents }}</div>
-                  </div>
-                  <div class="flex justify-between items-center hover:bg-blue-50 p-2 rounded-md transition-all">
-                    <div class="text-slate-600">进行中任务</div>
-                    <div class="font-medium light-number">{{ summaryData.activeTasks }}</div>
-                  </div>
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">活跃智能体</div>
+                  <div class="font-medium">{{ summaryData.activeAgents }}/{{ summaryData.totalAgents }}</div>
                 </div>
-                
-                <n-divider class="light-divider" />
-                
-                <!-- 系统资源使用情况 -->
-                <div>
-                  <div class="flex justify-between items-center mb-2">
-                    <div class="text-slate-600">CPU使用率</div>
-                    <div class="font-medium text-blue-600">{{ displayedValues.cpuUsage }}%</div>
-                  </div>
-                  <n-progress type="line" :percentage="displayedValues.cpuUsage" :indicator-placement="'inside'" :color="cpuUsageColor" class="light-progress" />
-                  
-                  <div class="flex justify-between items-center mb-2 mt-3">
-                    <div class="text-slate-600">内存使用率</div>
-                    <div class="font-medium text-blue-600">{{ displayedValues.memoryUsage }}%</div>
-                  </div>
-                  <n-progress type="line" :percentage="displayedValues.memoryUsage" :indicator-placement="'inside'" :color="memoryUsageColor" class="light-progress" />
-                  
-                  <div class="flex justify-between items-center mb-2 mt-3">
-                    <div class="text-slate-600">存储使用率</div>
-                    <div class="font-medium text-blue-600">{{ displayedValues.storageUsage }}%</div>
-                  </div>
-                  <n-progress type="line" :percentage="displayedValues.storageUsage" :indicator-placement="'inside'" :color="storageUsageColor" class="light-progress" />
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">未处理事件</div>
+                  <div class="font-medium">{{ summaryData.pendingEvents }}</div>
                 </div>
+                <div class="flex justify-between items-center">
+                  <div class="text-gray-600">进行中任务</div>
+                  <div class="font-medium">{{ summaryData.activeTasks }}</div>
+                </div>
+              </div>
+              
+              <n-divider />
+              
+              <!-- 系统资源使用情况 -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <div class="text-gray-600">CPU使用率</div>
+                  <div class="font-medium">{{ summaryData.cpuUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.cpuUsage" :indicator-placement="'inside'" :color="cpuUsageColor" />
+                
+                <div class="flex justify-between items-center mb-2 mt-3">
+                  <div class="text-gray-600">内存使用率</div>
+                  <div class="font-medium">{{ summaryData.memoryUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.memoryUsage" :indicator-placement="'inside'" :color="memoryUsageColor" />
+                
+                <div class="flex justify-between items-center mb-2 mt-3">
+                  <div class="text-gray-600">存储使用率</div>
+                  <div class="font-medium">{{ summaryData.storageUsage }}%</div>
+                </div>
+                <n-progress type="line" :percentage="summaryData.storageUsage" :indicator-placement="'inside'" :color="storageUsageColor" />
               </div>
             </div>
             
             <!-- 无人机状态面板 -->
-            <div class="light-card">
-              <div class="card-border">
-                <div class="light-title mb-4">
-                  <div class="title-dot"></div>
-                  <h3 class="text-lg font-medium text-slate-700 flex items-center">
-                    <span class="drone-icon mr-2"></span>
-                    活跃无人机
-                    <span class="light-badge">02</span>
-                    <span class="ml-2 text-xs text-slate-500">({{ activeDrones.length }})</span>
-                  </h3>
-                </div>
-                <div class="overflow-y-auto max-h-60 scrollbar-light">
+            <div class="floating-card bg-white bg-opacity-95">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg">活跃无人机</h2>
+                <span class="text-xs text-gray-500">({{ activeDrones.length }})</span>
+              </div>
+              
+              <div class="overflow-y-auto max-h-60">
                   <div 
                     v-for="drone in activeDrones" 
                     :key="drone.drone_id"
-                    class="p-3 rounded-lg cursor-pointer mb-3 transition-all light-drone-card hover:shadow-md"
-                    :class="selectedDrone?.drone_id === drone.drone_id ? 'selected-light-drone border-l-4 border-blue-500' : 'border-l-4 border-transparent'"
+                    class="p-3 rounded-lg cursor-pointer mb-3 transition-all hover:shadow-md border-l-4"
+                    :class="selectedDrone?.drone_id === drone.drone_id ? 'border-blue-500 bg-blue-50 bg-opacity-50' : 'border-transparent'"
                     @click="selectDrone(drone)"
                   >
                     <div class="flex items-start">
@@ -94,27 +80,29 @@
                         
                         <!-- Case 1: 当前选中且视频激活 (显示动态预览) -->
                         <div v-if="selectedDrone?.drone_id === drone.drone_id && droneVideoActive" 
-                             class="drone-video-preview rounded-lg overflow-hidden">
-                          <div class="video-active-indicator"></div>
-                          <div class="video-preview-play">
+                             class="w-14 h-14 rounded-lg overflow-hidden relative bg-blue-500">
+                          <div class="absolute top-0 right-0 w-2 h-2 rounded-full bg-green-500 animate-pulse m-1"></div>
+                          <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
                             <n-icon size="18" class="text-white"><video-camera-outlined /></n-icon>
                           </div>
                         </div>
                         
                         <!-- Case 2: 无人机飞行中 (显示图标 + 可点击播放按钮) -->
                         <div v-else-if="drone.status === 'flying'" 
-                             class="w-14 h-14 rounded-lg light-icon-bg flex items-center justify-center relative overflow-hidden drone-icon-interactive">
+                             class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center relative overflow-hidden drone-icon-interactive">
                           <n-icon :class="getDroneIconColor(drone.status)" class="text-2xl">
                             <environment-outlined />
                           </n-icon>
-                          <div class="video-preview-button">
-                            <n-icon size="12" class="text-white"><video-camera-outlined /></n-icon>
+                          <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 flex items-center justify-center transition-all">
+                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <n-icon size="12" class="text-white"><video-camera-outlined /></n-icon>
+                            </div>
                           </div>
                         </div>
                         
                         <!-- Case 3: 其他状态 (仅显示状态图标，无交互) -->
                         <div v-else 
-                             class="w-14 h-14 rounded-lg light-icon-bg flex items-center justify-center drone-icon-static">
+                             class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center drone-icon-static">
                           <n-icon :class="getDroneIconColor(drone.status)" class="text-2xl">
                             <play-circle-outlined v-if="drone.status === 'idle'" />
                             <thunderbolt-outlined v-else-if="drone.status === 'charging'" />
@@ -128,7 +116,7 @@
                       <div class="flex-1">
                         <div class="flex justify-between items-start">
                           <div class="font-medium text-slate-700 text-sm">{{ drone.name }}</div>
-                          <n-tag :type="getDroneStatusType(drone.status)" class="light-tag text-xs">
+                          <n-tag :type="getDroneStatusType(drone.status)" size="small" class="text-xs">
                             {{ getStatusText(drone.status) }}
                           </n-tag>
                         </div>
@@ -145,11 +133,11 @@
                               :color="getBatteryColor(drone.battery_level)"
                               :show-indicator="false"
                             :height="4"
-                              class="light-progress"
+                              class=""
                             />
                           </div>
                         
-                        <div class="mt-2 text-xs text-slate-500 flex items-center justify-between">
+                        <div class="mt-2 text-xs text-gray-500 flex items-center justify-between">
                           <span>型号: {{ drone.model || '未知' }}</span>
                           <span class="flex items-center">
                             <n-icon size="tiny" class="mr-1"><environment-outlined /></n-icon>
@@ -159,11 +147,10 @@
                       </div>
                     </div>
                   </div>
-                  <div v-if="activeDrones.length === 0" class="text-center text-slate-500 py-4">
+                  <div v-if="activeDrones.length === 0" class="text-center text-gray-500 py-4">
                     暂无活跃无人机
                   </div>
                 </div>
-              </div>
             </div>
           </div>
           
@@ -173,61 +160,43 @@
           <!-- 右侧控制面板 -->
           <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
             <!-- 事件和警报 -->
-            <div class="light-card">
-              <div class="card-border">
-                <div class="flex justify-between items-center mb-4 title-bar">
-                  <div class="light-title">
-                    <div class="title-dot"></div>
-                    <h2 class="font-bold text-lg text-slate-700 flex items-center">
-                      <span class="event-icon mr-2"></span>
-                      最新事件
-                      <span class="light-badge">03</span>
-                    </h2>
-                  </div>
-                  <router-link to="/events" class="text-blue-500 text-sm light-link">查看全部</router-link>
-                </div>
-                
-                <div class="space-y-3">
-                  <div v-for="event in recentEvents" :key="event.id" class="light-event-card" :class="getLightEventCardClass(event.level)">
-                    <div class="flex justify-between items-start">
-                      <div>
-                        <div class="font-medium text-slate-700">{{ event.title }}</div>
-                        <div class="text-xs text-slate-500">{{ formatDate(event.timestamp) }}</div>
-                      </div>
-                      <n-tag :type="getTagTypeByEventLevel(event.level)" size="small" class="light-tag">{{ event.level }}</n-tag>
+            <div class="floating-card bg-white bg-opacity-95">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg">最新事件</h2>
+                <router-link to="/events" class="text-primary text-sm">查看全部</router-link>
+              </div>
+              
+              <div class="space-y-3">
+                <div v-for="event in recentEvents" :key="event.id" class="border-l-4 pl-3 py-1" :class="getBorderColorByEventLevel(event.level)">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div class="font-medium">{{ event.title }}</div>
+                      <div class="text-xs text-gray-500">{{ formatDate(event.timestamp) }}</div>
                     </div>
-                    <div class="text-sm text-slate-600 mt-1">{{ event.description }}</div>
+                    <n-tag :type="getTagTypeByEventLevel(event.level)" size="small">{{ event.level }}</n-tag>
                   </div>
+                  <div class="text-sm text-gray-600 mt-1">{{ event.description }}</div>
                 </div>
               </div>
             </div>
             
             <!-- 任务进度 -->
-            <div class="light-card">
-              <div class="card-border">
-                <div class="flex justify-between items-center mb-4 title-bar">
-                  <div class="light-title">
-                    <div class="title-dot"></div>
-                    <h2 class="font-bold text-lg text-slate-700 flex items-center">
-                      <span class="task-icon mr-2"></span>
-                      任务进度
-                      <span class="light-badge">04</span>
-                    </h2>
+            <div class="floating-card bg-white bg-opacity-95">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg">任务进度</h2>
+                <router-link to="/tasks" class="text-primary text-sm">查看全部</router-link>
+              </div>
+              
+              <div class="space-y-4">
+                <div v-for="task in activeTasks" :key="task.id" class="space-y-2">
+                  <div class="flex justify-between items-center">
+                    <div class="font-medium">{{ task.title }}</div>
+                    <div class="text-xs text-gray-500">{{ task.progress }}%</div>
                   </div>
-                  <router-link to="/tasks" class="text-blue-500 text-sm light-link">查看全部</router-link>
-                </div>
-                
-                <div class="space-y-4">
-                  <div v-for="task in activeTasks" :key="task.id" class="light-task-card">
-                    <div class="flex justify-between items-center">
-                      <div class="font-medium text-slate-700">{{ task.title }}</div>
-                      <div class="text-xs text-blue-600">{{ task.displayProgress }}%</div>
-                    </div>
-                    <n-progress type="line" :percentage="task.displayProgress" :processing="task.status === 'in_progress'" :status="getProgressStatus(task.status)" class="light-progress" />
-                    <div class="flex justify-between text-xs text-slate-500">
-                      <div>{{ formatDate(task.startTime) }}</div>
-                      <div>预计完成: {{ formatDate(task.estimatedEndTime) }}</div>
-                    </div>
+                  <n-progress type="line" :percentage="task.progress" :processing="task.status === 'in_progress'" :status="getProgressStatus(task.status)" />
+                  <div class="flex justify-between text-xs text-gray-500">
+                    <div>{{ formatDate(task.startTime) }}</div>
+                    <div>预计完成: {{ formatDate(task.estimatedEndTime) }}</div>
                   </div>
                 </div>
               </div>
@@ -236,67 +205,6 @@
       </div>
     </div>
   </div>
-  
-  <!-- 无人机视频模态框 -->
-  <n-modal
-    v-model:show="droneVideoModalVisible"
-    style="width: 800px; max-width: 90vw;"
-    preset="card"
-    :title="`${selectedDrone?.name || '未知无人机'} - 实时视频`"
-    :bordered="false"
-    :segmented="{ content: true }"
-    @close="closeVideoModal"
-  >
-    <div class="drone-video-wrapper" style="height: 450px;">
-      <DroneVideoStream
-        v-if="selectedDrone"
-        ref="videoStreamRef"
-        :drone-id="selectedDrone.name"
-        :drone-name="selectedDrone.name"
-        :status="selectedDrone.status"
-        :drone-location="selectedDrone.current_location"
-        :auto-connect="true"
-        @connected="handleVideoConnected"
-        @disconnected="handleVideoDisconnected"
-      />
-    </div>
-    
-    <div class="drone-video-info mt-4">
-      <div v-if="selectedDrone" class="grid grid-cols-2 gap-y-2 text-sm">
-        <div class="text-gray-500">型号:</div>
-        <div class="font-medium">{{ selectedDrone.model || '未知' }}</div>
-        
-        <div class="text-gray-500">电量:</div>
-        <div class="font-medium">
-          <n-progress :percentage="selectedDrone.battery_level" :color="getBatteryColor(selectedDrone.battery_level)" :show-indicator="false" />
-          <span :class="getBatteryTextColor(selectedDrone.battery_level)">{{ selectedDrone.battery_level }}%</span>
-        </div>
-        
-        <div class="text-gray-500">状态:</div>
-        <div class="font-medium">
-          <n-tag :type="getDroneStatusType(selectedDrone.status)">
-            {{ getStatusText(selectedDrone.status) }}
-          </n-tag>
-        </div>
-        
-        <div class="text-gray-500">坐标:</div>
-        <div class="font-medium">{{ formatCoordinates(selectedDrone.current_location) }}</div>
-      </div>
-      
-      <n-divider />
-      
-      <div class="flex justify-between">
-        <n-button type="primary" @click="droneVideoActive = true" :disabled="droneVideoActive">
-          <template #icon><n-icon><play-circle-outlined /></n-icon></template>
-          连接视频
-        </n-button>
-        
-        <n-button @click="closeVideoModal">
-          关闭
-        </n-button>
-      </div>
-    </div>
-  </n-modal>
 </template>
 
 <script setup>
@@ -350,9 +258,9 @@ const storageUsageColor = computed(() => getUsageColor(summaryData.value.storage
 
 // 根据使用率返回颜色
 function getUsageColor(usage) {
-  if (usage < 50) return '#3b82f6'
-  if (usage < 80) return '#f59e0b'
-  return '#ef4444'
+  if (usage < 50) return '#18A058'
+  if (usage < 80) return '#F0A020'
+  return '#D03050'
 }
 
 // 无人机相关状态
@@ -475,13 +383,6 @@ const getBatteryColor = (level) => {
   return '#3b82f6'
 }
 
-// 获取事件卡片样式
-const getLightEventCardClass = (level) => {
-  if (level === 'high') return 'event-high'
-  if (level === 'medium') return 'event-medium'
-  return 'event-low'
-}
-
 // 最近事件列表
 const recentEvents = ref([
   { 
@@ -513,7 +414,6 @@ const activeTasks = ref([
     id: 1, 
     title: '紧急消防支援', 
     progress: 65, 
-    displayProgress: 0,
     status: 'in_progress', 
     startTime: new Date(Date.now() - 20 * 60 * 1000),
     estimatedEndTime: new Date(Date.now() + 15 * 60 * 1000)
@@ -522,7 +422,6 @@ const activeTasks = ref([
     id: 2, 
     title: '日常安防巡逻', 
     progress: 80, 
-    displayProgress: 0,
     status: 'in_progress', 
     startTime: new Date(Date.now() - 45 * 60 * 1000),
     estimatedEndTime: new Date(Date.now() + 10 * 60 * 1000)
@@ -531,7 +430,6 @@ const activeTasks = ref([
     id: 3, 
     title: '物资紧急配送', 
     progress: 30, 
-    displayProgress: 0,
     status: 'in_progress', 
     startTime: new Date(Date.now() - 10 * 60 * 1000),
     estimatedEndTime: new Date(Date.now() + 25 * 60 * 1000)
@@ -562,48 +460,6 @@ function getProgressStatus(status) {
   if (status === 'completed') return 'success'
   if (status === 'failed') return 'error'
   return 'default'
-}
-
-// 在组件挂载时获取无人机数据并启动动画
-onMounted(async () => {
-  try {
-    await droneStore.fetchDrones()
-    // 这里可以添加获取其他数据的逻辑，如 agents, events, tasks
-    
-    // 启动进度条动画
-    startProgressAnimation()
-  } catch (error) {
-    message.error('加载主页数据失败: ' + error.message)
-  }
-})
-
-// 进度条动画函数
-function startProgressAnimation() {
-  const duration = 1500 // 动画持续时间（毫秒）
-  const steps = 60 // 动画步数
-  const interval = duration / steps // 每步间隔时间
-  
-  let currentStep = 0
-  
-  const timer = setInterval(() => {
-    currentStep++
-    const progress = Math.min(currentStep / steps, 1) // 0到1的进度值
-    
-    // 更新系统资源使用率进度条
-    displayedValues.cpuUsage = Math.round(progress * summaryData.value.cpuUsage)
-    displayedValues.memoryUsage = Math.round(progress * summaryData.value.memoryUsage)
-    displayedValues.storageUsage = Math.round(progress * summaryData.value.storageUsage)
-    
-    // 更新任务进度条
-    activeTasks.value.forEach(task => {
-      task.displayProgress = Math.round(progress * task.progress)
-    })
-    
-    // 动画结束后清除定时器
-    if (currentStep >= steps) {
-      clearInterval(timer)
-    }
-  }, interval)
 }
 
 // 无人机视频模态框相关逻辑
@@ -648,341 +504,39 @@ const openVideoModal = (drone) => {
   // 如果已经是选中的飞行中无人机，直接显示模态框
   droneVideoModalVisible.value = true;
 }
+
+// 在组件挂载时获取无人机数据
+onMounted(async () => {
+  try {
+    await droneStore.fetchDrones()
+    // 这里可以添加获取其他数据的逻辑，如 agents, events, tasks
+  } catch (error) {
+    message.error('加载主页数据失败: ' + error.message)
+  }
+})
 </script>
 
-<style scoped>
-.light-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-  padding: 16px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+<style scoped lang="postcss">
+.card {
+  @apply bg-white p-4 rounded-lg shadow;
 }
 
-.light-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+.floating-card {
+  @apply p-4 rounded-lg shadow-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  z-index: 100;
 }
 
-.card-border {
-  position: relative;
-  border-radius: 8px;
-  padding: 4px;
+.border-danger {
+  border-color: #D03050;
 }
 
-.light-title {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding-left: 12px;
+.border-warning {
+  border-color: #F0A020;
 }
 
-.title-dot {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 60%;
-  background: linear-gradient(to bottom, #93c5fd, #3b82f6);
-  border-radius: 2px;
-}
-
-.light-badge {
-  background-color: #f8fafc;
-  color: #3b82f6;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  margin-left: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  font-family: 'Courier New', monospace;
-  letter-spacing: 1px;
-}
-
-.title-bar {
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-  padding-bottom: 10px;
-  margin-bottom: 16px;
-}
-
-.light-divider {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  margin: 16px 0;
-}
-
-.light-progress :deep(.n-progress-graph) {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-}
-
-.light-progress :deep(.n-progress-content) {
-  background: linear-gradient(to right, #93c5fd, #3b82f6) !important;
-}
-
-.light-number {
-  font-family: 'Courier New', monospace;
-  color: #3b82f6;
-  font-weight: bold;
-}
-
-.light-tag :deep(.n-tag__content) {
-  padding: 1px 8px;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-}
-
-.light-drone-card {
-  background-color: white;
-  border-radius: 0.75rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-}
-
-.light-drone-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.light-drone-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.5), transparent);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.light-drone-card:hover::after {
-  transform: scaleX(1);
-}
-
-.selected-light-drone {
-  background-color: rgba(243, 244, 246, 0.8);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.drone-preview-container {
-  width: 56px;
-  height: 56px;
-  position: relative;
-}
-
-.drone-video-preview {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-.video-active-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #e53e3e;
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
-  animation: blink 1s infinite;
-}
-
-.drone-video-preview::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid white;
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
-}
-
-.video-preview-play {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.drone-video-preview:hover .video-preview-play {
-  opacity: 1;
-}
-
-.video-preview-button {
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0);
-  transition: all 0.2s ease;
-  z-index: 100; 
-}
-
-.light-icon-bg:hover .video-preview-button {
-  opacity: 1;
-  transform: scale(1);
-}
-
-@keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
-}
-
-@keyframes blink {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-
-.light-event-card {
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  border-left: 4px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.light-event-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.event-high {
-  border-left-color: #ef4444;
-}
-
-.event-medium {
-  border-left-color: #f59e0b;
-}
-
-.event-low {
-  border-left-color: #3b82f6;
-}
-
-.light-task-card {
-  padding: 12px;
-  border-radius: 8px;
-  background: white;
-  margin-bottom: 10px;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-}
-
-.light-task-card:hover {
-  background: rgba(243, 244, 246, 0.8);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.scrollbar-light::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollbar-light::-webkit-scrollbar-track {
-  background: rgba(243, 244, 246, 0.5);
-  border-radius: 10px;
-}
-
-.scrollbar-light::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 10px;
-}
-
-.light-link {
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.light-link:hover {
-  color: #1d4ed8;
-}
-
-.light-link::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background-color: #3b82f6;
-  transition: width 0.3s ease;
-}
-
-.light-link:hover::after {
-  width: 100%;
-}
-
-.status-icon, .drone-icon, .event-icon, .task-icon {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  background: #f1f5f9;
-  border-radius: 4px;
-  position: relative;
-}
-
-.status-icon::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  background-color: #3b82f6;
-  border-radius: 2px;
-}
-
-.drone-icon::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  background-color: #3b82f6;
-  border-radius: 2px;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-
-.event-icon::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  background-color: #f59e0b;
-  border-radius: 2px;
-  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-}
-
-.task-icon::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  background-color: #3b82f6;
-  border-radius: 2px;
-  clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%);
+.border-primary {
+  border-color: #2080F0;
 }
 </style>

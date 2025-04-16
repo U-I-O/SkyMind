@@ -204,68 +204,68 @@
           </div>
       </div>
     </div>
+  </div>
+
+   <!-- 无人机视频模态框 -->
+   <n-modal
+    v-model:show="droneVideoModalVisible"
+    style="width: 800px; max-width: 90vw;"
+    preset="card"
+    :title="`${selectedDrone?.name || '未知无人机'} - 实时视频`"
+    :bordered="false"
+    :segmented="{ content: true }"
+    @close="closeVideoModal"
+  >
+    <div class="drone-video-wrapper" style="height: 450px;">
+      <DroneVideoStream
+        v-if="selectedDrone"
+        ref="videoStreamRef"
+        :drone-id="selectedDrone.name"
+        :drone-name="selectedDrone.name"
+        :status="selectedDrone.status"
+        :drone-location="selectedDrone.current_location"
+        :auto-connect="true"
+        @connected="handleVideoConnected"
+        @disconnected="handleVideoDisconnected"
+      />
+    </div>
     
-    <!-- 无人机视频模态框 - 移到父容器外部，使其不受pointer-events-none的影响 -->
-    <n-modal
-      v-model:show="droneVideoModalVisible"
-      style="width: 800px; max-width: 90vw;"
-      preset="card"
-      :title="`${selectedDrone?.name || '未知无人机'} - 实时视频`"
-      :bordered="false"
-      :segmented="{ content: true }"
-      @close="closeVideoModal"
-    >
-      <div class="drone-video-wrapper" style="height: 450px;">
-        <DroneVideoStream
-          v-if="selectedDrone"
-          ref="videoStreamRef"
-          :drone-id="selectedDrone.name"
-          :drone-name="selectedDrone.name"
-          :status="selectedDrone.status"
-          :drone-location="selectedDrone.current_location"
-          :auto-connect="true"
-          @connected="handleVideoConnected"
-          @disconnected="handleVideoDisconnected"
-        />
+    <div class="drone-video-info mt-4">
+      <div v-if="selectedDrone" class="grid grid-cols-2 gap-y-2 text-sm">
+        <div class="text-gray-500">型号:</div>
+        <div class="font-medium">{{ selectedDrone.model || '未知' }}</div>
+        
+        <div class="text-gray-500">电量:</div>
+        <div class="font-medium">
+          <n-progress :percentage="selectedDrone.battery_level" :color="getBatteryColor(selectedDrone.battery_level)" :show-indicator="false" />
+          <span :class="getBatteryTextColor(selectedDrone.battery_level)">{{ selectedDrone.battery_level }}%</span>
+        </div>
+        
+        <div class="text-gray-500">状态:</div>
+        <div class="font-medium">
+          <n-tag :type="getDroneStatusType(selectedDrone.status)">
+            {{ getStatusText(selectedDrone.status) }}
+          </n-tag>
+        </div>
+        
+        <div class="text-gray-500">坐标:</div>
+        <div class="font-medium">{{ formatCoordinates(selectedDrone.current_location) }}</div>
       </div>
       
-      <div class="drone-video-info mt-4">
-        <div v-if="selectedDrone" class="grid grid-cols-2 gap-y-2 text-sm">
-          <div class="text-gray-500">型号:</div>
-          <div class="font-medium">{{ selectedDrone.model || '未知' }}</div>
-          
-          <div class="text-gray-500">电量:</div>
-          <div class="font-medium">
-            <n-progress :percentage="selectedDrone.battery_level" :color="getBatteryColor(selectedDrone.battery_level)" :show-indicator="false" />
-            <span :class="getBatteryTextColor(selectedDrone.battery_level)">{{ selectedDrone.battery_level }}%</span>
-          </div>
-          
-          <div class="text-gray-500">状态:</div>
-          <div class="font-medium">
-            <n-tag :type="getDroneStatusType(selectedDrone.status)">
-              {{ getStatusText(selectedDrone.status) }}
-            </n-tag>
-          </div>
-          
-          <div class="text-gray-500">坐标:</div>
-          <div class="font-medium">{{ formatCoordinates(selectedDrone.current_location) }}</div>
-        </div>
+      <n-divider />
+      
+      <div class="flex justify-between">
+        <n-button type="primary" @click="droneVideoActive = true" :disabled="droneVideoActive">
+          <template #icon><n-icon><play-circle-outlined /></n-icon></template>
+          连接视频
+        </n-button>
         
-        <n-divider />
-        
-        <div class="flex justify-between">
-          <n-button type="primary" @click="droneVideoActive = true" :disabled="droneVideoActive">
-            <template #icon><n-icon><play-circle-outlined /></n-icon></template>
-            连接视频
-          </n-button>
-          
-          <n-button @click="closeVideoModal">
-            关闭
-          </n-button>
-        </div>
+        <n-button @click="closeVideoModal">
+          关闭
+        </n-button>
       </div>
-    </n-modal>
-  </div>
+    </div>
+  </n-modal>
 </template>
 
 <script setup>

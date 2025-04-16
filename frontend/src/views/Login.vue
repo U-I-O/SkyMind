@@ -104,15 +104,22 @@ const handleLogin = () => {
     loading.value = true
     
     try {
+      // 调用userStore的login方法
       const result = await userStore.login(formValue.username, formValue.password)
       
       if (result.success) {
         message.success('登录成功')
         
-        // 如果有重定向链接则跳转，否则跳转到首页
+        // 获取重定向路径
         const redirectPath = route.query.redirect || '/'
+        
+        // 确保用户信息已加载
+        await userStore.fetchUser()
+        
+        // 跳转到目标页面
         router.push(redirectPath)
       } else {
+        // 显示具体的错误信息
         message.error(result.error || '登录失败')
       }
     } catch (error) {

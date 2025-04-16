@@ -450,7 +450,7 @@ class SecurityAgent(BaseAgent):
             })
             
             if existing_task:
-                self.logger.info(f"已存在相同区域的巡检任务: {existing_task.task_id}")
+               # self.logger.info(f"已存在相同区域的巡检任务: {existing_task.task_id}")
                 return existing_task
             
             # 创建新任务，确保不手动指定_id
@@ -466,28 +466,6 @@ class SecurityAgent(BaseAgent):
                     "waypoints": area["waypoints"]
                 }
             )
-            
-            # 设置第一个航点作为起点
-            if area["waypoints"]:
-                first_wp = area["waypoints"][0]
-                task.start_location = Location(
-                    position=GeoPoint(
-                        type="Point",
-                        coordinates=first_wp["position"]["coordinates"],
-                        altitude=first_wp["altitude"]
-                    )
-                )
-            
-            # 设置最后一个航点作为终点
-            if len(area["waypoints"]) > 1:
-                last_wp = area["waypoints"][-1]
-                task.end_location = Location(
-                    position=GeoPoint(
-                        type="Point",
-                        coordinates=last_wp["position"]["coordinates"],
-                        altitude=last_wp["altitude"]
-                    )
-                )
             
             # 使用insert插入新任务，避免可能的_id冲突
             try:

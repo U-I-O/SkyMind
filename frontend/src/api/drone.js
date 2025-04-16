@@ -5,7 +5,22 @@ import api from './index'
  * @returns {Promise<Array<object>>} A list of drones
  */
 export function getDrones() {
-  return api.get('/drones')
+  console.log('开始获取无人机列表');
+  console.log('当前认证状态:', localStorage.getItem('auth_token') ? '已登录' : '未登录');
+  console.log('认证Token前20字符:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
+  
+  return api.get('/drones').then(response => {
+    console.log('获取无人机列表成功:', response);
+    return response;
+  }).catch(error => {
+    console.error('获取无人机列表失败:', error);
+    console.error('错误详情:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    throw error;
+  });
 }
 
 /**

@@ -16,68 +16,121 @@
               </n-button>
             </div>
           </div>
-
-          </div>
-                    <!-- 创建任务表单 -->
-          <div v-if="showPatrolCreator" class="mt-4 animate-fade-in">
+        </div>
+        
+        <!-- 详细信息面板或创建任务表单 -->
+        <div class="floating-card bg-white bg-opacity-95 animate-slide-in" v-if="showPatrolCreator || (showDetailPanel && !showPatrolCreator)">
+          <!-- 创建任务表单 -->
+          <div v-if="showPatrolCreator">
+            <div class="flex justify-between items-center mb-3">
+              <h2 class="font-bold text-lg">{{ isEditMode ? '编辑任务' : '创建任务' }}</h2>
+              <n-button text size="small" @click="showPatrolCreator = false">
+                <template #icon>
+                  <close-icon />
+                </template>
+              </n-button>
+            </div>
             <patrol-task-creator
               ref="patrolCreatorRef"
               :drones="availableDrones"
               @submit="handlePatrolTaskSubmit"
             />
-        </div>
+          </div>
           
-
-       </div>
+          <!-- 详细信息面板 -->
+          <div v-if="showDetailPanel && !showPatrolCreator">
+            <div class="flex justify-between items-center mb-3">
+              <h2 class="font-bold text-lg">任务详情</h2>
+              <n-button text size="small" @click="closeDetailPanel">
+                <template #icon>
+                  <close-icon />
+                </template>
+              </n-button>
+            </div>
+            
+            <div class="detail-panel-content">
+              <patrol-task-detail
+                v-if="currentTask"
+                :task="currentTask"
+                @stop-task="stopTask"
+                @start-task="startTask"
+                @resume-task="resumeTask"
+                @focus-on-drone="focusOnDrone"
+                @show-on-map="showAreaOnMap"
+                @edit-task="editTask"
+                @delete-task="deleteTask"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
        
-       <!-- 中间区域（地图区域） -->
-       <div class="col-span-6">
-         <!-- 地图由全局组件提供，这里不需要额外添加 -->
-       </div>
+      <!-- 中间区域（地图区域） -->
+      <div class="col-span-6">
+        <!-- 地图由全局组件提供，这里不需要额外添加 -->
+      </div>
        
-       <!-- 右侧面板区域 -->
-       <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
-         <!-- 巡逻任务列表 -->
-         <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
-           <h2 class="font-bold text-lg mb-3">巡逻任务列表</h2>
-           <patrol-task-list
-             :tasks="tasks"
-             :filter="taskFilter"
-             :filter-options="filterOptions"
-             @filter-change="handleFilterChange"
-             @open-detail="openTaskDetail"
-             @stop-task="stopTask"
-           />
-         </div>
+      <!-- 右侧面板区域 -->
+      <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+        <!-- 巡逻任务列表 -->
+        <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="font-bold text-lg">巡逻任务列表</h2>
+            <n-button text size="small" @click="refreshData" :loading="loading">
+              <template #icon>
+                <reload-icon />
+              </template>
+            </n-button>
+          </div>
+          <div v-if="loading" class="flex-1 flex items-center justify-center">
+            <n-spin size="medium" />
+          </div>
+          <patrol-task-list
+            v-else
+            :tasks="tasks"
+            :filter="taskFilter"
+            :filter-options="filterOptions"
+            @filter-change="handleFilterChange"
+            @open-detail="openTaskDetail"
+            @click-task="handleTaskClick"
+            @double-click-task="openTaskDetailModal"
+            @stop-task="stopTask"
+            @start-task="startTask"
+            @resume-task="resumeTask"
+          />
+        </div>
          
-         <!-- 安全事件列表 -->
-         <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
-           <h2 class="font-bold text-lg mb-3">安全事件列表</h2>
-           <security-event-list
-             :events="securityEvents"
-             @view-all="viewAllEvents"
-             @open-detail="openEventDetail"
-             @focus-event="focusOnEvent"
-           />
-         </div>
-       </div>
-     </div>
-   </div>
+        <!-- 安全事件列表 -->
+        <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+          <h2 class="font-bold text-lg mb-3">安全事件列表</h2>
+          <security-event-list
+            :events="securityEvents"
+            @view-all="viewAllEvents"
+            @open-detail="openEventDetail"
+            @focus-event="focusOnEvent"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 任务详情弹窗 -->
   <n-modal
     v-model:show="showTaskDetail"
     preset="card"
     style="max-width: 800px"
-    :title="currentTask?.name"
+    :title="currentTask?.title || '任务详情'"
     :mask-closable="true"
   >
     <patrol-task-detail
-      v-if="currentTask"
+      v-if="currentTask && showTaskDetail"
       :task="currentTask"
       @close="closeTaskDetail"
       @stop-task="stopTask"
+      @start-task="startTask"
       @resume-task="resumeTask"
+      @focus-on-drone="focusOnDrone"
+      @show-on-map="showAreaOnMap"
     />
   </n-modal>
 </div>

@@ -8,6 +8,10 @@ from pydantic import BaseModel
 
 from config.settings import settings
 from database.models import User, UserRole
+from config.logging_config import get_logger
+
+# 添加日志记录器
+logger = get_logger("auth.security")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/login")
 
@@ -31,6 +35,8 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """获取当前用户"""
+    logger.info(f"验证token: {token[:20]}...")
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="无法验证凭据",
@@ -39,26 +45,37 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     
     try:
         # 解码令牌
+        # logger.info(f"开始解码token，使用密钥: {settings.SECRET_KEY[:5]}...")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # logger.info(f"Token解码成功，payload: {payload}")
+        
         username: str = payload.get("sub")
         
         if username is None:
+            logger.error("Token中缺少用户名(sub)")
             raise credentials_exception
         
         token_data = TokenData(username=username, role=payload.get("role"))
-    except JWTError:
+        # logger.info(f"解析token数据: username={token_data.username}, role={token_data.role}")
+        
+    except JWTError as e:
+        logger.error(f"JWT解码错误: {str(e)}")
         raise credentials_exception
     
     # 从数据库获取用户
+    # logger.info(f"从数据库查询用户: {token_data.username}")
     user = await User.find_one({"username": token_data.username})
     if user is None:
+        logger.error(f"用户不存在: {token_data.username}")
         raise credentials_exception
     
+    logger.info(f"用户认证成功: {user.username}, 角色: {user.role}")
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """获取当前活跃用户"""
     if not current_user.is_active:
+        logger.warning(f"用户已禁用: {current_user.username}")
         raise HTTPException(status_code=400, detail="用户已禁用")
     return current_user
 

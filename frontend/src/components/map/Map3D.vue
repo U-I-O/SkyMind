@@ -539,28 +539,19 @@ watch(droneSpeedFactor, () => {
   };
   
   // 飞行到指定位置
-  const flyTo = (position) => {
+  const flyTo = (options) => {
     if (!map) return;
     
-    try {
-      console.log('飞行到位置:', position);
-      
-      // 确保位置对象包含必要的属性
-      const lng = position.lng || position.longitude || 114.367;
-      const lat = position.lat || position.latitude || 30.54;
-      const zoom = position.zoom || 14;
-      
-      map.flyTo({
-        center: [lng, lat],
-        zoom: zoom,
-        pitch: position.pitch !== undefined ? position.pitch : 45,
-        bearing: position.bearing !== undefined ? position.bearing : 0,
-        duration: position.duration || 2000,
-        essential: true
-      });
-    } catch (error) {
-      console.error('飞行到位置时出错:', error);
-    }
+    const { lng, lat, zoom = 15, pitch = 60, bearing = 0, duration = 1500 } = options;
+    
+    map.flyTo({
+      center: [lng, lat],
+      zoom,
+      pitch,
+      bearing,
+      duration,
+      essential: true
+    });
   };
   
   // 重置视图到初始状态
@@ -2540,3 +2531,115 @@ const startDronePatrol = (drones, speed = 1.0) => {
     100% { transform: scale(1); opacity: 1; }
   }
   </style>
+
+  // 飞向指定无人机
+  function flyToDrone(droneId) {
+    if (!map) return;
+    
+    // 查找无人机数据
+    const targetDrone = allDrones.value.find(d => d.drone_id === droneId);
+    if (!targetDrone || !targetDrone.current_location || !targetDrone.current_location.coordinates) {
+      console.warn('无法找到无人机或其位置信息', droneId);
+      return;
+    }
+    
+    // 获取无人机坐标
+    const [lng, lat, altitude] = targetDrone.current_location.coordinates;
+    
+    // 高亮无人机（更新选中状态）
+    selectedDroneId.value = droneId;
+    
+    // 飞向无人机位置
+    flyTo({
+      lng,
+      lat,
+      zoom: 16,
+      pitch: 65,
+      bearing: Math.random() * 360, // 随机方向以增加动态效果
+      duration: 2000
+    });
+    
+    // 创建脉冲动画
+    createDroneSelectionEffect(lng, lat);
+  }
+
+  // 创建无人机选择效果
+  function createDroneSelectionEffect(lng, lat) {
+    if (!map) return;
+    
+    // 移除已有的效果
+    const existingEffect = map.getSource('drone-selection-effect');
+    if (existingEffect) {
+      map.removeLayer('drone-selection-effect-layer');
+      map.removeSource('drone-selection-effect');
+    }
+    
+    // 添加新的效果源
+    map.addSource('drone-selection-effect', {
+      type: 'geojson',
+      data: {
+        type: 'Point',
+        coordinates: [lng, lat]
+      }
+    });
+    
+    // 添加脉冲效果图层
+    map.addLayer({
+      id: 'drone-selection-effect-layer',
+      type: 'circle',
+      source: 'drone-selection-effect',
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'pulse'], 0, 0, 1, 50],
+        'circle-color': '#4299e1',
+        'circle-opacity': ['interpolate', ['linear'], ['get', 'pulse'], 0, 0.7, 1, 0],
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#63b3ed'
+      }
+    });
+    
+    // 开始动画
+    let start;
+    function animate(timestamp) {
+      if (!start) start = timestamp;
+      const progress = (timestamp - start) / 2000; // 2秒完成一次动画
+      
+      // 更新脉冲效果
+      if (map.getSource('drone-selection-effect')) {
+        map.getSource('drone-selection-effect').setData({
+          type: 'Feature',
+          properties: {
+            pulse: (progress % 1)
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        });
+      }
+      
+      // 循环动画
+      if (progress < 3) { // 进行3次脉冲效果
+        requestAnimationFrame(animate);
+      } else {
+        // 动画结束后清理
+        setTimeout(() => {
+          if (map.getSource('drone-selection-effect')) {
+            map.removeLayer('drone-selection-effect-layer');
+            map.removeSource('drone-selection-effect');
+          }
+        }, 500);
+      }
+    }
+    
+    requestAnimationFrame(animate);
+  }
+
+  // 导出组件方法
+  defineExpose({
+    flyTo,
+    flyToDrone,
+    toggleLayer,
+    resetView,
+    startPatrol,
+    stopPatrol,
+  });

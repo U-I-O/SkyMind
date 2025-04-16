@@ -63,13 +63,30 @@ const selectedDrone = ref(null)
 
 // 处理无人机点击事件
 const handleDroneClicked = (droneId) => {
-  // 这里可以通过store获取无人机信息
-  // 示例: const drone = droneStore.getDroneById(droneId)
-  // selectedDrone.value = drone
+  if (!droneId) return;
   
-  // 触发事件通知子组件
-  window.dispatchEvent(new CustomEvent('drone-selected', { detail: { droneId } }))
+  // 通过全局事件通知组件
+  window.dispatchEvent(new CustomEvent('drone-selected', { 
+    detail: { droneId, source: 'map' } 
+  }))
 }
+
+// 提供选择无人机的方法给子组件
+const emitDroneSelected = (droneId) => {
+  // 触发全局事件
+  window.dispatchEvent(new CustomEvent('drone-selected', { 
+    detail: { droneId, source: 'panel' } 
+  }))
+  
+  // 更新选中的无人机
+  selectedDrone.value = { drone_id: droneId }
+  
+  // 如果地图组件可用，飞向该无人机
+  if (mapRef.value && mapRef.value.flyToDrone) {
+    mapRef.value.flyToDrone(droneId);
+  }
+}
+provide('emitDroneSelected', emitDroneSelected)
 
 // 提供地图相关方法给子组件
 provide('mapRef', mapRef)

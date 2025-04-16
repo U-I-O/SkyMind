@@ -76,95 +76,87 @@
                     <span class="ml-2 text-xs text-slate-500">({{ activeDrones.length }})</span>
                   </h3>
                 </div>
-
-                <!-- 选中无人机的实时视频 -->
-                <div v-if="selectedDrone && showDroneVideo" class="mb-4">
-                  <div class="relative rounded-lg overflow-hidden drone-video-container">
-                    <video ref="droneVideoRef" class="w-full h-full object-cover" autoplay></video>
-                    <div class="absolute top-2 right-2 flex space-x-2">
-                      <button @click="toggleFullscreenVideo" class="video-control-btn">
-                        <span class="i-carbon-maximize text-lg"></span>
-                      </button>
-                      <button @click="closeDroneVideo" class="video-control-btn">
-                        <span class="i-carbon-close text-lg"></span>
-                      </button>
-                    </div>
-                    <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                      <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                          <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                          <span class="text-white text-sm font-medium">实时画面 - {{ selectedDrone.name }}</span>
-                        </div>
-                        <div class="text-white/80 text-xs">{{ currentTime }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="overflow-y-auto max-h-60 scrollbar-light grid grid-cols-1 gap-3">
+                <div class="overflow-y-auto max-h-60 scrollbar-light">
                   <div 
                     v-for="drone in activeDrones" 
                     :key="drone.drone_id"
-                    class="rounded-md cursor-pointer transition-all drone-card"
-                    :class="selectedDrone?.drone_id === drone.drone_id ? 'selected-drone' : ''"
+                    class="p-3 rounded-lg cursor-pointer mb-3 transition-all light-drone-card hover:shadow-md"
+                    :class="selectedDrone?.drone_id === drone.drone_id ? 'selected-light-drone border-l-4 border-blue-500' : 'border-l-4 border-transparent'"
                     @click="selectDrone(drone)"
                   >
-                    <div class="flex items-center p-3">
-                      <div class="relative drone-avatar-container mr-3">
-                        <div class="drone-avatar-bg">
-                          <div v-if="drone.status === 'flying'" class="drone-pulse"></div>
-                          <n-icon v-if="drone.status === 'idle'" class="text-blue-500 text-lg"><play-circle-outlined /></n-icon>
-                          <n-icon v-else-if="drone.status === 'flying'" class="text-green-500 text-lg"><environment-outlined /></n-icon>
-                          <n-icon v-else-if="drone.status === 'charging'" class="text-amber-500 text-lg"><thunderbolt-outlined /></n-icon>
-                          <n-icon v-else-if="['maintenance', 'error'].includes(drone.status)" class="text-red-500 text-lg"><warning-outlined /></n-icon>
+                    <div class="flex items-start">
+                      <div 
+                        class="drone-preview-container mr-3 relative"
+                        :class="{ 'cursor-pointer': drone.status === 'flying', 'cursor-not-allowed': drone.status !== 'flying' }"
+                        @click.stop="openVideoModal(drone)" 
+                      >
+                        <!-- 无人机视频预览或图标 -->
+                        
+                        <!-- Case 1: 当前选中且视频激活 (显示动态预览) -->
+                        <div v-if="selectedDrone?.drone_id === drone.drone_id && droneVideoActive" 
+                             class="drone-video-preview rounded-lg overflow-hidden">
+                          <div class="video-active-indicator"></div>
+                          <div class="video-preview-play">
+                            <n-icon size="18" class="text-white"><video-camera-outlined /></n-icon>
+                          </div>
                         </div>
-                        <div v-if="drone.camera_equipped" class="camera-indicator" @click.stop="showDroneVideoStream(drone)">
-                          <n-icon><video-camera-outlined /></n-icon>
+                        
+                        <!-- Case 2: 无人机飞行中 (显示图标 + 可点击播放按钮) -->
+                        <div v-else-if="drone.status === 'flying'" 
+                             class="w-14 h-14 rounded-lg light-icon-bg flex items-center justify-center relative overflow-hidden drone-icon-interactive">
+                          <n-icon :class="getDroneIconColor(drone.status)" class="text-2xl">
+                            <environment-outlined />
+                          </n-icon>
+                          <div class="video-preview-button">
+                            <n-icon size="12" class="text-white"><video-camera-outlined /></n-icon>
+                          </div>
                         </div>
+                        
+                        <!-- Case 3: 其他状态 (仅显示状态图标，无交互) -->
+                        <div v-else 
+                             class="w-14 h-14 rounded-lg light-icon-bg flex items-center justify-center drone-icon-static">
+                          <n-icon :class="getDroneIconColor(drone.status)" class="text-2xl">
+                            <play-circle-outlined v-if="drone.status === 'idle'" />
+                            <thunderbolt-outlined v-else-if="drone.status === 'charging'" />
+                            <warning-outlined v-else-if="['maintenance', 'error'].includes(drone.status)" />
+                            <question-circle-outlined v-else /> <!-- Fallback icon -->
+                          </n-icon>
+                        </div>
+                        
                       </div>
+                      
                       <div class="flex-1">
-                        <div class="font-medium text-slate-700 flex items-center justify-between">
-                          <span>{{ drone.name }}</span>
-                          <n-tag :type="getDroneStatusType(drone.status)" class="light-tag">
+                        <div class="flex justify-between items-start">
+                          <div class="font-medium text-slate-700 text-sm">{{ drone.name }}</div>
+                          <n-tag :type="getDroneStatusType(drone.status)" class="light-tag text-xs">
                             {{ getStatusText(drone.status) }}
                           </n-tag>
                         </div>
-                        <div class="mt-1 flex items-center justify-between">
-                          <div class="flex items-center text-xs text-slate-500 mr-2">
-                            <n-icon class="mr-1 text-xs"><aim-outlined /></n-icon>
-                            {{ formatLocation(drone.current_location) }}
-                          </div>
+                        
+                        <div class="mt-2 flex items-center justify-between">
+                          <div class="text-xs text-slate-500">电量</div>
                           <div class="text-xs font-medium" :class="getBatteryTextColor(drone.battery_level)">
                             {{ drone.battery_level }}%
                           </div>
                         </div>
                         <div class="mt-1">
-                          <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
-                            <span>电量</span>
+                            <n-progress 
+                              :percentage="drone.battery_level" 
+                              :color="getBatteryColor(drone.battery_level)"
+                              :show-indicator="false"
+                            :height="4"
+                              class="light-progress"
+                            />
                           </div>
-                          <n-progress 
-                            :percentage="drone.battery_level" 
-                            :color="getBatteryColor(drone.battery_level)"
-                            :show-indicator="false"
-                            :height="6"
-                            class="light-progress"
-                          />
+                        
+                        <div class="mt-2 text-xs text-slate-500 flex items-center justify-between">
+                          <span>型号: {{ drone.model || '未知' }}</span>
+                          <span class="flex items-center">
+                            <n-icon size="tiny" class="mr-1"><environment-outlined /></n-icon>
+                            {{ formatCoordinates(drone.current_location) }}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                    <div class="drone-actions flex justify-between px-3 pb-2">
-                      <button @click.stop="flyToDrone(drone)" class="drone-action-btn">
-                        <n-icon><environment-outlined /></n-icon>
-                        <span>定位</span>
-                      </button>
-                      <button v-if="drone.camera_equipped" @click.stop="showDroneVideoStream(drone)" class="drone-action-btn">
-                        <n-icon><video-camera-outlined /></n-icon>
-                        <span>监控</span>
-                      </button>
-                      <button @click.stop="showDroneDetails(drone)" class="drone-action-btn">
-                        <n-icon><info-circle-outlined /></n-icon>
-                        <span>详情</span>
-                      </button>
                     </div>
                   </div>
                   <div v-if="activeDrones.length === 0" class="text-center text-slate-500 py-4">
@@ -244,10 +236,71 @@
       </div>
     </div>
   </div>
+  
+  <!-- 无人机视频模态框 -->
+  <n-modal
+    v-model:show="droneVideoModalVisible"
+    style="width: 800px; max-width: 90vw;"
+    preset="card"
+    :title="`${selectedDrone?.name || '未知无人机'} - 实时视频`"
+    :bordered="false"
+    :segmented="{ content: true }"
+    @close="closeVideoModal"
+  >
+    <div class="drone-video-wrapper" style="height: 450px;">
+      <DroneVideoStream
+        v-if="selectedDrone"
+        ref="videoStreamRef"
+        :drone-id="selectedDrone.name"
+        :drone-name="selectedDrone.name"
+        :status="selectedDrone.status"
+        :drone-location="selectedDrone.current_location"
+        :auto-connect="true"
+        @connected="handleVideoConnected"
+        @disconnected="handleVideoDisconnected"
+      />
+    </div>
+    
+    <div class="drone-video-info mt-4">
+      <div v-if="selectedDrone" class="grid grid-cols-2 gap-y-2 text-sm">
+        <div class="text-gray-500">型号:</div>
+        <div class="font-medium">{{ selectedDrone.model || '未知' }}</div>
+        
+        <div class="text-gray-500">电量:</div>
+        <div class="font-medium">
+          <n-progress :percentage="selectedDrone.battery_level" :color="getBatteryColor(selectedDrone.battery_level)" :show-indicator="false" />
+          <span :class="getBatteryTextColor(selectedDrone.battery_level)">{{ selectedDrone.battery_level }}%</span>
+        </div>
+        
+        <div class="text-gray-500">状态:</div>
+        <div class="font-medium">
+          <n-tag :type="getDroneStatusType(selectedDrone.status)">
+            {{ getStatusText(selectedDrone.status) }}
+          </n-tag>
+        </div>
+        
+        <div class="text-gray-500">坐标:</div>
+        <div class="font-medium">{{ formatCoordinates(selectedDrone.current_location) }}</div>
+      </div>
+      
+      <n-divider />
+      
+      <div class="flex justify-between">
+        <n-button type="primary" @click="droneVideoActive = true" :disabled="droneVideoActive">
+          <template #icon><n-icon><play-circle-outlined /></n-icon></template>
+          连接视频
+        </n-button>
+        
+        <n-button @click="closeVideoModal">
+          关闭
+        </n-button>
+      </div>
+    </div>
+  </n-modal>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject, reactive, onUnmounted } from 'vue'
+import { ref, computed, onMounted, inject, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage, NIcon } from 'naive-ui'
 import { format } from 'date-fns'
@@ -258,9 +311,9 @@ import {
   ThunderboltOutlined, 
   WarningOutlined,
   VideoCameraOutlined,
-  InfoCircleOutlined,
-  AimOutlined
+  QuestionCircleOutlined
 } from '@vicons/antd'
+import DroneVideoStream from '@/components/drone/DroneVideoStream.vue'
 
 const router = useRouter()
 const message = useMessage()
@@ -304,6 +357,7 @@ function getUsageColor(usage) {
 
 // 无人机相关状态
 const selectedDrone = ref(null)
+const droneVideoActive = ref(false)
 
 // 获取活跃无人机列表
 const activeDrones = computed(() => 
@@ -312,58 +366,83 @@ const activeDrones = computed(() =>
 
 // 选择无人机
 const selectDrone = (drone) => {
-  selectedDrone.value = drone
-  
-  // 使用全局地图方法定位到无人机
-  const flyToLocation = inject('flyToLocation')
-  if (flyToLocation && drone.location) {
-    flyToLocation(drone.location)
-  }
-}
+  const isCurrentlySelected = selectedDrone.value?.drone_id === drone.drone_id;
 
-// 监听全局无人机选择事件
-onMounted(() => {
-  window.addEventListener('drone-selected', (event) => {
-    const droneId = event.detail.droneId
-    const drone = droneStore.getDroneById(droneId)
-    if (drone) {
-      selectDrone(drone)
+  // 只有在点击非当前选中无人机，或者点击当前选中且飞行中的无人机时，才执行后续操作
+  if (!isCurrentlySelected || (isCurrentlySelected && drone.status === 'flying')) {
+    
+    // 如果点击的是已选中的飞行中无人机，尝试打开视频模态框
+    if (isCurrentlySelected && drone.status === 'flying') {
+      droneVideoModalVisible.value = true;
+      return; // 直接返回，不执行下面的地图定位等操作
     }
-  })
-  
-  // 添加时间更新
-  updateCurrentTime()
-  timeInterval = setInterval(updateCurrentTime, 1000)
-})
 
-onUnmounted(() => {
-  if (timeInterval) {
-    clearInterval(timeInterval)
+    // 如果点击的是新的无人机
+    if (!isCurrentlySelected) {
+      selectedDrone.value = drone;
+      droneVideoActive.value = false; // 重置视频激活状态
+      
+      // 定位地图到新选中的无人机
+      const flyToLocation = inject('flyToLocation', null);
+      if (flyToLocation && drone.current_location?.coordinates) {
+        flyToLocation({
+          lng: drone.current_location.coordinates[0],
+          lat: drone.current_location.coordinates[1],
+          zoom: 16
+        });
+      }
+      
+      // 通知地图高亮
+      const emitDroneSelected = inject('emitDroneSelected', null);
+      if (emitDroneSelected) {
+        emitDroneSelected(drone.drone_id);
+      }
+      
+      // 如果新选中的无人机正在飞行，短暂延迟后打开视频模态框
+      if (drone.status === 'flying') {
+        setTimeout(() => {
+          droneVideoModalVisible.value = true;
+        }, 300); // 延迟确保地图动画有时间开始
+      } else {
+          // 如果不是飞行状态，确保模态框是关闭的
+          droneVideoModalVisible.value = false;
+      }
+    }
+  } else if (isCurrentlySelected && drone.status !== 'flying') {
+      // 如果点击的是当前已选中的非飞行状态无人机，可以给个提示
+      message.info(`${drone.name} 当前未在飞行，无法查看实时视频`);
+      // 确保模态框关闭
+       droneVideoModalVisible.value = false;
   }
-})
-
-// 获取无人机状态类型
-const getDroneStatusType = (status) => {
-  const statusMap = {
-    'idle': 'info',
-    'flying': 'success',
-    'charging': 'warning',
-    'maintenance': 'warning',
-    'offline': 'error',
-    'error': 'error'
-  }
-  return statusMap[status] || 'info'
 }
 
-// 获取电池颜色
-const getBatteryColor = (level) => {
-  if (level <= 20) return '#ef4444'
-  if (level <= 50) return '#f59e0b'
-  return '#3b82f6'
+// 根据状态获取图标颜色
+function getDroneIconColor(status) {
+  switch (status) {
+    case 'idle': return 'text-blue-500'
+    case 'flying': return 'text-green-500'
+    case 'charging': return 'text-amber-500'
+    case 'maintenance': return 'text-orange-500'
+    case 'error': return 'text-red-500'
+    default: return 'text-gray-500'
+  }
 }
 
-// 获取状态中文描述
-const getStatusText = (status) => {
+// 根据状态获取标签类型
+function getDroneStatusType(status) {
+  switch (status) {
+    case 'idle': return 'info'
+    case 'flying': return 'success'
+    case 'charging': return 'warning'
+    case 'maintenance': return 'warning'
+    case 'offline': return 'error'
+    case 'error': return 'error'
+    default: return 'default'
+  }
+}
+
+// 获取状态文本
+function getStatusText(status) {
   const statusMap = {
     'idle': '待命',
     'flying': '飞行中',
@@ -373,6 +452,27 @@ const getStatusText = (status) => {
     'error': '故障'
   }
   return statusMap[status] || status
+}
+
+// 根据电池电量获取文本颜色
+function getBatteryTextColor(level) {
+  if (level <= 20) return 'text-red-500'
+  if (level <= 50) return 'text-amber-500'
+  return 'text-green-500'
+}
+
+// 格式化坐标
+function formatCoordinates(geoPoint) {
+  if (!geoPoint || !geoPoint.coordinates) return '未知'
+  const [lng, lat] = geoPoint.coordinates
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+}
+
+// 获取电池颜色
+const getBatteryColor = (level) => {
+  if (level <= 20) return '#ef4444'
+  if (level <= 50) return '#f59e0b'
+  return '#3b82f6'
 }
 
 // 获取事件卡片样式
@@ -506,149 +606,47 @@ function startProgressAnimation() {
   }, interval)
 }
 
-// 无人机实时视频相关逻辑
-const showDroneVideo = ref(false)
-const droneVideoRef = ref(null)
-const currentTime = ref('')
-const videoStreamUrl = ref('')
+// 无人机视频模态框相关逻辑
+const droneVideoModalVisible = ref(false)
+const videoStreamRef = ref(null)
 
-// 更新当前时间
-const updateCurrentTime = () => {
-  const now = new Date()
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const seconds = String(now.getSeconds()).padStart(2, '0')
-  currentTime.value = `${hours}:${minutes}:${seconds}`
+const handleVideoConnected = () => {
+  droneVideoActive.value = true;
+  message.success(`已连接到${selectedDrone.value?.name || '无人机'}的视频流`);
 }
 
-// 显示无人机实时视频
-const showDroneVideoStream = (drone) => {
-  selectedDrone.value = drone
-  showDroneVideo.value = true
-  
-  // 连接到后端的视频流
-  // 这里使用API获取视频流URL
-  // 以下是示例URL，实际应用中应从后端API获取
-  const apiUrl = `/api/drones/${drone.drone_id}/video-stream`
-  
-  // 模拟API调用
-  message.success(`正在连接 ${drone.name} 的视频流...`)
-  
-  // 在实际应用中，这里应该调用API获取视频流URL
-  // 例如： videoStreamUrl.value = await droneApi.getVideoStreamUrl(drone.drone_id)
-  // 这里使用模拟数据
-  setTimeout(() => {
-    // 使用WebSocket或者HLS/DASH流
-    videoStreamUrl.value = `https://example.com/drone-streams/${drone.drone_id}/live.m3u8`
-    
-    // 在实际项目中，你可以使用以下方式之一：
-    // 1. WebRTC - 低延迟实时视频
-    // 2. HLS/DASH - 稍高延迟但兼容性好
-    // 3. RTMP - 传统流媒体协议
-    
-    // 简单模拟 - 实际中应该使用真实流或Video.js等库
-    if (droneVideoRef.value) {
-      // 使用模拟视频替代实际流
-      droneVideoRef.value.src = 'https://www.w3schools.com/html/mov_bbb.mp4' // 示例视频
-      droneVideoRef.value.play().catch(err => {
-        console.error('无法播放视频:', err)
-        message.error('视频播放失败')
-      })
-    }
-    
-    // 通知地图高亮显示选中的无人机
-    highlightDroneOnMap(drone.drone_id)
-  }, 1000)
+const handleVideoDisconnected = () => {
+  droneVideoActive.value = false;
 }
 
-// 关闭无人机实时视频
-const closeDroneVideo = () => {
-  if (droneVideoRef.value) {
-    droneVideoRef.value.pause()
-    droneVideoRef.value.src = ''
-  }
+const closeVideoModal = () => {
+  droneVideoActive.value = false;
+  droneVideoModalVisible.value = false;
   
-  videoStreamUrl.value = ''
-  showDroneVideo.value = false
-  
-  // 取消地图上无人机的高亮显示
-  resetDroneHighlight()
-}
-
-// 切换全屏视频
-const toggleFullscreenVideo = () => {
-  const videoElement = droneVideoRef.value
-  
-  if (!videoElement) return
-  
-  if (!document.fullscreenElement) {
-    videoElement.requestFullscreen().catch(err => {
-      message.error(`无法进入全屏模式: ${err.message}`)
-    })
-  } else {
-    document.exitFullscreen()
+  // 如果视频组件存在，调用断开连接方法
+  if (videoStreamRef.value) {
+    videoStreamRef.value.disconnect();
   }
 }
 
-// 格式化位置
-const formatLocation = (location) => {
-  if (!location) return '未知位置'
-  
-  // 假设location是一个包含经纬度的对象
-  if (typeof location === 'object' && location.latitude && location.longitude) {
-    // 简化显示，保留两位小数
-    return `${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°`
-  } else if (Array.isArray(location) && location.length >= 2) {
-    // 如果是数组格式
-    return `${location[1].toFixed(2)}°, ${location[0].toFixed(2)}°`
+// 直接打开视频模态框
+const openVideoModal = (drone) => {
+  // 只有飞行中的无人机才能打开视频
+  if (drone.status !== 'flying') {
+    message.info(`${drone.name} 当前未在飞行，无法查看实时视频`);
+    return;
+  }
+
+  // 如果点击的不是当前选中的无人机，先选中它
+  if (!selectedDrone.value || selectedDrone.value.drone_id !== drone.drone_id) {
+    selectDrone(drone);
+    // 在 selectDrone 中会处理模态框显示，这里不用再显示
+    // 但要确保 selectDrone 会在飞行状态下打开模态框
+    return; 
   }
   
-  return '未知位置'
-}
-
-// 获取电池文本颜色
-const getBatteryTextColor = (level) => {
-  if (level <= 20) return 'text-red-500'
-  if (level <= 50) return 'text-amber-500'
-  return 'text-green-500'
-}
-
-// 显示无人机详情
-const showDroneDetails = (drone) => {
-  // 跳转到无人机详情页面
-  router.push(`/drones/${drone.drone_id}`)
-}
-
-// 定位到无人机
-const flyToDrone = (drone) => {
-  if (!drone.current_location) {
-    message.warning('无法定位，无人机位置信息不可用')
-    return
-  }
-  
-  // 使用全局地图方法定位到无人机
-  const flyToLocation = inject('flyToLocation')
-  if (flyToLocation) {
-    flyToLocation(drone.current_location)
-    message.success(`已定位到无人机 ${drone.name}`)
-  }
-  
-  // 高亮显示无人机
-  highlightDroneOnMap(drone.drone_id)
-}
-
-// 在地图上高亮显示无人机
-const highlightDroneOnMap = (droneId) => {
-  // 这个函数应该与地图组件通信，高亮显示指定的无人机
-  // 例如使用事件总线或者Pinia/Vuex状态管理
-  window.dispatchEvent(new CustomEvent('highlight-drone', { 
-    detail: { droneId } 
-  }))
-}
-
-// 重置无人机高亮显示
-const resetDroneHighlight = () => {
-  window.dispatchEvent(new CustomEvent('reset-drone-highlight'))
+  // 如果已经是选中的飞行中无人机，直接显示模态框
+  droneVideoModalVisible.value = true;
 }
 </script>
 
@@ -738,36 +736,140 @@ const resetDroneHighlight = () => {
 }
 
 .light-drone-card {
-  background: white;
-  border-left: 2px solid transparent;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  background-color: white;
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
 }
 
 .light-drone-card:hover {
-  background: rgba(243, 244, 246, 0.8);
-  border-left: 2px solid #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.light-drone-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.5), transparent);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.light-drone-card:hover::after {
+  transform: scaleX(1);
 }
 
 .selected-light-drone {
-  background: rgba(243, 244, 246, 0.8) !important;
-  border-left: 2px solid #3b82f6 !important;
+  background-color: rgba(243, 244, 246, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.light-icon-bg {
-  background: white;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+.drone-preview-container {
+  width: 56px;
+  height: 56px;
+  position: relative;
+}
+
+.drone-video-preview {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.video-active-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #e53e3e;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  animation: blink 1s infinite;
+}
+
+.drone-video-preview::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid white;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.video-preview-play {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.drone-video-preview:hover .video-preview-play {
+  opacity: 1;
+}
+
+.video-preview-button {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+}
+
+.light-icon-bg:hover .video-preview-button {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+@keyframes blink {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 
 .light-event-card {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  border-left: 3px solid;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  border-left: 4px solid transparent;
   transition: all 0.3s ease;
-  background: white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .light-event-card:hover {
@@ -881,93 +983,5 @@ const resetDroneHighlight = () => {
   background-color: #3b82f6;
   border-radius: 2px;
   clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%);
-}
-
-.drone-video-container {
-  width: 100%;
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  position: relative;
-}
-
-.video-control-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-}
-
-.drone-avatar-container {
-  width: 40px;
-  height: 40px;
-  position: relative;
-}
-
-.drone-avatar-bg {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.drone-pulse {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.5);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.5);
-    opacity: 0.5;
-  }
-}
-
-.camera-indicator {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 20px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.drone-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.drone-action-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 </style>

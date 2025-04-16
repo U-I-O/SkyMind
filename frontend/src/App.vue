@@ -23,7 +23,7 @@
                 </div>
                 
                 <!-- 路由视图 - 漂浮在地图上方 -->
-                <div class="absolute inset-0" :class="{ 'pointer-events-none': showHeader }">
+                <div class="absolute inset-0 z-10" :class="{ 'pointer-events-none': showHeader }">
                   <router-view v-slot="{ Component }">
                     <transition name="fade" mode="out-in">
                       <component :is="Component" />

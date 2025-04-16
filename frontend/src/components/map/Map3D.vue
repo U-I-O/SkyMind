@@ -140,7 +140,7 @@
       </div>
 
     <!-- Patrol controls -->
-    <div class="absolute bottom-4 right-4 z-10 bg-white bg-opacity-70 p-2 rounded-md">
+    <div class="absolute bottom-4 right-4 z-20 bg-white bg-opacity-70 p-2 rounded-md">
       <n-button-group>
         <n-button @click="startPatrol" :disabled="patrolStatus">
           <template #icon><n-icon><play-icon /></n-icon></template>

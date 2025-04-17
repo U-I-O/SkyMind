@@ -6,6 +6,8 @@ import naive from 'naive-ui'
 
 // 导入全局样式
 import './assets/css/main.css'
+// 导入全局暗色主题样式
+import './assets/css/darkTheme.css'
 
 // Make router available globally for the API interceptor
 window.router = router

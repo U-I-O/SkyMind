@@ -664,8 +664,6 @@ export default {
       // 加载任务数据
       await loadTasks();
       
-      // 监听巡逻区域选择事件
-      window.addEventListener('patrol-area-selected', handlePatrolAreaSelected);
     });
 
     // 确保地图实例已就绪
@@ -725,46 +723,6 @@ export default {
       });
     };
 
-    const handlePatrolAreaClicked = async (taskId) => {
-      console.log('巡逻区域被点击, 任务ID:', taskId);
-      // 根据任务ID加载任务详情
-      try {
-        loading.value = true;
-        
-        // 如果已经有相同的任务，直接使用
-        if (currentTask.value && currentTask.value.task_id === taskId) {
-          openTaskDetail(currentTask.value);
-          return;
-        }
-        
-        // 从服务器获取任务详情
-        const response = await getPatrolTaskById(taskId);
-        if (response) {
-          // 打开任务详情面板
-          openTaskDetail(response);
-        } else {
-          message.warning('无法加载该巡逻任务的详情');
-        }
-      } catch (error) {
-        console.error('获取任务详情失败:', error);
-        message.error('获取任务详情失败');
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // 添加事件处理函数
-    const handlePatrolAreaSelected = async (event) => {
-      const taskId = event.detail.area;
-      if (taskId) {
-        await handlePatrolAreaClicked(taskId);
-      }
-    };
-
-    // 在组件卸载时移除事件监听
-    onUnmounted(() => {
-      window.removeEventListener('patrol-area-selected', handlePatrolAreaSelected);
-    });
 
     return {
       mapRef,
@@ -801,8 +759,7 @@ export default {
       editTask,
       cancelEditTask,
       deleteTask,
-      isEditMode,
-      handlePatrolAreaClicked
+      isEditMode
     };
   }
 };

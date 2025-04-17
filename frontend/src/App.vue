@@ -21,12 +21,8 @@
                     :selected-drone-id="selectedDrone?.drone_id"
                     :events="mapEvents"
                     @drone-clicked="handleDroneClicked"
-<<<<<<< HEAD
-                    @patrol-area-clicked="handlePatrolAreaClicked"
-=======
                     @event-clicked="handleEventClicked"
                     @map-clicked="handleMapClicked"
->>>>>>> 72332adc9c56def33a11c0d230a635daa05350e2
                   />
                 </div>
                 
@@ -48,13 +44,8 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
-import { computed, provide, ref, onMounted, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
-=======
 import { computed, provide, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
->>>>>>> 72332adc9c56def33a11c0d230a635daa05350e2
 import { darkTheme } from 'naive-ui'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import Map3D from '@/components/map/Map3D.vue'
@@ -99,16 +90,6 @@ const handleDroneClicked = (droneId) => {
   window.dispatchEvent(new CustomEvent('drone-selected', { detail: { droneId } }))
 }
 
-<<<<<<< HEAD
-// 处理巡逻区域点击事件
-const handlePatrolAreaClicked = (area) => {
-  // 这里可以通过store获取巡逻区域信息
-  // 示例: const patrolArea = patrolAreaStore.getPatrolAreaById(area.id)
-  // selectedDrone.value = patrolArea
-  
-  // 触发事件通知子组件
-  window.dispatchEvent(new CustomEvent('patrol-area-selected', { detail: { area } }))
-=======
 // 处理事件点击
 const handleEventClicked = (event) => {
   // 触发事件通知子组件
@@ -120,8 +101,8 @@ const handleMapClicked = () => {
   if (mapRef.value && mapRef.value.closeEventInfo) {
     mapRef.value.closeEventInfo()
   }
->>>>>>> 72332adc9c56def33a11c0d230a635daa05350e2
 }
+
 
 // 提供地图相关方法给子组件
 provide('mapRef', mapRef)

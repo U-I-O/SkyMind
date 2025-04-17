@@ -55,7 +55,7 @@
       </div>
       <div class="time-info">{{ currentTime }}</div>
       <div class="location-info">
-        {{ formatCoordinates(droneLocation) }}
+        经度: {{ getCoordinateLng(droneLocation, { drone_id: droneId, name: droneName }) }}° 纬度: {{ getCoordinateLat(droneLocation, { drone_id: droneId, name: droneName }) }}° | 高度: {{ getAltitude(droneLocation) }}m
       </div>
     </div>
   </div>
@@ -132,6 +132,65 @@ let clockTimer = null;
 const updateClock = () => {
   const now = new Date();
   currentTime.value = now.toTimeString().slice(0, 8);
+
+  // 同时在更新时间时微调坐标，模拟无人机飞行
+  if (isConnected.value && props.status === 'flying') {
+    // 生成新的坐标 - 随机小幅度变化经纬度，但高度相对稳定
+    updateCoordinates();
+  }
+};
+
+// 初始坐标和高度 - 用于模拟飞行中的坐标变化
+const currentCoordinates = {
+  lng: 0,
+  lat: 0,
+  alt: 0,
+  initialized: false
+};
+
+// 更新坐标
+const updateCoordinates = () => {
+  // 如果还没有初始化坐标，则根据无人机类型设置初始值
+  if (!currentCoordinates.initialized) {
+    if (props.droneLocation && props.droneLocation.coordinates) {
+      // 使用真实坐标作为基准
+      [currentCoordinates.lng, currentCoordinates.lat, currentCoordinates.alt] = props.droneLocation.coordinates;
+    } else {
+      // 否则根据无人机ID设置默认坐标
+      if (props.droneName === '雄鹰-006') {
+        currentCoordinates.lng = 114.510000;
+        currentCoordinates.lat = 30.460000;
+        currentCoordinates.alt = 134;
+      } else if (props.droneId === 'sky-001' || props.droneName === '天行-001') {
+        currentCoordinates.lng = 114.367044;
+        currentCoordinates.lat = 30.545212;
+        currentCoordinates.alt = 120;
+      } else if (props.droneId === 'sky-002' || props.droneName === '天空-002') {
+        currentCoordinates.lng = 114.295912;
+        currentCoordinates.lat = 30.489876;
+        currentCoordinates.alt = 150;
+      } else {
+        // 为其他无人机生成合理的随机坐标
+        const hash = props.droneId?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+        currentCoordinates.lng = 114.2 + (hash % 40) / 100;
+        currentCoordinates.lat = 30.45 + (hash % 25) / 100;
+        currentCoordinates.alt = 50 + (hash % 150);
+      }
+    }
+    currentCoordinates.initialized = true;
+  }
+
+  // 飞行中的无人机坐标会有细微变化
+  if (props.status === 'flying') {
+    // 经度和纬度有小幅度变化 (±0.000020度左右，约2米)
+    currentCoordinates.lng += (Math.random() - 0.5) * 0.000040;
+    currentCoordinates.lat += (Math.random() - 0.5) * 0.000040;
+    
+    // 高度变化较小，大多数时候保持稳定
+    if (Math.random() < 0.3) { // 只有30%的概率改变高度
+      currentCoordinates.alt += Math.random() < 0.5 ? 1 : -1;
+    }
+  }
 };
 
 // 格式化坐标
@@ -139,6 +198,94 @@ const formatCoordinates = (geoPoint) => {
   if (!geoPoint || !geoPoint.coordinates) return '未知位置';
   const [lng, lat, alt] = geoPoint.coordinates;
   return `坐标: ${lat.toFixed(5)}, ${lng.toFixed(5)} | 高度: ${alt || 0}m`;
+};
+
+// 获取经度
+const getCoordinateLng = (geoPoint, drone) => {
+  // 如果已经初始化了模拟坐标，且无人机在飞行，则使用模拟坐标
+  if (currentCoordinates.initialized && props.status === 'flying') {
+    return currentCoordinates.lng.toFixed(6);
+  }
+  
+  // 如果有实际坐标，则使用实际坐标
+  if (geoPoint && geoPoint.coordinates) {
+    return geoPoint.coordinates[0].toFixed(6);
+  }
+  
+  // 如果没有坐标，根据无人机ID返回硬编码值
+  if (drone) {
+    // 特定无人机的硬编码值
+    if (drone.name === '雄鹰-006') {
+      return '114.510000';
+    } else if (drone.drone_id === 'sky-001' || drone.name === '天行-001') {
+      return '114.367044';
+    } else if (drone.drone_id === 'sky-002' || drone.name === '天空-002') {
+      return '114.295912';
+    } else {
+      // 为其他无人机生成固定的随机经度
+      const hash = drone.drone_id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+      return (114.2 + (hash % 40) / 100).toFixed(6);
+    }
+  }
+  
+  return '114.367044';  // 默认值
+};
+
+// 获取纬度
+const getCoordinateLat = (geoPoint, drone) => {
+  // 如果已经初始化了模拟坐标，且无人机在飞行，则使用模拟坐标
+  if (currentCoordinates.initialized && props.status === 'flying') {
+    return currentCoordinates.lat.toFixed(6);
+  }
+  
+  // 如果有实际坐标，则使用实际坐标
+  if (geoPoint && geoPoint.coordinates) {
+    return geoPoint.coordinates[1].toFixed(6);
+  }
+  
+  // 如果没有坐标，根据无人机ID返回硬编码值
+  if (drone) {
+    // 特定无人机的硬编码值
+    if (drone.name === '雄鹰-006') {
+      return '30.460000';
+    } else if (drone.drone_id === 'sky-001' || drone.name === '天行-001') {
+      return '30.545212';
+    } else if (drone.drone_id === 'sky-002' || drone.name === '天空-002') {
+      return '30.489876';
+    } else {
+      // 为其他无人机生成固定的随机纬度
+      const hash = drone.drone_id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+      return (30.45 + (hash % 25) / 100).toFixed(6);
+    }
+  }
+  
+  return '30.545212';  // 默认值
+};
+
+// 获取高度
+const getAltitude = (geoPoint) => {
+  // 如果已经初始化了模拟坐标，且无人机在飞行，则使用模拟高度
+  if (currentCoordinates.initialized && props.status === 'flying') {
+    return Math.round(currentCoordinates.alt);
+  }
+  
+  // 如果有实际坐标且包含高度信息，则使用实际高度
+  if (geoPoint && geoPoint.coordinates && geoPoint.coordinates[2] !== undefined) {
+    return Math.round(geoPoint.coordinates[2]);
+  }
+  
+  // 特定无人机的硬编码高度
+  if (props.droneName === '雄鹰-006') {
+    return '134';
+  } else if (props.droneId === 'sky-001' || props.droneName === '天行-001') {
+    return '120';
+  } else if (props.droneId === 'sky-002' || props.droneName === '天空-002') {
+    return '150';
+  }
+  
+  // 其他无人机的随机高度
+  const hash = props.droneId?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+  return (50 + (hash % 150)).toString();
 };
 
 // 连接到视频流

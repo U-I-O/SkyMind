@@ -24,7 +24,7 @@
           <div v-if="showPatrolCreator">
             <div class="flex justify-between items-center mb-3">
               <h2 class="font-bold text-lg">{{ isEditMode ? '编辑任务' : '创建任务' }}</h2>
-              <n-button text size="small" @click="showPatrolCreator = false">
+              <n-button text size="small" @click="isEditMode ? cancelEditTask() : (showPatrolCreator = false)">
                 <template #icon>
                   <close-icon />
                 </template>
@@ -34,6 +34,7 @@
               ref="patrolCreatorRef"
               :drones="availableDrones"
               @submit="handlePatrolTaskSubmit"
+              @cancel="isEditMode ? cancelEditTask() : (showPatrolCreator = false)"
             />
           </div>
           
@@ -52,6 +53,7 @@
               <patrol-task-detail
                 v-if="currentTask"
                 :task="currentTask"
+                :is-edit-mode="isEditMode"
                 @stop-task="stopTask"
                 @start-task="startTask"
                 @resume-task="resumeTask"
@@ -59,6 +61,7 @@
                 @show-on-map="showAreaOnMap"
                 @edit-task="editTask"
                 @delete-task="deleteTask"
+                @cancel-edit="cancelEditTask"
               />
             </div>
           </div>
@@ -67,7 +70,7 @@
        
       <!-- 中间区域（地图区域） -->
       <div class="col-span-6">
-        <!-- 地图由全局组件提供，这里不需要额外添加 -->
+        <!-- 地图由全局组件提供 -->
       </div>
        
       <!-- 右侧面板区域 -->

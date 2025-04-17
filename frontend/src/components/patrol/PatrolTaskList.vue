@@ -75,10 +75,14 @@
               </n-icon>
               执行:
             </span> 
-            <span class="text-xs">{{ task.schedule?.type === 'weekly' ? '每周重复' : getScheduleTypeText(task.schedule?.type) }}</span>
+            <span class="text-xs">
+              {{ isWeeklySchedule(task.schedule?.type) ? '每周重复' : 
+                (task.schedule?.type === 'date' ? '指定日期 ' + formatDateShort(task.schedule?.date) : 
+                getScheduleTypeText(task.schedule?.type)) }}
+            </span>
           </div>
           
-          <div v-if="task.schedule?.type === 'weekly'" class="weekday-container mb-1">
+          <div v-if="isWeeklySchedule(task.schedule?.type)" class="weekday-container mb-1">
             <div 
               v-for="(day, index) in [0, 1, 2, 3, 4, 5, 6]" 
               :key="day"
@@ -98,16 +102,7 @@
             </span>
             <span class="text-xs">{{ task.schedule?.time || '未指定' }}</span>
           </div>
-          
-          <div class="flex justify-between items-center mb-1">
-            <span class="font-medium text-xs flex items-center">
-              <n-icon class="mr-1" size="14">
-                <next-icon />
-              </n-icon>
-              下次:
-            </span>
-            <span class="text-xs">{{ formatNextExecution(task) }}</span>
-          </div>
+
           
           <div class="flex justify-between items-center mb-1">
             <span class="font-medium text-xs flex items-center">
@@ -410,6 +405,7 @@ const getScheduleTypeText = (type) => {
   const typeMap = {
     'once': '一次性',
     'daily': '每日重复',
+    'week': '每周重复',
     'weekly': '每周重复',
     'monthly': '每月重复'
   };
@@ -545,6 +541,21 @@ const formatNextExecution = (task) => {
   }
   
   return '未确定';
+};
+
+const isWeeklySchedule = (type) => {
+  // 处理可能的不同命名：'week'/'weekly'
+  return type === 'week' || type === 'weekly';
+};
+
+// 添加格式化日期的函数
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    return format(new Date(dateStr), 'MM-dd');
+  } catch (e) {
+    return dateStr;
+  }
 };
 </script>
 

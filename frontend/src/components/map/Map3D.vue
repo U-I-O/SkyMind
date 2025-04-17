@@ -26,8 +26,7 @@
               <n-checkbox v-model:checked="showTerrainLayer">地形</n-checkbox>
               <n-checkbox v-model:checked="showDronesLayer">无人机</n-checkbox>
               <n-checkbox v-model:checked="showEventsLayer">事件标记</n-checkbox>
-              <n-checkbox v-model:checked="showNoFlyZonesLayer">禁飞区</n-checkbox>
-              <n-checkbox v-model:checked="showFlightPathsLayer">飞行路径</n-checkbox>
+              <n-checkbox v-model:checked="showPatrolAreasLayer">巡逻区域</n-checkbox>
             </div>
           </n-popover>
           
@@ -256,6 +255,10 @@
     showDrones: {
       type: Boolean,
       default: true
+    },
+    showPatrolAreas: {
+      type: Boolean,
+      default: true
     }
   })
   
@@ -263,7 +266,8 @@
     'drone-clicked', 
     'map-clicked', 
     'map-loaded', 
-    'patrol-area-drawn'
+    'patrol-area-drawn',
+    'patrol-area-clicked'
   ])
   
   // Map configuration
@@ -320,8 +324,7 @@
   const showTerrainLayer = ref(true)
   const showDronesLayer = ref(props.showDrones)
   const showEventsLayer = ref(true)
-  const showNoFlyZonesLayer = ref(true)
-  const showFlightPathsLayer = ref(true)
+  const showPatrolAreasLayer = ref(props.showPatrolAreas)
   
   // Watch for props changes and update layers
   watch(() => [
@@ -331,8 +334,7 @@
     props.flightPaths,
     showDronesLayer.value,
     showEventsLayer.value,
-    showNoFlyZonesLayer.value,
-    showFlightPathsLayer.value,
+    showPatrolAreasLayer.value,
     taskStore.isDrawingPatrolArea,
     taskStore.patrolAreaCoordinates,
     taskStore.patrolAreaGeoJSON,
@@ -354,6 +356,11 @@
   // Watch showDrones prop change and update internal state
   watch(() => props.showDrones, (newVal) => {
     showDronesLayer.value = newVal
+  })
+  
+  // Watch showPatrolAreas prop change and update internal state
+  watch(() => props.showPatrolAreas, (newVal) => {
+    showPatrolAreasLayer.value = newVal
   })
   
   // Watch layers visibility changes
@@ -563,8 +570,9 @@
               clickedDroneId.value = object.drone_id
               emit('drone-clicked', object.drone_id)
           } else if (object.taskId || object.taskFormId) {
-            // 点击巡逻区域，可以添加处理逻辑
+            // 点击巡逻区域，触发事件通知父组件
             console.log('巡逻区域被点击:', object)
+            emit('patrol-area-clicked', object.taskId || object.taskFormId)
             }
           }
         })
@@ -587,23 +595,13 @@
       layers.push(createDronesLayer(props.drones, props.selectedDroneId))
     }
     
-    // 添加飞行路径图层
-    if (showFlightPathsLayer.value && props.flightPaths.length > 0) {
-      layers.push(createFlightPathsLayer(props.flightPaths))
-    }
-    
-    // 添加禁飞区图层
-    if (showNoFlyZonesLayer.value && props.noFlyZones.length > 0) {
-      layers.push(createNoFlyZonesLayer(props.noFlyZones))
-    }
-    
     // 添加事件图层
     if (showEventsLayer.value && props.events.length > 0) {
       layers.push(createEventsLayer(props.events))
     }
     
     // 添加临时巡逻区域图层 - 绘制完成但未创建任务时
-    if (tempPatrolArea.value && tempPatrolArea.value.geojson && 
+    if (showPatrolAreasLayer.value && tempPatrolArea.value && tempPatrolArea.value.geojson && 
         tempPatrolArea.value.geojson.geometry && 
         tempPatrolArea.value.geojson.geometry.coordinates) {
       layers.push(
@@ -649,40 +647,82 @@
     }
     
     // 添加已完成的巡逻区域图层
-    if (completedPatrolAreas.value.length > 0) {
+    if (showPatrolAreasLayer.value && completedPatrolAreas.value.length > 0) {
       // 为每个完成的巡逻区域创建一个多边形图层
       completedPatrolAreas.value.forEach((area, index) => {
         if (area.geojson && area.geojson.geometry && area.geojson.geometry.coordinates) {
-         layers.push(
+          // 生成唯一的图层ID
+          const layerId = `patrol-area-${area.taskId || area.taskFormId || index}`;
+          
+          // 使用区域自定义颜色或根据任务状态设置默认颜色
+          const fillColor = area.fillColor || [59, 130, 246, 100]; // 默认蓝色
+          const strokeColor = area.strokeColor || [59, 130, 246, 200]; // 默认蓝色边框
+          
+          // 如果是高亮区域，使用更醒目的边框宽度
+          const lineWidth = area.isHighlighted ? 4 : 2;
+          
+          console.debug(`渲染巡逻区域: ${area.taskName || '未命名区域'} (ID: ${layerId})`, 
+                       `状态: ${area.status || '未知'}, 颜色: ${fillColor}`,
+                       area.isHighlighted ? '高亮显示' : '');
+          
+          // 创建区域多边形图层
+          layers.push(
             new PolygonLayer({
-              id: `completed-patrol-area-${index}`,
+              id: layerId,
               data: [{
                 polygon: area.geojson.geometry.coordinates,
-                color: [59, 130, 246, 100], // 蓝色半透明填充
-                taskId: area.taskId || area.taskFormId
+                color: fillColor,
+                taskId: area.taskId || area.taskFormId,
+                taskName: area.taskName || '巡逻任务',
+                status: area.status || 'unknown',
+                isHighlighted: area.isHighlighted
               }],
               pickable: true,
               stroked: true,
               filled: true,
               wireframe: false,
-              lineWidthMinPixels: 2,
+              lineWidthMinPixels: lineWidth,
               getPolygon: d => d.polygon,
               getFillColor: d => d.color,
-              getLineColor: [59, 130, 246, 200],
-              getLineWidth: 2
+              getLineColor: strokeColor,
+              getLineWidth: d => d.isHighlighted ? 4 : 2,
+              // 使高亮区域的z轴稍高一点，确保边框不被其他区域遮挡
+              getElevation: d => d.isHighlighted ? 5 : 0
             })
-          )
+          );
+          
+          // 可选：在区域中心添加标签
+          if (area.taskName) {
+            // 计算区域中心点
+            const coords = area.geojson.geometry.coordinates[0];
+            if (coords && coords.length > 2) {
+              // 简单计算多边形中心点（不是质心，但足够显示标签）
+              let centerX = 0, centerY = 0;
+              coords.forEach(coord => {
+                if (coord && coord.length >= 2) {
+                  centerX += coord[0];
+                  centerY += coord[1];
+                }
+              });
+              centerX /= coords.length;
+              centerY /= coords.length;
+              
+              // TODO: 添加文字标签图层（如果需要）
+            }
+          }
         }
       });
     }
     
     // 添加巡逻区域绘制图层 - 使用taskStore中的数据
-    const patrolLayers = createPatrolAreaLayers(
-      taskStore.isDrawingPatrolArea,
-      taskStore.patrolAreaCoordinates,
-      taskStore.patrolAreaGeoJSON
-    )
-    layers.push(...patrolLayers)
+    if (showPatrolAreasLayer.value && taskStore.isDrawingPatrolArea) {
+      const patrolLayers = createPatrolAreaLayers(
+        taskStore.isDrawingPatrolArea,
+        taskStore.patrolAreaCoordinates,
+        taskStore.patrolAreaGeoJSON
+      )
+      layers.push(...patrolLayers)
+    }
     
     // 更新图层
     updateDeckLayers(deck, layers)
@@ -804,32 +844,211 @@
    * @param {Boolean} isConfirmed 是否是已确认的任务
    */
   const addPatrolAreaToMap = (patrolArea, isConfirmed = true) => {
-    if (!patrolArea || !patrolArea.geojson) return;
+    console.log('Map3D.addPatrolAreaToMap 被调用:', JSON.stringify(patrolArea).substring(0, 200) + '...');
     
-    // 如果是确认的任务，则添加到已完成巡逻区域列表
-    if (isConfirmed) {
-      // 清除临时巡逻区域
-      tempPatrolArea.value = null;
-      
-      // 添加到已完成巡逻区域列表
-      completedPatrolAreas.value.push({
-        ...patrolArea,
-        addedAt: new Date()
-      });
-      
-      // 重新渲染图层
-      renderDeckLayers();
-    } else {
-      // 如果不是确认的任务，只设置为临时巡逻区域
-      tempPatrolArea.value = {
-        ...patrolArea,
-        isTemporary: true,
-        createdAt: new Date()
-      };
-      
-      // 重新渲染图层
-      renderDeckLayers();
+    if (!map) {
+      console.error('地图未初始化，无法添加巡逻区域');
+      return;
     }
+    
+    if (!patrolArea) {
+      console.error('巡逻区域参数为空');
+      return;
+    }
+    
+    if (!patrolArea.geojson) {
+      console.error('巡逻区域缺少geojson属性:', patrolArea);
+      return;
+    }
+    
+    try {
+      // 检查并处理GeoJSON数据
+      let geojsonData = patrolArea.geojson;
+      let coordinates = null;
+      
+      // 尝试解析不同格式的GeoJSON
+      if (geojsonData.coordinates) {
+        coordinates = geojsonData.coordinates;
+        console.log('从geojson.coordinates中获取坐标');
+      } else if (geojsonData.geometry && geojsonData.geometry.coordinates) {
+        coordinates = geojsonData.geometry.coordinates;
+        console.log('从geojson.geometry.coordinates中获取坐标');
+      } else if (typeof geojsonData === 'string') {
+        // 尝试解析字符串形式的GeoJSON
+        try {
+          const parsedData = JSON.parse(geojsonData);
+          if (parsedData.coordinates) {
+            coordinates = parsedData.coordinates;
+            console.log('从解析的JSON字符串中获取坐标');
+          } else if (parsedData.geometry && parsedData.geometry.coordinates) {
+            coordinates = parsedData.geometry.coordinates;
+            console.log('从解析的JSON字符串的geometry中获取坐标');
+          } else {
+            console.error('无法从解析的JSON字符串中获取坐标数据:', parsedData);
+            return;
+          }
+        } catch (parseError) {
+          console.error('GeoJSON字符串解析失败:', parseError);
+          return;
+        }
+      } else {
+        console.error('无法从GeoJSON中获取坐标数据:', geojsonData);
+        return;
+      }
+      
+      // 记录坐标数据类型，便于调试
+      console.log('坐标数据类型:', Array.isArray(coordinates) ? 'Array' : typeof coordinates);
+      if (Array.isArray(coordinates) && coordinates.length > 0) {
+        console.log('第一级元素类型:', Array.isArray(coordinates[0]) ? 'Array' : typeof coordinates[0]);
+        if (Array.isArray(coordinates[0]) && coordinates[0].length > 0) {
+          console.log('第二级元素类型:', Array.isArray(coordinates[0][0]) ? 'Array' : typeof coordinates[0][0]);
+        }
+      }
+      
+      // 确保坐标数据是正确的多边形格式
+      let polygonCoordinates = null;
+      
+      if (Array.isArray(coordinates)) {
+        if (Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])) {
+          // 格式: [[[lng1,lat1], [lng2,lat2], ...]] - 已经是标准多边形格式
+          polygonCoordinates = coordinates;
+          console.log('坐标已经是标准多边形格式');
+        } else if (Array.isArray(coordinates[0]) && typeof coordinates[0][0] === 'number') {
+          // 格式: [[lng1,lat1], [lng2,lat2], ...] - 简单坐标数组，需要包装
+          polygonCoordinates = [coordinates];
+          console.log('将简单坐标数组转换为多边形格式');
+        } else if (typeof coordinates[0] === 'number' && coordinates.length >= 6 && coordinates.length % 2 === 0) {
+          // 格式: [lng1,lat1,lng2,lat2,...] - 扁平坐标，需要处理
+          const pointPairs = [];
+          for (let i = 0; i < coordinates.length; i += 2) {
+            pointPairs.push([coordinates[i], coordinates[i+1]]);
+          }
+          polygonCoordinates = [pointPairs];
+          console.log('将扁平坐标数组转换为多边形格式');
+        } else {
+          console.error('无法识别的坐标数组格式:', coordinates);
+          return;
+        }
+      } else {
+        console.error('坐标不是有效数组:', coordinates);
+        return;
+      }
+      
+      // 打印处理后的坐标
+      console.log('处理后的多边形坐标数据:', JSON.stringify(polygonCoordinates).substring(0, 200) + '...');
+      
+      // 检查坐标是否足够
+      if (!polygonCoordinates[0] || polygonCoordinates[0].length < 3) {
+        console.error('坐标点不足(至少需要3个点):', polygonCoordinates[0] ? polygonCoordinates[0].length : 0);
+        return;
+      }
+      
+      // 检查多边形是否闭合，如果不是，添加闭合点
+      const firstPoint = polygonCoordinates[0][0];
+      const lastPoint = polygonCoordinates[0][polygonCoordinates[0].length - 1];
+      
+      if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+        console.log('多边形未闭合，添加闭合点');
+        polygonCoordinates[0].push([...firstPoint]);
+      }
+      
+      // 如果是确认的任务，则添加到已完成巡逻区域列表
+      if (isConfirmed) {
+        // 定义填充颜色和边框颜色
+        // 高亮时只改变边框，不改变填充颜色
+        let fillColor = patrolArea.color || [59, 130, 246, 100]; // 使用自定义颜色或默认蓝色填充
+        let strokeColor = [59, 130, 246, 200]; // 默认蓝色边框
+        
+        if (patrolArea.isHighlighted) {
+          // 只改变边框颜色为白色或亮色，填充颜色保持不变
+          strokeColor = [255, 255, 255, 255]; // 高亮时使用白色边框
+        }
+        
+        // 清除临时巡逻区域（不影响已确认的区域）
+        tempPatrolArea.value = null;
+        
+        // 创建完整的patrolArea对象
+        const processedArea = {
+          ...patrolArea,
+          geojson: {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: polygonCoordinates
+            },
+            properties: {
+              taskId: patrolArea.taskId || 'unknown',
+              taskName: patrolArea.taskName || '未命名巡逻区域'
+            }
+          },
+          addedAt: new Date(),
+          fillColor,
+          strokeColor,
+          isHighlighted: patrolArea.isHighlighted
+        };
+        
+        console.log('处理后的巡逻区域添加到地图:', JSON.stringify(processedArea.geojson).substring(0, 200) + '...');
+        
+        // 检查是否已存在相同ID的区域，如果存在则更新而不是添加
+        const existingIndex = completedPatrolAreas.value.findIndex(
+          area => area.taskId === patrolArea.taskId
+        );
+        
+        if (existingIndex >= 0) {
+          console.log(`更新已存在的巡逻区域 ID:${patrolArea.taskId}`);
+          // 保留其他属性，只更新高亮状态和边框颜色
+          completedPatrolAreas.value[existingIndex] = {
+            ...completedPatrolAreas.value[existingIndex],
+            strokeColor,
+            isHighlighted: patrolArea.isHighlighted
+          };
+        } else {
+          console.log(`添加新巡逻区域 ID:${patrolArea.taskId}`);
+          completedPatrolAreas.value.push(processedArea);
+        }
+        
+        // 重新渲染图层
+        nextTick(() => {
+          renderDeckLayers();
+        });
+      } else {
+        // 如果不是确认的任务，只设置为临时巡逻区域
+        tempPatrolArea.value = {
+          ...patrolArea,
+          geojson: {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: polygonCoordinates
+            },
+            properties: {
+              taskId: patrolArea.taskId || 'temp',
+              taskName: patrolArea.taskName || '临时巡逻区域'
+            }
+          },
+          isTemporary: true,
+          createdAt: new Date()
+        };
+        
+        console.log('临时巡逻区域已更新');
+        
+        // 重新渲染图层
+        nextTick(() => {
+          renderDeckLayers();
+        });
+      }
+    } catch (error) {
+      console.error('添加巡逻区域时出错:', error);
+    }
+  }
+  
+  /**
+   * 清除所有巡逻区域
+   */
+  const clearPatrolAreas = () => {
+    tempPatrolArea.value = null;
+    completedPatrolAreas.value = [];
+    renderDeckLayers();
   }
   
   // 完成巡逻区域绘制 - 更新为使用store
@@ -904,6 +1123,29 @@
     renderDeckLayers();
   }
   
+  /**
+   * 清除所有区域的高亮状态
+   */
+  const clearHighlightedAreas = () => {
+    // 遍历所有巡逻区域，清除高亮标志
+    if (completedPatrolAreas.value && completedPatrolAreas.value.length > 0) {
+      completedPatrolAreas.value.forEach(area => {
+        if (area.isHighlighted) {
+          area.isHighlighted = false;
+          // 只恢复边框样式，保持填充颜色不变
+          area.strokeColor = [59, 130, 246, 200]; // 恢复默认蓝色边框
+        }
+      });
+      
+      // 重新渲染图层
+      nextTick(() => {
+        renderDeckLayers();
+      });
+      
+      console.log('已清除所有区域的高亮状态');
+    }
+  }
+  
   // Component lifecycle hooks
   onMounted(() => {
     console.log('Map3D component mounted')
@@ -952,7 +1194,9 @@
     cancelDrawingPatrolArea,
     completeDrawingPatrolArea,
     addPatrolAreaToMap,
-    clearTempPatrolArea
+    clearTempPatrolArea,
+    clearPatrolAreas,
+    clearHighlightedAreas
   })
   </script>
   

@@ -79,8 +79,8 @@
               <div class="detail-value">{{ task.schedule.date ? formatDate(task.schedule.date) : '未指定' }}</div>
             </div>
             
-            <!-- 每周重复模式 (week) -->
-            <div v-if="task.schedule.type === 'week'" class="detail-row">
+            <!-- 每周重复模式 (week/weekly) -->
+            <div v-if="isWeeklySchedule(task.schedule.type)" class="detail-row">
               <div class="detail-label">执行日</div>
               <div class="detail-value">
                 <n-space>
@@ -181,8 +181,8 @@
               <tbody>
                 <tr v-for="(point, index) in getPatrolAreaCoordinates" :key="index">
                   <td>{{ index + 1 }}</td>
-                  <td>{{ point[0].toFixed(6) }}</td>
-                  <td>{{ point[1].toFixed(6) }}</td>
+                  <td>{{ point?.[0] !== undefined ? point[0].toFixed(4) : '0.0000' }}</td>
+                  <td>{{ point?.[1] !== undefined ? point[1].toFixed(4) : '0.0000' }}</td>
                 </tr>
               </tbody>
             </n-table>
@@ -195,64 +195,80 @@
 
       <div class="detail-actions">
         <n-space justify="end">
-          <!-- 通用操作按钮 -->
-          <n-button 
-            secondary
-            @click="$emit('show-on-map', task.patrol_area)"
-            v-if="task.patrol_area && task.patrol_area.coordinates"
-          >
-            <template #icon>
-              <n-icon><environment-icon /></n-icon>
-            </template>
-            在地图上显示
-          </n-button>
+          <!-- 编辑模式下显示取消按钮 -->
+          <template v-if="props.isEditMode">
+            <n-button 
+              secondary
+              @click="$emit('cancel-edit')"
+            >
+              <template #icon>
+                <n-icon><close-icon /></n-icon>
+              </template>
+              取消修改
+            </n-button>
+          </template>
+          
+          <!-- 非编辑模式下的按钮 -->
+          <template v-else>
+            <!-- 通用操作按钮 -->
+            <n-button 
+              secondary
+              @click="$emit('show-on-map', task.patrol_area)"
+              v-if="task.patrol_area && task.patrol_area.coordinates"
+            >
+              <template #icon>
+                <n-icon><environment-icon /></n-icon>
+              </template>
+              高亮显示区域
+            </n-button>
 
-          <n-button 
-            secondary
-            @click="$emit('edit-task', task)"
-            v-if="task.status === 'pending' || task.status === 'cancelled'"
-          >
-            <template #icon>
-              <n-icon><edit-icon /></n-icon>
-            </template>
-            修改任务
-          </n-button>
+            <n-button 
+              secondary
+              @click="$emit('edit-task', task)"
+              v-if="task.status === 'pending' || task.status === 'cancelled'"
+            >
+              <template #icon>
+                <n-icon><edit-icon /></n-icon>
+              </template>
+              修改任务
+            </n-button>
 
-          <n-button 
-            secondary
-            type="error"
-            @click="confirmDelete"
-          >
-            <template #icon>
-              <n-icon><delete-icon /></n-icon>
-            </template>
-            删除任务
-          </n-button>
+            <n-button 
+              secondary
+              type="error"
+              @click="confirmDelete"
+            >
+              <template #icon>
+                <n-icon><delete-icon /></n-icon>
+              </template>
+              删除任务
+            </n-button>
 
-          <n-divider vertical style="height: 24px" />
+            <n-divider vertical style="height: 24px" />
 
-          <!-- 状态相关操作按钮 -->
-          <n-button 
-            v-if="task.status === 'pending' || task.status === 'cancelled'"
-            type="primary"
-            @click="$emit('start-task', task)"
-          >
-            开始任务
-          </n-button>
-          <n-button 
-            v-if="task.status === 'in_progress'"
-            type="error"
-            @click="$emit('stop-task', task)"
-          >
-            停止任务
-          </n-button>
-          <n-button
-            v-if="task.status === 'paused'"
-            type="success"
-            @click="$emit('resume-task', task)"
-          >
-            恢复任务
-          </n-button>
+            <!-- 状态相关操作按钮 -->
+            <n-button 
+              v-if="task.status === 'pending' || task.status === 'cancelled'"
+              type="primary"
+              @click="$emit('start-task', task)"
+            >
+              开始任务
+            </n-button>
+            <n-button 
+              v-if="task.status === 'in_progress'"
+              type="error"
+              @click="$emit('stop-task', task)"
+            >
+              停止任务
+            </n-button>
+            <n-button
+              v-if="task.status === 'paused'"
+              type="success"
+              @click="$emit('resume-task', task)"
+            >
+              恢复任务
+            </n-button>
+          </template>
         </n-space>
       </div>
     </div>
@@ -299,7 +315,8 @@ import { format } from 'date-fns';
 import { 
   EnvironmentOutlined as EnvironmentIcon,
   EditOutlined as EditIcon,
-  DeleteOutlined as DeleteIcon
+  DeleteOutlined as DeleteIcon,
+  CloseOutlined as CloseIcon
 } from '@vicons/antd';
 
 const props = defineProps({
@@ -310,6 +327,10 @@ const props = defineProps({
   task: {
     type: Object,
     default: () => ({})
+  },
+  isEditMode: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -372,7 +393,7 @@ const getPatrolAreaCoordinates = computed(() => {
   return [];
 });
 
-const emit = defineEmits(['close', 'stop-task', 'start-task', 'resume-task', 'focus-on-drone', 'show-on-map', 'edit-task', 'delete-task']);
+const emit = defineEmits(['close', 'stop-task', 'start-task', 'resume-task', 'focus-on-drone', 'show-on-map', 'edit-task', 'delete-task', 'cancel-edit']);
 
 const getTaskStatusType = (status) => {
   const statusMap = {
@@ -428,7 +449,8 @@ const getScheduleTypeText = (type) => {
   const typeMap = {
     'once': '单次执行',
     'date': '指定日期',
-    'week': '每周重复'
+    'week': '每周重复',
+    'weekly': '每周重复'
   };
   return typeMap[type] || type || '未知类型';
 };
@@ -437,7 +459,8 @@ const getScheduleTypeStyle = (type) => {
   const styleMap = {
     'once': 'default',
     'date': 'info',
-    'week': 'success'
+    'week': 'success',
+    'weekly': 'success'
   };
   return styleMap[type] || 'default';
 };
@@ -468,7 +491,7 @@ const getNextExecutionTime = () => {
     }
     
     // 如果是week类型，计算下一个执行日
-    if (task.value.schedule.type === 'week' && task.value.schedule.weekdays && task.value.schedule.weekdays.length > 0) {
+    if (isWeeklySchedule(task.value.schedule.type) && task.value.schedule.weekdays && task.value.schedule.weekdays.length > 0) {
       const today = new Date();
       const todayWeekday = today.getDay(); // 0-6, 0是周日
       const weekdays = task.value.schedule.weekdays.map(Number).sort((a, b) => a - b);
@@ -499,6 +522,11 @@ const getNextExecutionTime = () => {
     console.error('计算下次执行时间出错:', e);
     return '计算错误';
   }
+};
+
+// 判断是否为周重复模式
+const isWeeklySchedule = (type) => {
+  return type === 'week' || type === 'weekly';
 };
 
 // 显示删除确认对话框

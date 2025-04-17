@@ -204,6 +204,7 @@
           <n-button size="small" type="primary" @click="handleSubmit">
             {{ isEditMode ? '更新任务' : '创建任务' }}
           </n-button>
+          <n-button size="small" type="error" @click="handleCancel">取消</n-button>
         </n-space>
       </div>
     </div>
@@ -236,7 +237,7 @@ const props = defineProps({
   // 移除 map3dRef prop，我们将注入全局 mapRef
 });
 
-const emit = defineEmits(['submit']); // 移除 'waypoint-selection-change'
+const emit = defineEmits(['submit', 'cancel']);
 const droneStore = useDroneStore();
 const message = useMessage();
 const formRef = ref(null);
@@ -571,6 +572,13 @@ const parseTimeString = (timeStr) => {
 const handleSubmit = () => {
   formRef.value?.validate(async (errors) => {
     if (!errors) {
+      // 处理schedule类型，确保前后端一致
+      let scheduleType = formModel.value.scheduleType;
+      // 如果是week类型，统一改为weekly
+      if (scheduleType === 'week') {
+        scheduleType = 'weekly';
+      }
+      
       const taskData = {
         title: formModel.value.title,
         description: formModel.value.description || `巡逻任务 ${new Date().toLocaleString()}`,
@@ -586,7 +594,7 @@ const handleSubmit = () => {
         },
         // 确保 schedule 包含所有必填字段
         schedule: {
-          type: formModel.value.scheduleType,
+          type: scheduleType,
           date: formModel.value.scheduleType === 'date' 
             ? new Date(formModel.value.date).toISOString() 
             : null,
@@ -633,10 +641,9 @@ const handleSubmit = () => {
   });
 };
 
-const cancelTaskCreation = () => {
-  // 取消任务创建并清除临时区域
-  message.info("已取消任务创建");
-  resetForm();
+const handleCancel = () => {
+  // 发出取消事件
+  emit('cancel');
 };
 
 // 暴露公共方法

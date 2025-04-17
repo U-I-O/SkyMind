@@ -76,7 +76,7 @@ skymind/
 1. 安装依赖
 ```bash
 cd backend
-pip install -r requirements.txt
+pip install -r requirements.txt #首次启动时需要
 ```
 
 2. 启动服务
@@ -89,7 +89,7 @@ uvicorn main:app --reload
 1. 安装依赖
 ```bash
 cd frontend
-npm install
+npm install #首次启动时需要
 ```
 
 2. 开发模式启动

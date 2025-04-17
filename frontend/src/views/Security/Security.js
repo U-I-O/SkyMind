@@ -1,4 +1,4 @@
-import { ref, onMounted, watch, provide, nextTick, computed } from 'vue';
+import { ref, onMounted, watch, provide, nextTick, computed, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { NButton, NModal, NDrawer, NDrawerContent, useMessage, useDialog } from 'naive-ui';
 import Map3D from '@/components/map/Map3D.vue';
@@ -85,12 +85,168 @@ export default {
       try {
         const response = await getAllSurveillanceTasks();
         tasks.value = response || [];
+        
+        // 向地图添加巡逻区域
+        await addPatrolAreasToMap();
+        
         message.success('任务列表已更新');
       } catch (error) {
         console.error('加载任务列表失败:', error);
         message.error('加载任务列表失败');
       } finally {
         loading.value = false;
+      }
+    };
+
+    /**
+     * 将任务列表中的巡逻区域添加到地图
+     */
+    const addPatrolAreasToMap = () => {
+      console.log('尝试添加巡逻区域到地图，所有任务:', tasks.value?.length);
+      
+      if (!tasks.value || tasks.value.length === 0) {
+        console.warn('没有任务数据，无法添加巡逻区域');
+        return;
+      }
+      
+      if (!mapRef.value) {
+        console.warn('地图实例未初始化，无法添加巡逻区域');
+        return;
+      }
+      
+      try {
+        // 确保地图组件已完全加载
+        const ensureMapReady = () => {
+          return new Promise((resolve) => {
+            // 检查地图组件是否已准备就绪
+            if (mapRef.value && typeof mapRef.value.addPatrolAreaToMap === 'function') {
+              console.log('地图组件已准备就绪');
+              resolve(true);
+            } else {
+              console.log('地图组件尚未就绪，等待500ms后重试');
+              setTimeout(() => {
+                if (mapRef.value && typeof mapRef.value.addPatrolAreaToMap === 'function') {
+                  console.log('地图组件现在已就绪');
+                  resolve(true);
+                } else {
+                  console.warn('地图组件仍未就绪，将继续尝试添加巡逻区域');
+                  resolve(false);
+                }
+              }, 500);
+            }
+          });
+        };
+        
+        ensureMapReady().then((isReady) => {
+          if (!isReady) {
+            console.warn('地图组件可能未完全就绪，但仍将尝试添加巡逻区域');
+          }
+          
+          console.log('任务数据结构示例:', tasks.value[0]);
+          
+          // 过滤有效的巡逻区域任务
+          const validTasks = tasks.value.filter(task => {
+            if (!task || !task.patrol_area) {
+              console.warn(`任务 ${task?.task_id || '未知ID'} 没有patrol_area字段`);
+              return false;
+            }
+            
+            // GeoJSON格式应该是 [[[lng1,lat1], [lng2,lat2], ...]] 形式（多边形）
+            let isValid = true;
+            
+            // 检查patrol_area对象结构
+            if (!task.patrol_area.coordinates) {
+              console.warn(`任务 ${task.task_id || '未知ID'} 的patrol_area缺少coordinates字段`);
+              return false;
+            }
+            
+            // 确认数据格式 - 可能是直接坐标数组或嵌套数组
+            let coordinates = task.patrol_area.coordinates;
+            if (!Array.isArray(coordinates)) {
+              console.warn(`任务 ${task.task_id || '未知ID'} 的coordinates不是数组`);
+              isValid = false;
+            } else if (coordinates.length === 0) {
+              console.warn(`任务 ${task.task_id || '未知ID'} 的coordinates数组为空`);
+              isValid = false;
+            } else if (!Array.isArray(coordinates[0])) {
+              console.warn(`任务 ${task.task_id || '未知ID'} 的坐标格式可能不正确`);
+              isValid = false;
+            } else if (Array.isArray(coordinates[0]) && coordinates[0].length < 3) {
+              console.warn(`任务 ${task.task_id || '未知ID'} 的坐标点不足3个，无法形成多边形`);
+              isValid = false;
+            }
+            
+            console.log(`任务 ${task.task_id || '未知ID'} patrol_area 校验: ${isValid ? '通过' : '不通过'}`);
+            return isValid;
+          });
+          
+          if (validTasks.length === 0) {
+            console.log('没有包含有效巡逻区域的任务');
+            return;
+          }
+          
+          console.log(`找到${validTasks.length}个有效巡逻区域任务`);
+          
+          // 添加每个任务的巡逻区域
+          if (typeof mapRef.value.addPatrolAreaToMap === 'function') {
+            validTasks.forEach((task, index) => {
+              console.log(`添加第${index+1}个巡逻区域: ${task.title || '未命名任务'} (ID: ${task.task_id})`);
+              
+              // 不同状态的任务使用不同颜色
+              let fillColor = [59, 130, 246, 100]; // 默认蓝色
+              
+              // 根据任务状态设置不同的颜色
+              switch(task.status) {
+                case 'in_progress':
+                  fillColor = [76, 175, 80, 120]; // 绿色，进行中
+                  break;
+                case 'completed':
+                  fillColor = [33, 150, 243, 100]; // 蓝色，已完成
+                  break;
+                case 'pending':
+                  fillColor = [255, 152, 0, 100]; // 橙色，待执行
+                  break;
+                case 'cancelled':
+                case 'failed':
+                  fillColor = [244, 67, 54, 80]; // 红色，取消或失败
+                  break;
+              }
+              
+              // 处理坐标格式 - 确保符合GeoJSON多边形格式
+              let coordinates = task.patrol_area.coordinates;
+              let geojson = {...task.patrol_area};
+              
+              // 如果是简单数组 [[lng1,lat1], [lng2,lat2], ...] 包装为多边形格式
+              if (Array.isArray(coordinates[0]) && !Array.isArray(coordinates[0][0])) {
+                geojson = {
+                  type: 'Polygon',
+                  coordinates: [coordinates]
+                };
+                console.log(`转换任务 ${task.task_id} 的坐标格式为标准多边形格式`);
+              }
+              
+              console.log(`任务 ${task.task_id} 最终geojson:`, geojson);
+              
+              try {
+                mapRef.value.addPatrolAreaToMap({
+                  geojson: geojson,
+                  taskId: task.task_id,
+                  taskName: task.title || '巡逻任务',
+                  color: fillColor,
+                  status: task.status
+                }, true);
+              } catch (e) {
+                console.error(`添加巡逻区域 ${task.task_id} 时出错:`, e);
+              }
+            });
+            
+            console.log('所有巡逻区域已添加到地图');
+          } else {
+            console.warn('地图实例不支持添加巡逻区域方法');
+          }
+        });
+      } catch (error) {
+        console.error('向地图添加巡逻区域时出错:', error);
       }
     };
 
@@ -131,21 +287,10 @@ export default {
         showPatrolCreator.value = false;
       }
       
-      // 在地图上高亮显示任务区域
+      // 在地图上高亮显示任务区域，但不缩放地图
       if (mapRef.value && task.patrol_area) {
-        // 假设地图组件有显示区域的方法
-        // mapRef.value.highlightArea(task.patrol_area);
-        
-        // 将地图中心移动到任务区域
-        if (task.patrol_area.coordinates && task.patrol_area.coordinates.length > 0) {
-          const coords = task.patrol_area.coordinates[0];
-          if (coords && coords.length > 0) {
-            mapRef.value.setView({
-              center: coords[0],
-              zoom: 16
-            });
-          }
-        }
+        // 添加区域到地图并高亮显示，不移动视角
+        showAreaOnMap(task.patrol_area, false);
       }
       
       // 设置活动卡片
@@ -155,7 +300,7 @@ export default {
     const closeTaskDetail = () => {
       if (showTaskDetail.value) {
         // 关闭弹窗
-        showTaskDetail.value = false;
+      showTaskDetail.value = false;
       }
       // 左侧面板保持当前状态不变
     };
@@ -317,42 +462,98 @@ export default {
       }
     };
     
-    const showAreaOnMap = (area) => {
-      if (mapRef.value && area && area.coordinates) {
-        // 高亮显示该区域
+    // 在地图上显示并聚焦巡逻区域
+    const showAreaOnMap = (area, shouldZoom = true) => {
+      if (!area || !area.coordinates || area.coordinates.length === 0) {
+        message.warning('巡逻区域没有有效的坐标信息');
+        return;
+      }
+
+      // 使用组件内已有的mapRef引用
+      if (!mapRef.value) {
+        console.error('地图实例未找到');
+        message.error('无法在地图上显示，地图组件未加载');
+        return;
+      }
+
+      try {
+        // 清除其他区域的高亮状态
+        if (typeof mapRef.value.clearHighlightedAreas === 'function') {
+          mapRef.value.clearHighlightedAreas();
+        }
+        
+        // 添加区域到地图并高亮显示
         if (typeof mapRef.value.addPatrolAreaToMap === 'function') {
           mapRef.value.addPatrolAreaToMap({
             geojson: area,
             taskId: currentTask.value?.task_id || 'temp-task',
-            taskName: currentTask.value?.title || '任务详情'
-          });
-        }
-        
-        // 将地图视野调整到包含整个区域
-        if (area.coordinates.length > 0) {
-          const coords = area.coordinates[0];
-          if (coords && coords.length > 0) {
-            // 找出边界
-            let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-            for (const [lng, lat] of coords) {
-              minLng = Math.min(minLng, lng);
-              maxLng = Math.max(maxLng, lng);
-              minLat = Math.min(minLat, lat);
-              maxLat = Math.max(maxLat, lat);
-            }
-            
-            // 设置地图视野
-            if (mapRef.value.fitBounds) {
-              mapRef.value.fitBounds([
-                [minLng, minLat],
-                [maxLng, maxLat]
-              ]);
+            taskName: currentTask.value?.title || '巡逻任务区域',
+            color: [59, 130, 246, 150], // 高亮颜色，蓝色半透明
+            isHighlighted: true
+          }, true);
+          
+          // 如果需要缩放，才执行缩放逻辑
+          if (shouldZoom) {
+            // 计算边界并缩放地图到合适的视野
+            const coords = area.coordinates[0];
+            if (coords && coords.length > 0) {
+              // 找出区域边界
+              let minLng = Infinity, maxLng = -Infinity;
+              let minLat = Infinity, maxLat = -Infinity;
               
-              // 显示消息提示
-              message.success('已在地图上显示巡逻区域');
+              for (const [lng, lat] of coords) {
+                if (lng && lat) { // 添加非空检查
+                  minLng = Math.min(minLng, lng);
+                  maxLng = Math.max(maxLng, lng);
+                  minLat = Math.min(minLat, lat);
+                  maxLat = Math.max(maxLat, lat);
+                }
+              }
+              
+              // 如果找到了有效的边界
+              if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
+                // 使用flyTo方法飞行到区域，确保视野合适
+                if (typeof mapRef.value.flyTo === 'function') {
+                  // 计算中心点
+                  const centerLng = (minLng + maxLng) / 2;
+                  const centerLat = (minLat + maxLat) / 2;
+                  
+                  // 计算对角线距离，用于估算合适的缩放级别
+                  const diagonalDistance = Math.sqrt(
+                    Math.pow(maxLng - minLng, 2) + 
+                    Math.pow(maxLat - minLat, 2)
+                  );
+                  
+                  // 根据区域大小估算缩放级别
+                  // 区域越大，缩放级别越小；区域越小，缩放级别越大
+                  // 使用对数关系计算缩放级别
+                  const zoom = Math.max(13, Math.min(18, 16 - Math.log10(diagonalDistance * 1000)));
+                  
+                  mapRef.value.flyTo({
+                    center: [centerLng, centerLat],
+                    zoom: zoom,
+                    duration: 1000,
+                    pitch: 45 // 添加一点倾斜角度以便更好地查看
+                  });
+                  
+                  message.success('已定位到巡逻区域');
+                } else {
+                  message.warning('地图无法自动缩放到区域位置');
+                }
+              } else {
+                message.warning('无法计算巡逻区域边界');
+              }
             }
+          } else {
+            // 不缩放，只显示成功消息
+            message.success('已在地图上高亮显示巡逻区域');
           }
+        } else {
+          message.error('地图组件不支持显示巡逻区域');
         }
+      } catch (error) {
+        console.error('显示巡区域时出错:', error);
+        message.error('无法在地图上显示区域');
       }
     };
 
@@ -412,6 +613,26 @@ export default {
       });
     };
 
+    // 取消编辑任务
+    const cancelEditTask = () => {
+      // 关闭创建表单
+      showPatrolCreator.value = false;
+      
+      // 清空编辑中的任务
+      editingTask.value = null;
+      
+      // 重新打开详情面板
+      if (currentTask.value) {
+        showDetailPanel.value = true;
+        
+        // 更新地图高亮
+        activeTaskCard.value = currentTask.value.id || currentTask.value.task_id;
+        
+        // 提示用户
+        message.info('已取消编辑任务');
+      }
+    };
+
     // 删除任务
     const deleteTask = async (task) => {
       try {
@@ -434,8 +655,115 @@ export default {
     };
     
     // 初始化时加载任务列表
-    onMounted(() => {
-      loadTasks();
+    onMounted(async () => {
+      console.log('Security组件已挂载');
+      
+      // 确保地图实例已就绪
+      await ensureMapReady();
+      
+      // 加载任务数据
+      await loadTasks();
+      
+      // 监听巡逻区域选择事件
+      window.addEventListener('patrol-area-selected', handlePatrolAreaSelected);
+    });
+
+    // 确保地图实例已就绪
+    const ensureMapReady = () => {
+      return new Promise((resolve) => {
+        // 如果已有mapRef，直接返回
+        if (mapRef.value) {
+          console.log('已获取地图实例');
+          resolve(mapRef.value);
+          return;
+        }
+        
+        // 尝试从全局获取地图实例
+        const getGlobalMap = () => {
+          try {
+            // 从inject获取
+            const globalMapRef = inject('mapRef', null);
+            if (globalMapRef?.value) {
+              console.log('从inject获取地图实例成功');
+              mapRef.value = globalMapRef.value;
+              resolve(mapRef.value);
+              return true;
+            }
+            
+            // 从window调试对象获取
+            if (window.skymindDebug?.mapRef?.value) {
+              console.log('从window.skymindDebug获取地图实例成功');
+              mapRef.value = window.skymindDebug.mapRef.value;
+              resolve(mapRef.value);
+              return true;
+            }
+            
+            return false;
+          } catch (err) {
+            console.error('获取地图实例出错:', err);
+            return false;
+          }
+        };
+        
+        // 立即尝试获取一次
+        if (getGlobalMap()) return;
+        
+        // 如果获取失败，等待地图实例加载完成
+        console.log('地图实例未就绪，等待地图加载...');
+        let attempts = 0;
+        const maxAttempts = 10;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (getGlobalMap() || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (!mapRef.value) {
+              console.warn(`无法获取地图实例，已尝试${attempts}次`);
+            }
+            resolve(mapRef.value);
+          }
+        }, 500); // 每500ms检查一次，最多尝试10次（5秒）
+      });
+    };
+
+    const handlePatrolAreaClicked = async (taskId) => {
+      console.log('巡逻区域被点击, 任务ID:', taskId);
+      // 根据任务ID加载任务详情
+      try {
+        loading.value = true;
+        
+        // 如果已经有相同的任务，直接使用
+        if (currentTask.value && currentTask.value.task_id === taskId) {
+          openTaskDetail(currentTask.value);
+          return;
+        }
+        
+        // 从服务器获取任务详情
+        const response = await getPatrolTaskById(taskId);
+        if (response) {
+          // 打开任务详情面板
+          openTaskDetail(response);
+        } else {
+          message.warning('无法加载该巡逻任务的详情');
+        }
+      } catch (error) {
+        console.error('获取任务详情失败:', error);
+        message.error('获取任务详情失败');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    // 添加事件处理函数
+    const handlePatrolAreaSelected = async (event) => {
+      const taskId = event.detail.area;
+      if (taskId) {
+        await handlePatrolAreaClicked(taskId);
+      }
+    };
+
+    // 在组件卸载时移除事件监听
+    onUnmounted(() => {
+      window.removeEventListener('patrol-area-selected', handlePatrolAreaSelected);
     });
 
     return {
@@ -471,8 +799,10 @@ export default {
       openTaskDetailModal,
       handleTaskClick,
       editTask,
+      cancelEditTask,
       deleteTask,
-      isEditMode
+      isEditMode,
+      handlePatrolAreaClicked
     };
   }
 };

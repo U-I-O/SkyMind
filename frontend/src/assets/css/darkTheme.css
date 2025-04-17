@@ -1,0 +1,138 @@
+/* 暗色主题变量 */
+:root {
+    --bg-card: rgba(15, 23, 42, 0.75); /* slate-900 with opacity */
+    --bg-card-hover: rgba(30, 41, 59, 0.6); /* 悬停状态背景 */
+    --bg-element: rgba(30, 41, 59, 0.7); /* 输入框等元素背景 */
+    --text-primary: #e2e8f0; /* slate-200 */
+    --text-secondary: #94a3b8; /* slate-400 */
+    --text-muted: #64748b; /* slate-500 */
+    --border-color: rgba(51, 65, 85, 0.5); /* slate-700 with opacity */
+    --highlight-color: #3b82f6; /* blue-500 */
+    --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* 浮动卡片全局样式 */
+  .floating-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    z-index: 100;
+  }
+  
+  /* 暗色主题滚动条样式 */
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3); /* Firefox */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(51, 65, 85, 0.7);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(59, 130, 246, 0.7);
+  }
+  
+  /* Naive UI 组件暗色主题覆盖 */
+  .dark-theme-override .n-data-table {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-data-table-th {
+    background-color: rgba(30, 41, 59, 0.9) !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-data-table-td {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  
+  .dark-theme-override .n-button:not(.n-button--primary-type) {
+    background-color: rgba(51, 65, 85, 0.8) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  }
+  
+  .dark-theme-override .n-input, 
+  .dark-theme-override .n-select {
+    background-color: var(--bg-element) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  
+  .dark-theme-override .n-pagination {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-pagination .n-button {
+    background-color: var(--bg-element) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+  }
+  
+  .dark-theme-override .n-tabs {
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab-pane {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 文本颜色覆盖 */
+  .dark-theme-override .text-gray-400,
+  .dark-theme-override .text-gray-500,
+  .dark-theme-override .text-gray-600 {
+    color: var(--text-secondary) !important;
+  }
+  
+  .dark-theme-override .text-gray-700,
+  .dark-theme-override .text-gray-800,
+  .dark-theme-override .font-bold,
+  .dark-theme-override .font-medium,
+  .dark-theme-override h1,
+  .dark-theme-override h2,
+  .dark-theme-override h3 {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 特殊背景颜色覆盖 */
+  .dark-theme-override .bg-gray-50,
+  .dark-theme-override .bg-gray-100 {
+    background-color: rgba(30, 41, 59, 0.6) !important;
+  }
+  
+  .dark-theme-override .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+  }
+  
+  .dark-theme-override .bg-green-50 {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+  }
+  
+  .dark-theme-override .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+  }
+  
+  /* 选中状态 */
+  .dark-theme-override .border-blue-500.bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.3) !important;
+    border-color: rgba(59, 130, 246, 0.7) !important;
+  }

@@ -8,7 +8,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@mapbox/mapbox-gl-draw": "^1.5.0",
+=======
+    "@loaders.gl/obj": "^3.4.15",
+>>>>>>> 72332adc9c56def33a11c0d230a635daa05350e2
     "@vicons/antd": "^0.13.0",
     "@vicons/carbon": "^0.13.0",
     "@vicons/fa": "^0.13.0",
@@ -20,6 +24,7 @@
     "chart.js": "^4.3.0",
     "date-fns": "^2.30.0",
     "deck.gl": "^8.9.18",
+    "gsap": "^3.12.7",
     "lodash": "^4.17.21",
     "mapbox-gl": "^2.15.0",
     "naive-ui": "^2.34.4",

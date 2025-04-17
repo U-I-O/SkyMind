@@ -551,61 +551,71 @@ const cancelDelete = () => {
 
 <style scoped>
 .patrol-task-detail {
-  padding: 16px;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  color: var(--text-primary);
 }
 
-.patrol-area-map {
-  margin-top: 12px;
+.fade-in {
+  animation: fadeIn 0.3s ease;
 }
 
-.detail-actions {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #eee;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .detail-row {
   display: flex;
-  border-bottom: 1px solid #f0f0f0;
   padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-label {
-  flex: 0 0 100px;
+  flex: 0 0 90px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .detail-value {
   flex: 1;
-  color: #333;
 }
 
-/* 添加淡入动画 */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+.patrol-area-map {
+  height: 300px;
+  margin-top: 1rem;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.detail-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
-/* 添加呼吸动画增强 */
-.animate-pulse {
-  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.patrol-task-detail {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3);
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+.patrol-task-detail::-webkit-scrollbar {
+  width: 4px;
+}
+
+.patrol-task-detail::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 3px;
+}
+
+.patrol-task-detail::-webkit-scrollbar-thumb {
+  background-color: rgba(51, 65, 85, 0.7);
+  border-radius: 3px;
+}
+
+.patrol-task-detail::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.7);
 }
 </style> 

@@ -200,11 +200,11 @@
       <!-- 操作按钮区域 -->
       <div class="form-actions">
         <n-space justify="end">
-          <n-button size="small" @click="resetForm">重置</n-button>
-          <n-button size="small" type="primary" @click="handleSubmit">
+          <n-button size="small" class="form-btn" @click="resetForm">重置</n-button>
+          <n-button size="small" type="primary" class="form-btn-primary" @click="handleSubmit">
             {{ isEditMode ? '更新任务' : '创建任务' }}
           </n-button>
-          <n-button size="small" type="error" @click="handleCancel">取消</n-button>
+          <n-button size="small" type="error" class="form-btn-error" @click="handleCancel">取消</n-button>
         </n-space>
       </div>
     </div>
@@ -661,72 +661,98 @@ defineExpose({
 
 <style scoped>
 .patrol-task-creator {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: relative;
+  color: var(--text-primary);
 }
 
 .form-container {
-  width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  border-radius: 8px;
   overflow: hidden;
 }
 
 .form-scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  padding: 10px 5px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3);
+}
+
+.form-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.form-scroll-area::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 3px;
+}
+
+.form-scroll-area::-webkit-scrollbar-thumb {
+  background-color: rgba(51, 65, 85, 0.7);
+  border-radius: 3px;
+}
+
+.form-scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.7);
 }
 
 .form-actions {
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
-  background-color: #fff;
+  padding: 12px 0 4px 0;
   display: flex;
   justify-content: flex-end;
+  border-top: 1px solid var(--border-color);
+  margin-top: 10px;
+}
+
+/* 表单按钮样式 */
+.form-btn {
+  background-color: var(--btn-primary-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: var(--text-primary) !important;
+}
+
+.form-btn-primary {
+  background-color: var(--btn-primary-bg) !important;
+  border: 1px solid var(--btn-primary-border) !important;
+  color: #ffffff !important;
+}
+
+.form-btn-error {
+  background-color: var(--btn-danger-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.form-btn:hover, .form-btn-primary:hover, .form-btn-error:hover {
+  border: 1px solid #ffffff !important;
 }
 
 .form-section {
-  margin-bottom: 12px;
+  margin-bottom: 20px;
+  background-color: var(--bg-element);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .section-title {
-  font-size: 14px;
+  padding: 8px 12px;
   font-weight: 600;
-  color: #333;
-  position: relative;
-  padding-left: 10px;
-  margin-bottom: 8px;
-}
-
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 4px;
-  height: calc(100% - 8px);
-  width: 3px;
-  background-color: #18a058;
-  border-radius: 2px;
+  font-size: 14px;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .section-content {
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 6px;
-  border: 1px solid #eaeaea;
+  padding: 12px;
 }
 
 .form-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .form-row:last-child {
@@ -734,45 +760,41 @@ defineExpose({
 }
 
 .schedule-type-selector {
-  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .schedule-details {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #eaeaea;
+  margin-top: 10px;
 }
 
+/* 巡逻区域相关样式 */
 .area-container {
-  border: 1px solid #e0e0e6;
+  padding: 8px;
   border-radius: 6px;
-  padding: 10px;
-  width: 100%;
-  background-color: #fdfdfd;
 }
 
 .area-status {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
 }
 
 .status-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background-color: #f3f3f3;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 8px;
-  color: #999;
-  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: rgba(244, 63, 94, 0.2);
+  color: #f43f5e;
+  margin-right: 10px;
 }
 
-.status-completed {
-  background-color: #edf7ed;
-  color: #18a058;
+.status-icon.status-completed {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
 }
 
 .status-text {
@@ -780,82 +802,111 @@ defineExpose({
 }
 
 .status-title {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 2px;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .status-subtitle {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .area-actions {
   display: flex;
-  align-items: center;
-  margin-left: auto;
+}
+
+/* 绘制区域和清除按钮样式 */
+.area-actions .n-button {
+  background-color: var(--btn-primary-bg) !important;
+  border: 1px solid var(--btn-primary-border) !important;
+  color: #ffffff !important;
+}
+
+.area-actions .n-button:hover {
+  border: 1px solid #ffffff !important;
+}
+
+.area-actions .n-button--error-type {
+  background-color: var(--btn-danger-bg) !important;
 }
 
 .area-preview {
-  margin-top: 8px;
-  padding: 6px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border: 1px dashed #e0e0e6;
-  max-height: 100px;
-  overflow-y: auto;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
 
 .coordinates-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 12px;
 }
 
 .coordinate-item {
-  padding: 4px 6px;
-  background-color: #fff;
-  border-radius: 3px;
-  border: 1px solid #f0f0f0;
-  font-size: 11px;
-  font-family: monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--border-color);
 }
 
-.ml-2 {
-  margin-left: 8px;
+.coordinate-item:last-child {
+  border-bottom: none;
 }
 
-/* 滚动条样式优化 */
-.form-container::-webkit-scrollbar {
-  width: 4px;
+/* 暗色主题适配 */
+:deep(.n-form-item .n-form-item-label) {
+  color: var(--text-primary);
 }
 
-.form-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+:deep(.n-radio-group .n-radio__label) {
+  color: var(--text-primary);
 }
 
-.form-container::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
+/* 修改输入框样式 */
+:deep(.n-input .n-input__placeholder) {
+  color: rgba(235, 235, 245, 0.6) !important;
 }
 
-.form-container::-webkit-scrollbar-thumb:hover {
-  background: #ccc;
+:deep(.n-input .n-input__input-el) {
+  color: var(--text-primary) !important;
 }
 
-.area-preview::-webkit-scrollbar {
-  width: 3px;
+:deep(.n-input-number .n-input-number-suffix) {
+  color: var(--text-primary) !important;
 }
 
-.area-preview::-webkit-scrollbar-track {
-  background: #f1f1f1;
+:deep(.n-input-number .n-input__input-el) {
+  color: var(--text-primary) !important;
 }
 
-.area-preview::-webkit-scrollbar-thumb {
-  background: #ddd;
+:deep(.n-input-number .n-input__placeholder) {
+  color: rgba(235, 235, 245, 0.6) !important;
+}
+
+/* 选择框样式 */
+:deep(.n-select .n-base-selection-placeholder) {
+  color: rgba(235, 235, 245, 0.6) !important;
+}
+
+:deep(.n-select .n-base-selection-input) {
+  color: var(--text-primary) !important;
+}
+
+/* 时间选择器样式 */
+:deep(.n-time-picker .n-input__placeholder) {
+  color: rgba(235, 235, 245, 0.6) !important;
+}
+
+:deep(.n-time-picker .n-input__input-el) {
+  color: var(--text-primary) !important;
+}
+
+/* 日期选择器样式 */
+:deep(.n-date-picker .n-input__placeholder) {
+  color: rgba(235, 235, 245, 0.6) !important;
+}
+
+:deep(.n-date-picker .n-input__input-el) {
+  color: var(--text-primary) !important;
 }
 </style>

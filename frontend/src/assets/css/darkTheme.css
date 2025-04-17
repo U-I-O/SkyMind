@@ -9,6 +9,12 @@
     --border-color: rgba(51, 65, 85, 0.5); /* slate-700 with opacity */
     --highlight-color: #3b82f6; /* blue-500 */
     --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --input-placeholder: rgba(235, 235, 245, 0.6); /* 输入框placeholder颜色 */
+    --btn-primary-bg: rgba(17, 24, 39, 0.8); /* 主要按钮背景色 */
+    --btn-primary-border: rgba(255, 255, 255, 0.7); /* 主要按钮边框色 */
+    --btn-primary-hover-bg: rgba(31, 41, 55, 0.9); /* 主要按钮悬停背景色 */
+    --btn-danger-bg: rgba(185, 28, 28, 0.7); /* 危险按钮背景色 */
+    --btn-success-bg: rgba(22, 101, 52, 0.7); /* 成功按钮背景色 */
   }
   
   /* 浮动卡片全局样式 */
@@ -64,6 +70,33 @@
     border-bottom: 1px solid var(--border-color) !important;
   }
   
+  /* 按钮样式覆盖 */
+  .dark-theme-override .n-button.n-button--primary-type {
+    background-color: var(--btn-primary-bg) !important;
+    border: 1px solid var(--btn-primary-border) !important;
+    color: #ffffff !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--primary-type:hover {
+    background-color: var(--btn-primary-hover-bg) !important;
+    border: 1px solid #ffffff !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--error-type {
+    background-color: var(--btn-danger-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--success-type {
+    background-color: var(--btn-success-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--info-type {
+    background-color: var(--bg-element) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
   .dark-theme-override .n-button:not(.n-button--primary-type) {
     background-color: rgba(51, 65, 85, 0.8) !important;
     color: var(--text-primary) !important;
@@ -93,6 +126,27 @@
   }
   
   .dark-theme-override .n-tabs .n-tab-pane {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 全局输入框样式 */
+  .dark-theme-override .n-input .n-input__placeholder,
+  .dark-theme-override .n-input-number .n-input__placeholder,
+  .dark-theme-override .n-time-picker .n-input__placeholder,
+  .dark-theme-override .n-date-picker .n-input__placeholder,
+  .dark-theme-override .n-select .n-base-selection-placeholder {
+    color: var(--input-placeholder) !important;
+  }
+
+  .dark-theme-override .n-input .n-input__input-el,
+  .dark-theme-override .n-input-number .n-input__input-el,
+  .dark-theme-override .n-time-picker .n-input__input-el,
+  .dark-theme-override .n-date-picker .n-input__input-el,
+  .dark-theme-override .n-select .n-base-selection-input {
+    color: var(--text-primary) !important;
+  }
+
+  .dark-theme-override .n-input-number .n-input-number-suffix {
     color: var(--text-primary) !important;
   }
   

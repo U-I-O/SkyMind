@@ -1,17 +1,17 @@
-<div class="security-container h-full pointer-events-none">  
+<div class="security-container h-full pointer-events-none dark-theme-override">  
   <!-- 使用全局地图，不需要在此页面添加地图组件 -->
   <div class="p-4 h-full">
     <div class="h-full grid grid-cols-12 gap-4">
       <!-- 左侧面板区域 -->
       <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
         <!-- 标题和操作按钮 -->
-        <div class="floating-card bg-white bg-opacity-95">
+        <div class="floating-card">
           <div class="flex justify-between items-center mb-2">
             <h1 class="text-2xl font-bold">安防巡逻中心</h1>
             
             <!-- 操作按钮 -->
             <div class="flex space-x-3">
-              <n-button type="primary" @click="showPatrolCreator = !showPatrolCreator">
+              <n-button type="primary" class="create-task-btn" @click="showPatrolCreator = !showPatrolCreator">
                 {{ showPatrolCreator ? '关闭创建' : '创建巡逻任务' }}
               </n-button>
             </div>
@@ -19,7 +19,7 @@
         </div>
         
         <!-- 详细信息面板或创建任务表单 -->
-        <div class="floating-card bg-white bg-opacity-95 animate-slide-in" v-if="showPatrolCreator || (showDetailPanel && !showPatrolCreator)">
+        <div class="floating-card animate-slide-in" v-if="showPatrolCreator || (showDetailPanel && !showPatrolCreator)">
           <!-- 创建任务表单 -->
           <div v-if="showPatrolCreator">
             <div class="flex justify-between items-center mb-3">
@@ -49,7 +49,7 @@
               </n-button>
             </div>
             
-            <div class="detail-panel-content">
+            <div class="detail-panel-content custom-scrollbar">
               <patrol-task-detail
                 v-if="currentTask"
                 :task="currentTask"
@@ -76,7 +76,7 @@
       <!-- 右侧面板区域 -->
       <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
         <!-- 巡逻任务列表 -->
-        <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+        <div class="floating-card flex-1 overflow-hidden flex flex-col">
           <div class="flex justify-between items-center mb-3">
             <h2 class="font-bold text-lg">巡逻任务列表</h2>
             <n-button text size="small" @click="refreshData" :loading="loading">
@@ -104,10 +104,9 @@
         </div>
          
         <!-- 安全事件列表 -->
-        <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+        <div class="floating-card flex-1 overflow-hidden flex flex-col">
           <h2 class="font-bold text-lg mb-3">安全事件列表</h2>
           <security-event-list
-            :events="securityEvents"
             @view-all="viewAllEvents"
             @open-detail="openEventDetail"
             @focus-event="focusOnEvent"

@@ -140,6 +140,7 @@
             <n-button 
               size="tiny" 
               type="primary" 
+              class="action-btn"
               @click.stop="handleStartTask(task)"
             >
               开始任务
@@ -150,6 +151,7 @@
             <n-button 
               size="tiny" 
               type="error" 
+              class="action-btn"
               @click.stop="handleStopTask(task)"
             >
               取消任务
@@ -160,6 +162,7 @@
             <n-button 
               size="tiny" 
               type="primary" 
+              class="action-btn"
               @click.stop="handleResumeTask(task)"
             >
               恢复任务
@@ -561,11 +564,6 @@ const formatDateShort = (dateStr) => {
 
 <style scoped>
 .task-list-container {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -576,154 +574,165 @@ const formatDateShort = (dateStr) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  flex-shrink: 0;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .task-list {
   flex: 1;
   overflow-y: auto;
   padding-right: 4px;
-  margin-bottom: 0;
-  max-height: calc(100% - 50px); /* 减去header的高度 */
+}
+
+/* 自定义滚动条 */
+.task-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3);
+}
+
+.task-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.task-list::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 3px;
+}
+
+.task-list::-webkit-scrollbar-thumb {
+  background-color: rgba(51, 65, 85, 0.7);
+  border-radius: 3px;
+}
+
+.task-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.7);
 }
 
 .task-item {
-  position: relative;
-  background-color: white;
+  padding: 12px;
   border-radius: 8px;
-  padding: 10px 12px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-element);
+  transition: all 0.2s ease;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-left: 4px solid #e5e5e5;
-  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
 }
 
 .task-item:hover {
+  background-color: var(--bg-card-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.status-active, .status-in_progress {
-  border-left-color: #18a058;
-}
-
-.status-pending {
-  border-left-color: #2080f0;
-}
-
-.status-completed {
-  border-left-color: #8e8e8e;
-}
-
-.status-cancelled {
-  border-left-color: #d03050;
-}
-
-.status-failed {
-  border-left-color: #f0a020;
-}
-
-.status-paused {
-  border-left-color: #f0c020;
-}
-
-.active-card {
-  background-color: rgba(32, 128, 240, 0.05);
-  box-shadow: 0 0 0 2px rgba(32, 128, 240, 0.3);
+  border-color: var(--border-color);
 }
 
 .task-item-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 6px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .task-title {
   font-weight: 600;
-  font-size: 13px;
-  color: #333;
+  font-size: 14px;
+  line-height: 1.2;
   margin-right: 8px;
-  line-height: 1.3;
-}
-
-.status-tag {
-  flex-shrink: 0;
 }
 
 .task-desc {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  line-height: 1.3;
-}
-
-.task-item:hover .task-desc {
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .task-meta {
-  display: grid;
-  grid-template-columns: 1fr;
-  row-gap: 2px;
-  font-size: 11px;
-  color: #666;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  border-radius: 6px;
   margin-bottom: 8px;
-  background-color: rgba(0, 0, 0, 0.02);
-  padding: 4px 6px;
-  border-radius: 4px;
+  font-size: 12px;
 }
 
-.task-meta .flex {
-  min-height: 18px;
-}
-
-.task-meta .font-medium {
-  color: #555;
-  width: 62px;
-  flex-shrink: 0;
+.task-meta .n-icon {
+  color: var(--text-secondary);
 }
 
 .task-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 0;
+  margin-top: 8px;
+  gap: 8px;
 }
 
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* 按钮样式 */
+.action-btn {
+  background-color: var(--btn-primary-bg) !important;
+  border: 1px solid var(--btn-primary-border) !important;
 }
 
+.action-btn:hover {
+  background-color: var(--btn-primary-hover-bg) !important;
+  border: 1px solid white !important;
+}
+
+/* 任务状态样式 */
+.status-pending {
+  border-left: 3px solid #2080f0;
+}
+
+.status-in-progress {
+  border-left: 3px solid #18a058;
+}
+
+.status-completed {
+  border-left: 3px solid #63e2b7;
+}
+
+.status-cancelled {
+  border-left: 3px solid #d03050;
+}
+
+.status-failed {
+  border-left: 3px solid #d03050;
+}
+
+.status-paused {
+  border-left: 3px solid #f0a020;
+}
+
+.active-card {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: var(--highlight-color);
+}
+
+/* 周选择器样式 */
 .weekday-container {
   display: flex;
   justify-content: space-between;
-  padding: 2px 4px;
+  margin-top: 2px;
 }
 
 .weekday-item {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  background-color: #f0f0f0;
-  color: #999;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--text-secondary);
 }
 
 .weekday-item.active {
-  background-color: #2080f0;
-  color: white;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--highlight-color);
+  font-weight: 600;
 }
 </style> 

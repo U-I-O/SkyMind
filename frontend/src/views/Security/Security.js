@@ -431,7 +431,7 @@ export default {
     };
 
     const viewAllEvents = () => {
-      router.push('/security/events');
+      router.push('/events');
     };
 
     const openEventDetail = (event) => {

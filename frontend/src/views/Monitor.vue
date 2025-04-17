@@ -237,7 +237,7 @@ import {
   HomeOutlined,
   VideoCameraOutlined
 } from '@vicons/antd'
-import Map3D from '../components/map/Map3D.vue'
+import Map3D from '../components/map/Map3D_wg.vue'
 import * as droneApi from '@/api/drone'
 import * as taskApi from '@/api/task'
 import { useWebSocket, ConnectionStatus, MessageType } from '@/utils/websocket'

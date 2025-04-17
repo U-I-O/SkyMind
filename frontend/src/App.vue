@@ -10,13 +10,26 @@
               
               <!-- 主内容区 - 包含全局地图和路由视图 -->
               <main class="flex-1 overflow-hidden relative">
-                <!-- 全局共享地图组件 -->
-                <div v-if="showHeader" class="absolute inset-0 w-full h-full">
-                  <Map3D 
+                <!-- 全局共享地图组件 - 安全模式 (UIO) -->
+                <div v-if="showHeader && isSecurityMode" class="absolute inset-0 w-full h-full">
+                  <Map3D_UIO 
                     ref="mapRef"
                     :show-drones="true"
                     :show-live-updates="true"
                     :show-patrol-areas="true"
+                    :center-on-selected="selectedDrone !== null"
+                    :selected-drone-id="selectedDrone?.drone_id"
+                    @drone-clicked="handleDroneClicked"
+                    @patrol-area-clicked="handlePatrolAreaClicked"
+                  />
+                </div>
+
+                <!-- 全局共享地图组件 - 常规模式 (WG) -->
+                <div v-if="showHeader && !isSecurityMode" class="absolute inset-0 w-full h-full">
+                  <Map3D_WG 
+                    ref="mapRef"
+                    :show-drones="true"
+                    :show-live-updates="true"
                     :center-on-selected="selectedDrone !== null"
                     :selected-drone-id="selectedDrone?.drone_id"
                     :events="mapEvents"
@@ -44,11 +57,12 @@
 </template>
 
 <script setup>
-import { computed, provide, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, provide, ref, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
 import { darkTheme } from 'naive-ui'
 import AppHeader from '@/components/layout/AppHeader.vue'
-import Map3D from '@/components/map/Map3D.vue'
+import Map3D_UIO from '@/components/map/Map3D_UIO.vue'
+import Map3D_WG from '@/components/map/Map3D_WG.vue'
 
 // 主题配置
 const isDarkMode = ref(false)
@@ -61,10 +75,17 @@ const toggleDarkMode = () => {
 provide('toggleDarkMode', toggleDarkMode)
 provide('isDarkMode', isDarkMode)
 
+// 路由相关
+const route = useRoute()
+// 根据路由决定是否显示顶部导航
+const showHeader = computed(() => route.path !== '/login')
+// 根据路由判断是否为安全模式
+const isSecurityMode = computed(() => route.path.includes('/security'))
+
 // 地图相关状态
 const mapRef = ref(null)
 const selectedDrone = ref(null)
-const mapEvents = ref([]) // 全局事件状态
+const mapEvents = ref([]) // 全局事件状态（仅在WG模式下使用）
 
 // 在window上暴露地图实例，方便组件间访问
 onMounted(() => {
@@ -78,31 +99,54 @@ onMounted(() => {
       console.info('全局地图实例已加载完成', mapRef.value);
     }
   });
+
+  // 添加页面可见性监听（WG模式使用）
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 });
 
-// 处理无人机点击事件
-const handleDroneClicked = (droneId) => {
-  // 这里可以通过store获取无人机信息
-  // 示例: const drone = droneStore.getDroneById(droneId)
-  // selectedDrone.value = drone
-  
-  // 触发事件通知子组件
-  window.dispatchEvent(new CustomEvent('drone-selected', { detail: { droneId } }))
+// 移除事件监听
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
+// ---- UIO模式相关方法 ----
+// 处理巡逻区域点击事件（仅UIO模式）
+const handlePatrolAreaClicked = (area) => {
+  if (isSecurityMode.value) {
+    // 触发事件通知子组件
+    window.dispatchEvent(new CustomEvent('patrol-area-selected', { detail: { area } }))
+  }
 }
 
-// 处理事件点击
+// ---- WG模式相关方法 ----
+// 处理事件点击（仅WG模式）
 const handleEventClicked = (event) => {
-  // 触发事件通知子组件
-  window.dispatchEvent(new CustomEvent('event-selected', { detail: { eventId: event.id } }))
+  if (!isSecurityMode.value) {
+    // 触发事件通知子组件
+    window.dispatchEvent(new CustomEvent('event-selected', { detail: { eventId: event.id } }))
+  }
 }
 
-// 处理地图点击 - 关闭弹窗
+// 处理地图点击 - 关闭弹窗（仅WG模式）
 const handleMapClicked = () => {
-  if (mapRef.value && mapRef.value.closeEventInfo) {
+  if (!isSecurityMode.value && mapRef.value && mapRef.value.closeEventInfo) {
     mapRef.value.closeEventInfo()
   }
 }
 
+// 页面可见性变化处理（仅WG模式使用）
+const handleVisibilityChange = () => {
+  if (!isSecurityMode.value && document.hidden && mapRef.value && mapRef.value.closeEventInfo) {
+    mapRef.value.closeEventInfo()
+  }
+}
+
+// ---- 通用方法 ----
+// 处理无人机点击事件（两种模式都使用）
+const handleDroneClicked = (droneId) => {
+  // 触发事件通知子组件
+  window.dispatchEvent(new CustomEvent('drone-selected', { detail: { droneId } }))
+}
 
 // 提供地图相关方法给子组件
 provide('mapRef', mapRef)
@@ -112,45 +156,27 @@ provide('flyToLocation', (coordinates) => {
   }
 })
 
-// 提供事件相关方法给子组件
+// 提供事件相关方法给子组件（WG模式使用）
 provide('setMapEvents', (events) => {
-  mapEvents.value = events
+  if (!isSecurityMode.value) {
+    mapEvents.value = events
+  }
 })
 
-// 根据路由决定是否显示顶部导航
-const route = useRoute()
-const showHeader = computed(() => route.path !== '/login')
-
-// 监听路由变化，关闭事件弹窗
-watch(() => route.path, () => {
+// 监听路由变化，关闭事件弹窗（WG模式使用）
+watch(() => route.path, (newPath) => {
+  // 当模式切换时，清除地图上的事件信息
   if (mapRef.value && mapRef.value.closeEventInfo) {
     mapRef.value.closeEventInfo()
   }
 })
 
-// 路由守卫，处理页面切换
+// 路由守卫，处理页面切换（WG模式使用）
 onBeforeRouteUpdate((to, from, next) => {
   if (mapRef.value && mapRef.value.closeEventInfo) {
     mapRef.value.closeEventInfo()
   }
   next()
-})
-
-// 监听页面可见性变化，用于处理标签页切换或窗口最小化的情况
-const handleVisibilityChange = () => {
-  if (document.hidden && mapRef.value && mapRef.value.closeEventInfo) {
-    mapRef.value.closeEventInfo()
-  }
-}
-
-// 添加页面可见性监听
-onMounted(() => {
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-
-// 移除事件监听
-onUnmounted(() => {
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -164,5 +190,4 @@ onUnmounted(() => {
 .fade-leave-to {
   opacity: 0;
 }
-
-</style>
+</style> 

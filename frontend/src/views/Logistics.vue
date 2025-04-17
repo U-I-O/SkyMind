@@ -272,7 +272,7 @@
     RobotOutlined as DroneIcon,
     GiftOutlined as BoxIcon
   } from '@vicons/antd'
-  import Map3D from '../components/map/Map3D.vue'
+  import Map3D from '../components/map/Map3D_wg.vue'
   
   const message = useMessage()
   const mapRef = ref(null)

@@ -1,13 +1,13 @@
 <template>
-  <header class="bg-white shadow-sm border-b border-gray-200 z-10">
+  <header class="bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border-b border-slate-700 z-10 text-white shadow-lg">
     <div class="container mx-auto px-6 py-2 flex justify-between items-center">
       <!-- 左侧Logo -->
       <div class="flex-shrink-0 ml-2">
         <router-link to="/" class="flex items-center space-x-2">
           <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white text-lg font-bold">
-            SM
+            SG
           </div>
-          <h1 class="text-xl font-bold text-gray-800">SkyMind</h1>
+          <h1 class="text-xl font-bold text-white">SkyGuard</h1>
         </router-link>
       </div>
       
@@ -21,8 +21,8 @@
             class="py-2 px-1 relative transition-all duration-300 ease-in-out group"
             :class="[
               isActiveRoute(item.path) 
-                ? 'text-primary font-bold text-lg' 
-                : 'text-gray-600 hover:text-primary font-medium text-base'
+                ? 'text-blue-400 font-bold text-lg' 
+                : 'text-gray-300 hover:text-blue-400 font-medium text-base'
             ]"
           >
             {{ item.title }}
@@ -43,7 +43,7 @@
         <!-- 搜索按钮 -->
         <n-button circle secondary @click="showSearch = true">
           <template #icon>
-            <n-icon><search-outlined /></n-icon>
+            <n-icon><search-outlined class="text-white" /></n-icon>
           </template>
         </n-button>
         
@@ -51,7 +51,7 @@
         <n-badge :value="unreadCount" :max="99" :show="unreadCount > 0" @click="showNotifications = true">
           <n-button circle secondary @click="showNotifications = true">
             <template #icon>
-              <n-icon><bell-outlined /></n-icon>
+              <n-icon><bell-outlined class="text-white" /></n-icon>
             </template>
           </n-button>
         </n-badge>
@@ -69,7 +69,7 @@
         <n-button circle secondary @click="showSettings = true">
           <template #icon>
             <n-icon>
-              <setting-outlined />
+              <setting-outlined class="text-white" />
             </n-icon>
           </template>
         </n-button>

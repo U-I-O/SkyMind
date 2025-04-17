@@ -6,7 +6,7 @@
         <!-- 事件列表面板 - 占据左半部分 -->
         <div class="w-1/2 pointer-events-auto">
           <!-- 标题、筛选和统计面板 -->
-          <div class="floating-card bg-white bg-opacity-95 mb-4">
+          <div class="floating-card dark-theme-override mb-4">
             <div class="flex justify-between items-center mb-4">
               <h1 class="text-2xl font-bold">事件中心</h1>
               <div>
@@ -34,19 +34,19 @@
             
             <!-- 事件统计 -->
             <div class="grid grid-cols-4 gap-3">
-              <div class="p-2 bg-gray-50 rounded-lg text-center">
+              <div class="p-2 bg-slate-800 bg-opacity-50 rounded-lg text-center">
                 <div class="text-xl font-bold">{{ events.length }}</div>
                 <div class="text-xs text-gray-500">总事件数</div>
               </div>
-              <div class="p-2 bg-gray-50 rounded-lg text-center">
+              <div class="p-2 bg-slate-800 bg-opacity-50 rounded-lg text-center">
                 <div class="text-xl font-bold">{{ unhandledEvents.length }}</div>
                 <div class="text-xs text-gray-500">未处理事件</div>
               </div>
-              <div class="p-2 bg-gray-50 rounded-lg text-center">
+              <div class="p-2 bg-slate-800 bg-opacity-50 rounded-lg text-center">
                 <div class="text-xl font-bold">{{ highPriorityEvents.length }}</div>
                 <div class="text-xs text-gray-500">高优先级事件</div>
               </div>
-              <div class="p-2 bg-gray-50 rounded-lg text-center">
+              <div class="p-2 bg-slate-800 bg-opacity-50 rounded-lg text-center">
                 <div class="text-xl font-bold">{{ todayEvents.length }}</div>
                 <div class="text-xs text-gray-500">今日事件</div>
               </div>
@@ -54,7 +54,7 @@
           </div>
           
           <!-- 事件列表面板 -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col h-96">
+          <div class="floating-card dark-theme-override flex-1 flex flex-col h-96">
             <h3 class="text-lg font-medium mb-3">事件列表</h3>
             
             <n-data-table
@@ -64,7 +64,7 @@
               :pagination="pagination"
               :row-key="row => row.id"
               @update:page="handlePageChange"
-              class="flex-1 overflow-auto"
+              class="flex-1 overflow-auto custom-scrollbar"
               :row-props="(row) => ({ class: 'compact-row' })"
               max-height="calc(100vh - 350px)"
             />
@@ -79,6 +79,7 @@
       title="分配任务"
       preset="card"
       style="width: 500px"
+      class="dark-theme-override"
     >
       <n-form
         v-if="selectedEvent"
@@ -567,23 +568,8 @@ import { h } from 'vue'
 </script> 
 
 <style scoped>
-
-.floating-card {
-  position: relative; /* 或absolute, fixed, sticky */
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
-  z-index: 100; 
-}
-
-/* 更紧凑的表格行 */
-:deep(.compact-row) td {
+/* 只保留Events.vue特有的样式 */
+.compact-row td {
   padding: 6px 8px !important;
-}
-
-:deep(.n-tag) {
-  padding: 0 6px !important;
 }
 </style>

@@ -10,31 +10,31 @@
       
       <!-- 控制面板 -->
       <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-        <div class="flex flex-row space-x-2 bg-white bg-opacity-80 rounded-full px-4 py-2 shadow-md">
+        <div class="flex flex-row space-x-2 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-full px-4 py-2 shadow-md">
           <!-- 图层控制 -->
-          <n-popover trigger="click" placement="top">
+          <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
             <template #trigger>
-              <n-button circle secondary class="opacity-90">
+              <n-button circle secondary class="opacity-90 map-control-btn">
                 <template #icon>
                   <n-icon><layers-icon /></n-icon>
                 </template>
               </n-button>
             </template>
-            <div class="flex flex-col space-y-2 w-48 p-2">
-              <div class="text-sm font-medium text-gray-700 mb-1">图层控制</div>
-              <n-checkbox v-model:checked="showBuildings">3D建筑</n-checkbox>
-              <n-checkbox v-model:checked="showTerrain">地形</n-checkbox>
-              <n-checkbox v-model:checked="showDrones">无人机</n-checkbox>
-              <n-checkbox v-model:checked="showEvents">事件标记</n-checkbox>
-              <n-checkbox v-model:checked="showNoFlyZones">禁飞区</n-checkbox>
-              <n-checkbox v-model:checked="showFlightPaths">飞行路径</n-checkbox>
+            <div class="layer-control-panel">
+              <div class="text-sm font-medium text-gray-300 mb-1">图层控制</div>
+              <n-checkbox v-model:checked="showBuildings" class="dark-checkbox">3D建筑</n-checkbox>
+              <n-checkbox v-model:checked="showTerrain" class="dark-checkbox">地形</n-checkbox>
+              <n-checkbox v-model:checked="showDrones" class="dark-checkbox">无人机</n-checkbox>
+              <n-checkbox v-model:checked="showEvents" class="dark-checkbox">事件标记</n-checkbox>
+              <n-checkbox v-model:checked="showNoFlyZones" class="dark-checkbox">禁飞区</n-checkbox>
+              <n-checkbox v-model:checked="showFlightPaths" class="dark-checkbox">飞行路径</n-checkbox>
             </div>
           </n-popover>
-          
+
           <!-- 地图样式切换 -->
-          <n-popover trigger="click" placement="top">
+          <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
             <template #trigger>
-              <n-button circle secondary class="opacity-90">
+              <n-button circle secondary class="opacity-90 map-control-btn">
                 <template #icon>
                   <n-icon>
                     <template v-if="isDarkMode">
@@ -47,29 +47,29 @@
                 </template>
               </n-button>
             </template>
-            <div class="flex flex-col space-y-2 w-48 p-2">
-              <div class="text-sm font-medium text-gray-700 mb-1">地图样式</div>
+            <div class="layer-control-panel">
+              <div class="text-sm font-medium text-gray-300 mb-1">地图样式</div>
               <n-radio-group v-model:value="mapStyle" @update:value="changeMapStyle">
                 <n-space vertical>
-                  <n-radio value="mapbox://styles/mapbox/dark-v11">
+                  <n-radio value="mapbox://styles/mapbox/dark-v11" class="dark-radio">
                     <div class="flex items-center">
                       <moon-icon class="mr-1" />
                       黑夜模式
                     </div>
                   </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/light-v11">
+                  <n-radio value="mapbox://styles/mapbox/light-v11" class="dark-radio">
                     <div class="flex items-center">
                       <sun-icon class="mr-1" />
                       白天模式
                     </div>
                   </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/streets-v12">
+                  <n-radio value="mapbox://styles/mapbox/streets-v12" class="dark-radio">
                     <div class="flex items-center">
                       <map-icon class="mr-1" />
                       街道模式
                     </div>
                   </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/satellite-streets-v12">
+                  <n-radio value="mapbox://styles/mapbox/satellite-streets-v12" class="dark-radio">
                     <div class="flex items-center">
                       <globe-icon class="mr-1" />
                       卫星模式
@@ -111,14 +111,14 @@
       </div>
       
       <!-- 坐标信息 -->
-      <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 bg-opacity-70 p-2 rounded-md text-xs text-gray-700">
+      <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 bg-slate-800 bg-opacity-0 p-2 rounded-md text-xs text-gray-200">
         <div>经度: {{ formatCoordinate(currentPosition.lng) }}</div>
         <div>纬度: {{ formatCoordinate(currentPosition.lat) }}</div>
         <div>海拔: {{ currentPosition.altitude?.toFixed(2) || '未知' }} 米</div>
       </div>
 
-      <!-- Selected drone info popup -->
-      <div v-if="hoveredDroneInfo" class="absolute top-4 left-4 z-20 bg-white rounded-md shadow-md p-3 text-sm max-w-xs">
+      <!-- 无人机信息弹窗 -->
+      <div v-if="hoveredDroneInfo" class="absolute top-4 left-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-md shadow-md p-3 text-sm max-w-xs text-white">
         <div class="flex items-center justify-between mb-2">
           <div class="font-medium">{{ hoveredDroneInfo.name }}</div>
           <n-tag size="small" :type="getDroneStatusType(hoveredDroneInfo.status)">
@@ -139,25 +139,25 @@
         </div>
       </div>
 
-    <!-- Patrol controls -->
-    <div class="absolute bottom-4 right-4 z-20 bg-white bg-opacity-70 p-2 rounded-md">
-      <n-button-group>
-        <n-button @click="startPatrol" :disabled="patrolStatus">
-          <template #icon><n-icon><play-icon /></n-icon></template>
-          开始巡逻
-        </n-button>
-        <n-button @click="stopPatrol" :disabled="!patrolStatus">
-          <template #icon><n-icon><pause-icon /></n-icon></template>
-          停止巡逻
-        </n-button>
-      </n-button-group>
-      <div class="mt-2">
-        <n-slider v-model:value="droneSpeedFactor" :step="0.1" :min="0.5" :max="2.0" />
-        <div class="text-xs text-center">速度: {{ droneSpeedFactor.toFixed(1) }}x</div>
+      <!-- 巡逻控制 -->
+      <div class="absolute bottom-4 right-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 p-2 rounded-md text-white">
+        <n-button-group>
+          <n-button @click="startPatrol" :disabled="patrolStatus">
+            <template #icon><n-icon><play-icon /></n-icon></template>
+            开始巡逻
+          </n-button>
+          <n-button @click="stopPatrol" :disabled="!patrolStatus">
+            <template #icon><n-icon><pause-icon /></n-icon></template>
+            停止巡逻
+          </n-button>
+        </n-button-group>
+        <div class="mt-2">
+          <n-slider v-model:value="droneSpeedFactor" :step="0.1" :min="0.5" :max="2.0" />
+          <div class="text-xs text-center">速度: {{ droneSpeedFactor.toFixed(1) }}x</div>
+        </div>
       </div>
     </div>
-    </div>
-  </template>
+</template>
   
   <script setup>
   import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits } from 'vue'
@@ -267,17 +267,17 @@ const selectedEventInfo = ref(null)
 const selectedEventPosition = ref(null) // 存储选中事件的屏幕坐标
 const eventMarkers = ref([]) // 存储所有事件标记的引用
 const eventPopups = ref(new Map()); // 存储事件ID到popup对象的映射
-  const clickedDroneId = ref(null)
-  const mapStyle = ref(import.meta.env.VITE_DEFAULT_MAP_STYLE || 'mapbox://styles/mapbox/streets-v12')
-  const isDarkMode = ref(mapStyle.value.includes('dark'))
-  
-  // Layer controls
-  const showBuildings = ref(true)
-  const showTerrain = ref(true)
-  const showDrones = ref(true)
-  const showEvents = ref(true)
-  const showNoFlyZones = ref(true)
-  const showFlightPaths = ref(true)
+const clickedDroneId = ref(null)
+const mapStyle = ref('mapbox://styles/mapbox/satellite-streets-v12')
+const isDarkMode = ref(mapStyle.value.includes('dark') || mapStyle.value.includes('satellite'))
+
+// Layer controls
+const showBuildings = ref(true)
+const showTerrain = ref(true)
+const showDrones = ref(true)
+const showEvents = ref(true)
+const showNoFlyZones = ref(true)
+const showFlightPaths = ref(true)
 
 // Patrol animation controls
 const patrolStatus = ref(false)
@@ -2764,23 +2764,90 @@ const startDronePatrol = (drones, speed = 1.0) => {
   })
   </script>
   
-  <style scoped>
-  .mapboxgl-canvas {
-    outline: none;
-  }
-  
-  /* deck.gl canvas occupies the same position as mapbox */
-  #deck-canvas {
+<style scoped>
+.mapboxgl-canvas {
+  outline: none;
+}
+
+#deck-canvas {
   z-index: 2;
-  }
+}
+
+.drone-highlight {
+  animation: pulse 1.5s infinite;
+}
   
-  .drone-highlight {
-    animation: pulse 1.5s infinite;
-  }
-  
-  @keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  </style>
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 自定义地图控制按钮 */
+.map-control-btn {
+  background-color: rgba(30, 41, 59, 0.85) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+}
+
+/* 覆盖Naive UI组件样式 */
+:deep(.n-button:not(.n-button--primary-type)) {
+  background-color: rgba(30, 41, 59, 0.85) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+}
+
+:deep(.n-checkbox__label) {
+  color: #e2e8f0 !important;
+}
+
+:deep(.n-radio__label) {
+  color: #e2e8f0 !important;
+}
+
+/* 完全覆盖Naive UI的弹出框样式 - 更加彻底的覆盖 */
+:deep(.n-popover) {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+:deep(.n-popover-shared) {
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+:deep(.n-popover__content) {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+/* 覆盖弹出框的内部容器 */
+:deep(.n-popover-shared__content) {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+:deep(.n-popover-shared-container) {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* 统一图层控制和地图样式面板的样式 */
+.layer-control-panel {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  min-width: 10rem;
+  color: #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+</style>

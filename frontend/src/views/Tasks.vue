@@ -6,10 +6,10 @@
         <!-- 任务管理面板（占据整行） -->
         <div class="col-span-12 flex flex-col gap-4 pointer-events-auto">
           <!-- 任务列表面板（合并了标题和列表） -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col overflow-hidden">
+          <div class="floating-card dark-theme-override flex-1 flex flex-col overflow-hidden">
             <!-- 标题和操作按钮 -->
             <div class="flex justify-between items-center mb-4">
-              <h1 class="text-2xl font-bold text-gray-800">任务管理</h1>
+              <h1 class="text-2xl font-bold">任务管理</h1>
               <div class="actions">
                 <n-button @click="fetchTasks" :loading="loading" title="刷新列表">
                   <template #icon><n-icon><reload-outlined /></n-icon></template>
@@ -21,7 +21,7 @@
             <!-- 任务标签和列表 -->
             <n-tabs v-model:value="activeTab" type="line" class="flex-1 flex flex-col min-h-0">
               <n-tab-pane name="active" tab="进行中" class="flex-1 overflow-hidden flex flex-col">
-                <div class="flex-1 overflow-auto">
+                <div class="flex-1 overflow-auto custom-scrollbar">
                   <n-data-table
                     :columns="taskColumns"
                     :data="activeTasks"
@@ -35,7 +35,7 @@
               </n-tab-pane>
 
               <n-tab-pane name="completed" tab="已完成" class="flex-1 overflow-hidden flex flex-col">
-                <div class="flex-1 overflow-auto">
+                <div class="flex-1 overflow-auto custom-scrollbar">
                   <n-data-table
                     :columns="taskColumns"
                     :data="completedTasks"
@@ -51,7 +51,7 @@
           </div>
           
           <!-- 任务详情面板 -->
-          <div class="floating-card bg-white bg-opacity-95">
+          <div class="floating-card dark-theme-override">
             <h2 class="text-lg font-bold mb-4">任务详情</h2>
             <div v-if="selectedTask" class="space-y-4">
               <n-descriptions label-placement="left" bordered :column="2" size="small">
@@ -846,30 +846,14 @@ onMounted(() => {
 </script>
 
 <style scoped lang="postcss">
-.floating-card {
-  @apply p-4 rounded-lg shadow-lg;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
-  z-index: 100; 
-}
-
-/* 美化表格行 */
-:deep(.custom-table .n-data-table-tr) {
+/* 只保留Tasks.vue特有的样式 */
+.custom-table .n-data-table-tr {
   transition: all 0.2s ease;
 }
 
-:deep(.custom-table .n-data-table-tr:hover) {
-  background-color: rgba(0, 128, 255, 0.05) !important;
+.custom-table .n-data-table-tr:hover {
   transform: translateY(-1px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-:deep(.custom-table td) {
-  padding: 8px !important;
-}
-
-:deep(.n-tag) {
-  padding: 0 6px !important;
 }
 
 .progress-wrapper {
@@ -882,31 +866,27 @@ onMounted(() => {
 .progress-indicator {
   font-weight: bold;
   font-size: 12px;
-  color: #333;
-  background-color: rgba(255, 255, 255, 0.8);
+  color: #e2e8f0;
+  background-color: rgba(30, 41, 59, 0.8);
   padding: 1px 6px;
   border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   min-width: 40px;
   text-align: center;
 }
 
-/* 美化操作按钮 */
-:deep(.action-btn) {
+.action-btn {
   transition: all 0.2s ease;
   margin: 0 3px;
 }
 
-:deep(.action-btn:hover) {
+.action-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 pre {
   white-space: pre-wrap;
-  white-space: -moz-pre-wrap;
-  white-space: -pre-wrap;
-  white-space: -o-pre-wrap;
   word-wrap: break-word;
   max-height: 150px;
 }

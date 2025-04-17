@@ -6,7 +6,7 @@
         <!-- 左侧面板区域 -->
         <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
           <!-- 标题和操作按钮 -->
-          <div class="floating-card bg-white bg-opacity-95">
+          <div class="floating-card dark-theme-override">
             <div class="flex justify-between items-center mb-2">
               <h1 class="text-2xl font-bold">应急响应中心</h1>
               
@@ -29,14 +29,14 @@
             </div>
             
             <!-- 状态指示器 -->
-            <div v-if="emergencyModeActive" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 animate-pulse-slow">
+            <div v-if="emergencyModeActive" class="bg-red-900 bg-opacity-30 border-l-4 border-red-500 p-4 mb-4 animate-pulse-slow">
               <div class="flex">
                 <div class="flex-shrink-0">
                   <n-icon size="24" color="#ef4444"><alert-icon /></n-icon>
                 </div>
                 <div class="ml-3">
-                  <h3 class="text-lg font-bold text-red-700">紧急状态已激活</h3>
-                  <div class="text-sm text-red-600">
+                  <h3 class="text-lg font-bold text-red-400">紧急状态已激活</h3>
+                  <div class="text-sm text-red-300">
                     系统处于紧急响应模式，所有应急预案已启动，优先级调整为最高。
                   </div>
                 </div>
@@ -45,12 +45,12 @@
           </div>
           
           <!-- 应急事件列表 -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 overflow-hidden flex flex-col">
+          <div class="floating-card dark-theme-override flex-1 overflow-hidden flex flex-col">
             <h2 class="font-bold text-lg mb-3">应急事件列表</h2>
             
             <n-tabs type="line" class="flex-1 flex flex-col">
               <n-tab-pane name="drone" tab="无人机巡逻发现" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto flex-1">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
                   <div v-for="event in droneEvents" :key="event.id" 
                        class="p-3 border-l-4 rounded-md cursor-pointer"
                        :class="[
@@ -78,7 +78,7 @@
               </n-tab-pane>
               
               <n-tab-pane name="external" tab="其他平台同步" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto flex-1">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
                   <div v-for="event in externalEvents" :key="event.id" 
                        class="p-3 border-l-4 rounded-md cursor-pointer"
                        :class="[
@@ -107,7 +107,7 @@
               </n-tab-pane>
               
               <n-tab-pane name="resolved" tab="已处理事件" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto flex-1">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
                   <div v-for="event in resolvedEvents" :key="event.id" 
                        class="p-3 border-l-4 border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
                        @click="selectEvent(event)">
@@ -139,7 +139,7 @@
         <!-- 右侧面板区域 -->
         <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
           <!-- 事件详情和处理流程 -->
-          <div class="floating-card bg-white bg-opacity-95 flex-1 flex flex-col" v-if="selectedEvent">
+          <div class="floating-card dark-theme-override flex-1 flex flex-col" v-if="selectedEvent">
             <div class="flex justify-between items-start mb-3">
               <h2 class="font-bold text-lg">事件详情</h2>
               <n-tag :type="getEventTagType(selectedEvent.level)">{{ selectedEvent.level }}</n-tag>
@@ -439,7 +439,7 @@
           </div>
           
           <!-- 未选择事件时的提示 -->
-          <div v-else class="floating-card bg-white bg-opacity-95 flex-1 flex items-center justify-center text-gray-400">
+          <div v-else class="floating-card dark-theme-override flex-1 flex items-center justify-center text-gray-400">
             请从左侧列表选择一个事件
           </div>
         </div>
@@ -447,7 +447,7 @@
     </div>
     
     <!-- 解决事件对话框 -->
-    <n-modal v-model:show="showResolveModal" preset="card" title="标记事件为已处理" style="width: 500px">
+    <n-modal v-model:show="showResolveModal" preset="card" title="标记事件为已处理" style="width: 500px" class="dark-theme-override">
       <div v-if="selectedEvent">
         <div class="mb-4">确认将事件 <b>{{ selectedEvent.title }}</b> 标记为已处理?</div>
         
@@ -1045,15 +1045,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.floating-card {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-}
-
+/* 只保留Emergency.vue特有的样式 */
 .animate-pulse-slow {
   animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

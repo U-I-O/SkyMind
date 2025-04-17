@@ -48,24 +48,65 @@
           <div class="floating-card dark-theme-override flex-1 overflow-hidden flex flex-col">
             <h2 class="font-bold text-lg mb-3">应急事件列表</h2>
             
-            <n-tabs type="line" class="flex-1 flex flex-col">
-              <n-tab-pane name="drone" tab="无人机巡逻发现" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
+            <!-- 自定义标签栏 -->
+            <div class="flex border-b border-gray-600 mb-4">
+              <button 
+                class="px-4 py-2 mr-2 border-b-2 focus:outline-none transition-colors"
+                :class="[
+                  activeTab === 'drone' 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-transparent text-gray-300 hover:text-gray-100'
+                ]"
+                @click="activeTab = 'drone'"
+              >
+                无人机巡逻发现
+              </button>
+              
+              <button 
+                class="px-4 py-2 mr-2 border-b-2 focus:outline-none transition-colors"
+                :class="[
+                  activeTab === 'external' 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-transparent text-gray-300 hover:text-gray-100'
+                ]"
+                @click="activeTab = 'external'"
+              >
+                其他平台同步
+              </button>
+              
+              <button 
+                class="px-4 py-2 border-b-2 focus:outline-none transition-colors"
+                :class="[
+                  activeTab === 'resolved' 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-transparent text-gray-300 hover:text-gray-100'
+                ]"
+                @click="activeTab = 'resolved'"
+              >
+                已处理事件
+              </button>
+            </div>
+            
+            <!-- 标签内容区域 -->
+            <div class="flex-1 overflow-hidden">
+              <!-- 无人机巡逻发现标签内容 -->
+              <div v-if="activeTab === 'drone'" class="h-full">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar h-full">
                   <div v-for="event in droneEvents" :key="event.id" 
-                       class="p-3 border-l-4 rounded-md cursor-pointer"
-                       :class="[
-                         getEventBorderColor(event.level),
-                         selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
-                       ]"
-                       @click="selectEvent(event)">
+                      class="p-3 border-l-4 rounded-md cursor-pointer"
+                      :class="[
+                        getEventBorderColor(event.level),
+                        selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
+                      ]"
+                      @click="selectEvent(event)">
                     <div class="flex justify-between items-start">
                       <div>
-                        <div class="font-medium">{{ event.title }}</div>
+                        <div class="font-medium text-gray-300">{{ event.title }}</div>
                         <div class="text-xs text-gray-500">{{ formatDateTime(event.detected_at) }}</div>
                       </div>
                       <n-tag :type="getEventTagType(event.level)">{{ event.level }}</n-tag>
                     </div>
-                    <div class="mt-1 text-sm text-gray-600">{{ truncateText(event.description, 80) }}</div>
+                    <div class="mt-1 text-sm text-gray-400">{{ truncateText(event.description, 80) }}</div>
                     <div class="mt-1 text-xs">
                       <n-tag size="small" :type="getStatusTagType(event.status)">{{ getStatusText(event.status) }}</n-tag>
                     </div>
@@ -75,25 +116,26 @@
                     暂无无人机巡逻发现的事件
                   </div>
                 </div>
-              </n-tab-pane>
+              </div>
               
-              <n-tab-pane name="external" tab="其他平台同步" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
+              <!-- 其他平台同步标签内容 -->
+              <div v-if="activeTab === 'external'" class="h-full">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar h-full">
                   <div v-for="event in externalEvents" :key="event.id" 
-                       class="p-3 border-l-4 rounded-md cursor-pointer"
-                       :class="[
-                         getEventBorderColor(event.level),
-                         selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
-                       ]"
-                       @click="selectEvent(event)">
+                      class="p-3 border-l-4 rounded-md cursor-pointer"
+                      :class="[
+                        getEventBorderColor(event.level),
+                        selectedEvent?.id === event.id ? 'bg-gray-100' : 'hover:bg-gray-50'
+                      ]"
+                      @click="selectEvent(event)">
                     <div class="flex justify-between items-start">
                       <div>
-                        <div class="font-medium">{{ event.title }}</div>
+                        <div class="font-medium text-gray-300">{{ event.title }}</div>
                         <div class="text-xs text-gray-500">{{ formatDateTime(event.received_at) }}</div>
                       </div>
                       <n-tag :type="getEventTagType(event.level)">{{ event.level }}</n-tag>
                     </div>
-                    <div class="mt-1 text-sm text-gray-600">{{ truncateText(event.description, 80) }}</div>
+                    <div class="mt-1 text-sm text-gray-400">{{ truncateText(event.description, 80) }}</div>
                     <div class="flex justify-between mt-1">
                       <div class="text-xs text-gray-500">来源: {{ event.source }}</div>
                       <n-tag size="small" :type="getStatusTagType(event.status)">{{ getStatusText(event.status) }}</n-tag>
@@ -104,18 +146,19 @@
                     暂无外部平台同步的事件
                   </div>
                 </div>
-              </n-tab-pane>
+              </div>
               
-              <n-tab-pane name="resolved" tab="已处理事件" class="flex-1 flex flex-col">
-                <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1">
+              <!-- 已处理事件标签内容 -->
+              <div v-if="activeTab === 'resolved'" class="h-full">
+                <div class="space-y-3 overflow-y-auto custom-scrollbar h-full">
                   <div v-for="event in resolvedEvents" :key="event.id" 
-                       class="p-3 border-l-4 border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-                       @click="selectEvent(event)">
+                      class="p-3 border-l-4 border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                      @click="selectEvent(event)">
                     <div class="flex justify-between">
-                      <div class="font-medium text-gray-600">{{ event.title }}</div>
+                      <div class="font-medium text-gray-300">{{ event.title }}</div>
                       <div class="text-xs text-gray-500">{{ formatDateTime(event.resolved_at) }}</div>
                     </div>
-                    <div class="mt-1 text-sm text-gray-500">{{ truncateText(event.description, 80) }}</div>
+                    <div class="mt-1 text-sm text-gray-400">{{ truncateText(event.description, 80) }}</div>
                     <div class="flex justify-between mt-1">
                       <div class="text-xs text-gray-500">{{ event.source ? '来源: ' + event.source : '无人机发现' }}</div>
                       <n-tag size="small" type="success">已处理</n-tag>
@@ -126,8 +169,8 @@
                     暂无已处理事件
                   </div>
                 </div>
-              </n-tab-pane>
-            </n-tabs>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -138,308 +181,307 @@
         
         <!-- 右侧面板区域 -->
         <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
-          <!-- 事件详情和处理流程 -->
-          <div class="floating-card dark-theme-override flex-1 flex flex-col" v-if="selectedEvent">
+          <!-- 事件详情和处理流程 - 已修改为可滚动 -->
+          <div class="floating-card dark-theme-override flex-1 flex flex-col overflow-hidden" v-if="selectedEvent">
             <div class="flex justify-between items-start mb-3">
               <h2 class="font-bold text-lg">事件详情</h2>
               <n-tag :type="getEventTagType(selectedEvent.level)">{{ selectedEvent.level }}</n-tag>
             </div>
             
-            <div class="space-y-3 overflow-y-auto mb-4">
-              <div>
-                <div class="text-gray-500 text-sm">事件标题</div>
-                <div class="font-medium">{{ selectedEvent.title }}</div>
-              </div>
-              
-              <div>
-                <div class="text-gray-500 text-sm">事件描述</div>
-                <div>{{ selectedEvent.description }}</div>
-              </div>
-              
-              <div>
-                <div class="text-gray-500 text-sm">位置</div>
-                <div>{{ selectedEvent.location?.name || '未知位置' }}</div>
-              </div>
-              
-              <div>
-                <div class="text-gray-500 text-sm">{{ selectedEvent.source ? '接收时间' : '检测时间' }}</div>
-                <div>{{ formatDateTime(selectedEvent.source ? selectedEvent.received_at : selectedEvent.detected_at) }}</div>
-              </div>
-              
-              <div v-if="selectedEvent.source">
-                <div class="text-gray-500 text-sm">事件来源</div>
-                <div>{{ selectedEvent.source }}</div>
-              </div>
-              
-              <div v-else>
-                <div class="text-gray-500 text-sm">检测来源</div>
-                <div>{{ selectedEvent.detected_by }}</div>
-              </div>
-            </div>
-            
-            <n-divider />
-            
-            <!-- 无人机主动上报事件的处理流程 -->
-            <div v-if="!selectedEvent.source && selectedEvent.status !== 'resolved'" class="flex-1 flex flex-col">
-              <h3 class="font-medium">事件处理流程</h3>
-              
-              <n-steps :current="droneEventCurrentStep" vertical class="mt-3 flex-1">
-                <n-step title="事件分析" description="自动生成相关部门通知表单">
-                  <template #icon>
-                    <n-icon><file-search-outlined /></n-icon>
-                  </template>
-                </n-step>
+            <!-- 滚动内容区域 -->
+            <div class="overflow-y-auto custom-scrollbar flex-1" style="max-height: calc(100vh - 260px);">
+              <div class="space-y-3">
+                <div>
+                  <div class="text-gray-500 text-sm">事件标题</div>
+                  <div class="font-medium">{{ selectedEvent.title }}</div>
+                </div>
                 
-                <n-step title="人工审查" description="确认或修改通知表单">
-                  <template #icon>
-                    <n-icon><audit-outlined /></n-icon>
-                  </template>
-                </n-step>
+                <div>
+                  <div class="text-gray-500 text-sm">事件描述</div>
+                  <div>{{ selectedEvent.description }}</div>
+                </div>
                 
-                <n-step title="事件发送" description="同步事件到相关部门">
-                  <template #icon>
-                    <n-icon><send-outlined /></n-icon>
-                  </template>
-                </n-step>
-              </n-steps>
+                <div>
+                  <div class="text-gray-500 text-sm">位置</div>
+                  <div>{{ selectedEvent.location?.name || '未知位置' }}</div>
+                </div>
+                
+                <div>
+                  <div class="text-gray-500 text-sm">{{ selectedEvent.source ? '接收时间' : '检测时间' }}</div>
+                  <div>{{ formatDateTime(selectedEvent.source ? selectedEvent.received_at : selectedEvent.detected_at) }}</div>
+                </div>
+                
+                <div v-if="selectedEvent.source">
+                  <div class="text-gray-500 text-sm">事件来源</div>
+                  <div>{{ selectedEvent.source }}</div>
+                </div>
+                
+                <div v-else>
+                  <div class="text-gray-500 text-sm">检测来源</div>
+                  <div>{{ selectedEvent.detected_by }}</div>
+                </div>
               
-              <!-- 表单区域 -->
-              <div class="mt-3">
-                <!-- 事件分析阶段 -->
-                <template v-if="droneEventCurrentStep === 0">
-                  <div class="bg-gray-50 p-3 rounded-md mb-3">
-                    <div class="text-sm font-medium mb-2">自动生成通知表单</div>
-                    <n-spin :show="isGeneratingForm">
-                      <div v-if="notificationForm" class="space-y-2">
-                        <div class="text-sm">
-                          <div class="text-gray-500">通知部门</div>
-                          <div>{{ notificationForm.departments.join(', ') }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">紧急程度</div>
-                          <div>{{ notificationForm.urgency }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">事件概述</div>
-                          <div>{{ notificationForm.summary }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">建议措施</div>
-                          <div>{{ notificationForm.recommendations }}</div>
+                <n-divider />
+                
+                <!-- 无人机主动上报事件的处理流程 -->
+                <div v-if="!selectedEvent.source && selectedEvent.status !== 'resolved'" class="flex-1 flex flex-col">
+                  <h3 class="font-medium">事件处理流程</h3>
+                  
+                  <n-steps :current="droneEventCurrentStep" vertical class="mt-3 flex-1">
+                    <n-step title="事件分析" description="自动生成相关部门通知表单">
+                      <template #icon>
+                        <n-icon><file-search-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                    
+                    <n-step title="人工审查" description="确认或修改通知表单">
+                      <template #icon>
+                        <n-icon><audit-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                    
+                    <n-step title="事件发送" description="同步事件到相关部门">
+                      <template #icon>
+                        <n-icon><send-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                  </n-steps>
+                  
+                  <!-- 表单区域 -->
+                  <div class="mt-3">
+                    <!-- 事件分析阶段 -->
+                    <template v-if="droneEventCurrentStep === 0">
+                      <div class="bg-gray-50 p-3 rounded-md mb-3">
+                        <div class="text-sm font-medium mb-2">自动生成通知表单</div>
+                        <n-spin :show="isGeneratingForm">
+                          <div v-if="notificationForm" class="space-y-2">
+                            <div class="text-sm">
+                              <div class="text-gray-500">通知部门</div>
+                              <div>{{ notificationForm.departments.join(', ') }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">紧急程度</div>
+                              <div>{{ notificationForm.urgency }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">事件概述</div>
+                              <div>{{ notificationForm.summary }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">建议措施</div>
+                              <div>{{ notificationForm.recommendations }}</div>
+                            </div>
+                          </div>
+                        </n-spin>
+                      </div>
+                      
+                      <div class="flex justify-end">
+                        <n-button type="primary" @click="moveToNextStep">下一步: 人工审查</n-button>
+                      </div>
+                    </template>
+                    
+                    <!-- 人工审查阶段 -->
+                    <template v-if="droneEventCurrentStep === 1">
+                      <n-form ref="formRef" :model="notificationForm" label-placement="left" label-width="80" class="mb-3">
+                        <n-form-item label="通知部门" path="departments">
+                          <n-select v-model:value="notificationForm.departments" multiple :options="departmentOptions" />
+                        </n-form-item>
+                        
+                        <n-form-item label="紧急程度" path="urgency">
+                          <n-select v-model:value="notificationForm.urgency" :options="urgencyOptions" />
+                        </n-form-item>
+                        
+                        <n-form-item label="事件概述" path="summary">
+                          <n-input v-model:value="notificationForm.summary" type="textarea" />
+                        </n-form-item>
+                        
+                        <n-form-item label="建议措施" path="recommendations">
+                          <n-input v-model:value="notificationForm.recommendations" type="textarea" />
+                        </n-form-item>
+                      </n-form>
+                      
+                      <div class="flex justify-between">
+                        <n-button @click="droneEventCurrentStep = 0">上一步</n-button>
+                        <n-button type="primary" @click="moveToNextStep">确认并发送通知</n-button>
+                      </div>
+                    </template>
+                    
+                    <!-- 事件发送阶段 -->
+                    <template v-if="droneEventCurrentStep === 2">
+                      <div class="bg-blue-50 p-3 rounded-md mb-3">
+                        <div class="flex items-start">
+                          <n-icon size="24" color="#2080f0" class="mr-2"><info-circle-outlined /></n-icon>
+                          <div>
+                            <div class="font-medium">事件已发送</div>
+                            <div class="text-sm mt-1">已成功将通知发送至以下部门:</div>
+                            <div class="text-sm mt-1">{{ notificationForm.departments.join(', ') }}</div>
+                          </div>
                         </div>
                       </div>
-                    </n-spin>
-                  </div>
-                  
-                  <div class="flex justify-end">
-                    <n-button type="primary" @click="moveToNextStep">下一步: 人工审查</n-button>
-                  </div>
-                </template>
-                
-                <!-- 人工审查阶段 -->
-                <template v-if="droneEventCurrentStep === 1">
-                  <n-form ref="formRef" :model="notificationForm" label-placement="left" label-width="80" class="mb-3">
-                    <n-form-item label="通知部门" path="departments">
-                      <n-select v-model:value="notificationForm.departments" multiple :options="departmentOptions" />
-                    </n-form-item>
-                    
-                    <n-form-item label="紧急程度" path="urgency">
-                      <n-select v-model:value="notificationForm.urgency" :options="urgencyOptions" />
-                    </n-form-item>
-                    
-                    <n-form-item label="事件概述" path="summary">
-                      <n-input v-model:value="notificationForm.summary" type="textarea" />
-                    </n-form-item>
-                    
-                    <n-form-item label="建议措施" path="recommendations">
-                      <n-input v-model:value="notificationForm.recommendations" type="textarea" />
-                    </n-form-item>
-                  </n-form>
-                  
-                  <div class="flex justify-between">
-                    <n-button @click="droneEventCurrentStep = 0">上一步</n-button>
-                    <n-button type="primary" @click="moveToNextStep">确认并发送通知</n-button>
-                  </div>
-                </template>
-                
-                <!-- 事件发送阶段 -->
-                <template v-if="droneEventCurrentStep === 2">
-                  <div class="bg-blue-50 p-3 rounded-md mb-3">
-                    <div class="flex items-start">
-                      <n-icon size="24" color="#2080f0" class="mr-2"><info-circle-outlined /></n-icon>
-                      <div>
-                        <div class="font-medium">事件已发送</div>
-                        <div class="text-sm mt-1">已成功将通知发送至以下部门:</div>
-                        <div class="text-sm mt-1">{{ notificationForm.departments.join(', ') }}</div>
+                      
+                      <div class="flex justify-end">
+                        <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
                       </div>
-                    </div>
+                    </template>
                   </div>
+                </div>
+                
+                <!-- 外部同步事件的处理流程 -->
+                <div v-else-if="selectedEvent.source && selectedEvent.status !== 'resolved'" class="flex-1 flex flex-col">
+                  <h3 class="font-medium">无人机处理方案</h3>
                   
-                  <div class="flex justify-end">
-                    <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
-                  </div>
-                </template>
-              </div>
-            </div>
-            
-            <!-- 外部同步事件的处理流程 -->
-            <div v-else-if="selectedEvent.source && selectedEvent.status !== 'resolved'" class="flex-1 flex flex-col">
-              <h3 class="font-medium">无人机处理方案</h3>
-              
-              <n-steps :current="externalEventCurrentStep" vertical class="mt-3 flex-1">
-                <n-step title="智能方案生成" description="自动生成无人机处理方案">
-                  <template #icon>
-                    <n-icon><robot-outlined /></n-icon>
-                  </template>
-                </n-step>
-                
-                <n-step title="人工审查" description="确认或修改处理方案">
-                  <template #icon>
-                    <n-icon><audit-outlined /></n-icon>
-                  </template>
-                </n-step>
-                
-                <n-step title="执行任务" description="派遣无人机执行任务">
-                  <template #icon>
-                    <n-icon><rocket-outlined /></n-icon>
-                  </template>
-                </n-step>
-              </n-steps>
-              
-              <!-- 方案处理区域 -->
-              <div class="mt-3">
-                <!-- 智能方案生成阶段 -->
-                <template v-if="externalEventCurrentStep === 0">
-                  <div class="bg-gray-50 p-3 rounded-md mb-3">
-                    <div class="text-sm font-medium mb-2">自动生成无人机方案</div>
-                    <n-spin :show="isGeneratingPlan">
-                      <div v-if="dronePlan" class="space-y-2">
-                        <div class="text-sm">
-                          <div class="text-gray-500">方案名称</div>
-                          <div>{{ dronePlan.name }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">所需无人机</div>
-                          <div>{{ dronePlan.requiredDrones.join(', ') }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">任务描述</div>
-                          <div>{{ dronePlan.description }}</div>
-                        </div>
-                        <div class="text-sm">
-                          <div class="text-gray-500">预计完成时间</div>
-                          <div>{{ formatDateTime(dronePlan.estimatedCompletionTime) }}</div>
+                  <n-steps :current="externalEventCurrentStep" vertical class="mt-3 flex-1">
+                    <n-step title="智能方案生成" description="自动生成无人机处理方案">
+                      <template #icon>
+                        <n-icon><robot-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                    
+                    <n-step title="人工审查" description="确认或修改处理方案">
+                      <template #icon>
+                        <n-icon><audit-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                    
+                    <n-step title="执行任务" description="派遣无人机执行任务">
+                      <template #icon>
+                        <n-icon><rocket-outlined /></n-icon>
+                      </template>
+                    </n-step>
+                  </n-steps>
+                  
+                  <!-- 方案处理区域 -->
+                  <div class="mt-3">
+                    <!-- 智能方案生成阶段 -->
+                    <template v-if="externalEventCurrentStep === 0">
+                      <div class="bg-gray-50 p-3 rounded-md mb-3">
+                        <div class="text-sm font-medium mb-2">自动生成无人机方案</div>
+                        <n-spin :show="isGeneratingPlan">
+                          <div v-if="dronePlan" class="space-y-2">
+                            <div class="text-sm">
+                              <div class="text-gray-500">方案名称</div>
+                              <div>{{ dronePlan.name }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">所需无人机</div>
+                              <div>{{ dronePlan.requiredDrones.join(', ') }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">任务描述</div>
+                              <div>{{ dronePlan.description }}</div>
+                            </div>
+                            <div class="text-sm">
+                              <div class="text-gray-500">预计完成时间</div>
+                              <div>{{ formatDateTime(dronePlan.estimatedCompletionTime) }}</div>
+                            </div>
+                          </div>
+                        </n-spin>
+                      </div>
+                      
+                      <div class="flex justify-end">
+                        <n-button type="primary" @click="moveToNextStep">下一步: 人工审查</n-button>
+                      </div>
+                    </template>
+                    
+                    <!-- 人工审查阶段 -->
+                    <template v-if="externalEventCurrentStep === 1">
+                      <n-form ref="planFormRef" :model="dronePlan" label-placement="left" label-width="80" class="mb-3">
+                        <n-form-item label="方案名称" path="name">
+                          <n-input v-model:value="dronePlan.name" />
+                        </n-form-item>
+                        
+                        <n-form-item label="所需无人机" path="requiredDrones">
+                          <n-select v-model:value="dronePlan.requiredDrones" multiple :options="droneOptions" />
+                        </n-form-item>
+                        
+                        <n-form-item label="任务描述" path="description">
+                          <n-input v-model:value="dronePlan.description" type="textarea" />
+                        </n-form-item>
+                        
+                        <n-form-item label="预计完成" path="estimatedCompletionTime">
+                          <n-date-picker v-model:value="dronePlan.estimatedCompletionTime" type="datetime" clearable />
+                        </n-form-item>
+                      </n-form>
+                      
+                      <div class="flex justify-between">
+                        <n-button @click="externalEventCurrentStep = 0">上一步</n-button>
+                        <n-button type="primary" @click="moveToNextStep">确认方案</n-button>
+                      </div>
+                    </template>
+                    
+                    <!-- 执行任务阶段 -->
+                    <template v-if="externalEventCurrentStep === 2">
+                      <div class="bg-green-50 p-3 rounded-md mb-3">
+                        <div class="flex">
+                          <n-icon size="24" color="#18a058" class="mr-2"><check-circle-outlined /></n-icon>
+                          <div>
+                            <div class="font-medium">任务已派遣</div>
+                            <div class="text-sm mt-1">无人机任务已派遣，当前执行进度:</div>
+                            <n-progress type="line" :percentage="taskProgress" :indicator-placement="'inside'" class="mt-2" />
+                            <div class="text-xs text-gray-500 mt-1">预计完成时间: {{ formatDateTime(dronePlan.estimatedCompletionTime) }}</div>
+                          </div>
                         </div>
                       </div>
-                    </n-spin>
+                      
+                      <div v-if="selectedEvent.droneTaskDetails" class="mt-3">
+                        <div class="font-medium mb-2">无人机任务详情</div>
+                        <n-collapse>
+                          <n-collapse-item v-for="(drone, index) in selectedEvent.droneTaskDetails" :key="index" :title="drone.name">
+                            <div class="space-y-2">
+                              <div class="flex justify-between text-sm">
+                                <div>状态:</div>
+                                <n-tag :type="getTaskStatusTagType(drone.status)">{{ getTaskStatusText(drone.status) }}</n-tag>
+                              </div>
+                              <div class="text-sm">
+                                <div>当前动作: {{ drone.currentAction }}</div>
+                              </div>
+                              <div class="text-sm">
+                                <div>位置: {{ drone.location }}</div>
+                              </div>
+                              <div class="text-sm">
+                                <div>电量: {{ drone.batteryLevel }}%</div>
+                                <n-progress type="line" :percentage="drone.batteryLevel" :color="getBatteryColor(drone.batteryLevel)" :show-indicator="false" />
+                              </div>
+                            </div>
+                          </n-collapse-item>
+                        </n-collapse>
+                      </div>
+                      
+                      <div class="flex justify-end mt-3">
+                        <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
+                      </div>
+                    </template>
                   </div>
-                  
-                  <div class="flex justify-end">
-                    <n-button type="primary" @click="moveToNextStep">下一步: 人工审查</n-button>
-                  </div>
-                </template>
+                </div>
                 
-                <!-- 人工审查阶段 -->
-                <template v-if="externalEventCurrentStep === 1">
-                  <n-form ref="planFormRef" :model="dronePlan" label-placement="left" label-width="80" class="mb-3">
-                    <n-form-item label="方案名称" path="name">
-                      <n-input v-model:value="dronePlan.name" />
-                    </n-form-item>
-                    
-                    <n-form-item label="所需无人机" path="requiredDrones">
-                      <n-select v-model:value="dronePlan.requiredDrones" multiple :options="droneOptions" />
-                    </n-form-item>
-                    
-                    <n-form-item label="任务描述" path="description">
-                      <n-input v-model:value="dronePlan.description" type="textarea" />
-                    </n-form-item>
-                    
-                    <n-form-item label="预计完成" path="estimatedCompletionTime">
-                      <n-date-picker v-model:value="dronePlan.estimatedCompletionTime" type="datetime" clearable />
-                    </n-form-item>
-                  </n-form>
-                  
-                  <div class="flex justify-between">
-                    <n-button @click="externalEventCurrentStep = 0">上一步</n-button>
-                    <n-button type="primary" @click="moveToNextStep">确认方案</n-button>
-                  </div>
-                </template>
-                
-                <!-- 执行任务阶段 -->
-                <template v-if="externalEventCurrentStep === 2">
-                  <div class="bg-green-50 p-3 rounded-md mb-3">
+                <!-- 已处理事件 -->
+                <div v-else-if="selectedEvent.status === 'resolved'" class="flex-1">
+                  <div class="bg-green-50 p-3 rounded-md">
                     <div class="flex">
                       <n-icon size="24" color="#18a058" class="mr-2"><check-circle-outlined /></n-icon>
                       <div>
-                        <div class="font-medium">任务已派遣</div>
-                        <div class="text-sm mt-1">无人机任务已派遣，当前执行进度:</div>
-                        <n-progress type="line" :percentage="taskProgress" :indicator-placement="'inside'" class="mt-2" />
-                        <div class="text-xs text-gray-500 mt-1">预计完成时间: {{ formatDateTime(dronePlan.estimatedCompletionTime) }}</div>
+                        <div class="font-medium">事件已处理</div>
+                        <div class="text-sm mt-1">处理完成时间: {{ formatDateTime(selectedEvent.resolved_at) }}</div>
+                        <div class="text-sm mt-1" v-if="selectedEvent.resolution_notes">处理说明: {{ selectedEvent.resolution_notes }}</div>
                       </div>
                     </div>
                   </div>
                   
-                  <div v-if="selectedEvent.droneTaskDetails" class="mt-3">
-                    <div class="font-medium mb-2">无人机任务详情</div>
-                    <n-collapse>
-                      <n-collapse-item v-for="(drone, index) in selectedEvent.droneTaskDetails" :key="index" :title="drone.name">
-                        <div class="space-y-2">
-                          <div class="flex justify-between text-sm">
-                            <div>状态:</div>
-                            <n-tag :type="getTaskStatusTagType(drone.status)">{{ getTaskStatusText(drone.status) }}</n-tag>
-                          </div>
-                          <div class="text-sm">
-                            <div>当前动作: {{ drone.currentAction }}</div>
-                          </div>
-                          <div class="text-sm">
-                            <div>位置: {{ drone.location }}</div>
-                          </div>
-                          <div class="text-sm">
-                            <div>电量: {{ drone.batteryLevel }}%</div>
-                            <n-progress type="line" :percentage="drone.batteryLevel" :color="getBatteryColor(drone.batteryLevel)" :show-indicator="false" />
-                          </div>
-                        </div>
-                      </n-collapse-item>
-                    </n-collapse>
-                  </div>
-                  
-                  <div class="flex justify-end mt-3">
-                    <n-button type="primary" @click="resolveEvent">标记为已处理</n-button>
-                  </div>
-                </template>
-              </div>
-            </div>
-            
-            <!-- 已处理事件 -->
-            <div v-else-if="selectedEvent.status === 'resolved'" class="flex-1">
-              <div class="bg-green-50 p-3 rounded-md">
-                <div class="flex">
-                  <n-icon size="24" color="#18a058" class="mr-2"><check-circle-outlined /></n-icon>
-                  <div>
-                    <div class="font-medium">事件已处理</div>
-                    <div class="text-sm mt-1">处理完成时间: {{ formatDateTime(selectedEvent.resolved_at) }}</div>
-                    <div class="text-sm mt-1" v-if="selectedEvent.resolution_notes">处理说明: {{ selectedEvent.resolution_notes }}</div>
+                  <div v-if="selectedEvent.resolutionDetails" class="mt-4">
+                    <div class="font-medium mb-2">处理详情</div>
+                    <div class="text-sm space-y-2">
+                      <div v-for="(detail, index) in selectedEvent.resolutionDetails" :key="index" class="bg-gray-50 p-2 rounded">
+                        {{ detail }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              <div v-if="selectedEvent.resolutionDetails" class="mt-4">
-                <div class="font-medium mb-2">处理详情</div>
-                <div class="text-sm space-y-2">
-                  <div v-for="(detail, index) in selectedEvent.resolutionDetails" :key="index" class="bg-gray-50 p-2 rounded">
-                    {{ detail }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div v-else class="flex-1 flex items-center justify-center text-gray-400">
-              选择事件查看详细信息
             </div>
           </div>
           
           <!-- 未选择事件时的提示 -->
-          <div v-else class="floating-card dark-theme-override flex-1 flex items-center justify-center text-gray-400">
+          <div v-else class="floating-card dark-theme-override flex-1 flex items-center justify-center text-gray-400 overflow-hidden" style="max-height: calc(100vh - 180px);">
             请从左侧列表选择一个事件
           </div>
         </div>
@@ -447,7 +489,7 @@
     </div>
     
     <!-- 解决事件对话框 -->
-    <n-modal v-model:show="showResolveModal" preset="card" title="标记事件为已处理" style="width: 500px" class="dark-theme-override">
+    <n-modal v-model:show="showResolveModal" preset="card" title="标记事件为已处理" style="width: 500px">
       <div v-if="selectedEvent">
         <div class="mb-4">确认将事件 <b>{{ selectedEvent.title }}</b> 标记为已处理?</div>
         
@@ -490,6 +532,7 @@ const flyToLocation = inject('flyToLocation')
 
 // 紧急模式
 const emergencyModeActive = ref(false)
+const activeTab = ref('drone') // 默认显示无人机巡逻发现标签
 
 // 事件数据
 const droneEvents = ref([])

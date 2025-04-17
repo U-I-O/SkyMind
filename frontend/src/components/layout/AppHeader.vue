@@ -237,11 +237,164 @@
       </template>
     </n-drawer-content>
   </n-drawer>
+  
+  <!-- 个人信息对话框 (新增) -->
+  <n-modal v-model:show="showProfile" preset="card" style="width: 700px" class="profile-modal">
+    <template #header>
+      <div class="flex items-center">
+        <div class="w-12 h-12 rounded-full overflow-hidden mr-4 border-2 border-primary">
+          <img :src="userProfile.avatar || defaultAvatar" alt="用户头像" class="w-full h-full object-cover" />
+        </div>
+        <div>
+          <h2 class="text-xl font-bold">{{ userProfile.name || '未设置姓名' }}</h2>
+          <div class="flex items-center">
+            <n-tag size="small" type="success" class="mr-2">{{ getRoleName(userInfo.role) }}</n-tag>
+            <span class="text-gray-500 text-sm">{{ userProfile.department || '未设置部门' }}</span>
+          </div>
+        </div>
+      </div>
+    </template>
+    
+    <div class="profile-content">
+      <!-- 视图/编辑模式切换 -->
+      <div class="flex justify-end mb-4">
+        <n-button v-if="!isEditMode" secondary size="small" @click="toggleEditMode">
+          <template #icon><n-icon><edit-outlined /></n-icon></template>
+          修改个人信息
+        </n-button>
+        <div v-else class="flex space-x-2">
+          <n-button size="small" @click="cancelEdit">
+            取消
+          </n-button>
+          <n-button type="primary" size="small" @click="saveProfile" :loading="loading">
+            <template #icon><n-icon><save-outlined /></n-icon></template>
+            保存
+          </n-button>
+        </div>
+      </div>
+      
+      <!-- 基本信息部分 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">用户名</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.username }}</div>
+          <n-input v-else v-model:value="editingProfile.username" placeholder="请输入用户名" />
+        </div>
+        
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">姓名</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.name }}</div>
+          <n-input v-else v-model:value="editingProfile.name" placeholder="请输入姓名" />
+        </div>
+        
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">电子邮箱</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.email }}</div>
+          <n-input v-else v-model:value="editingProfile.email" placeholder="请输入电子邮箱" />
+        </div>
+        
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">手机号码</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.phone }}</div>
+          <n-input v-else v-model:value="editingProfile.phone" placeholder="请输入手机号码" />
+        </div>
+        
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">部门</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.department }}</div>
+          <n-select v-else v-model:value="editingProfile.department" :options="departmentOptions" placeholder="请选择部门" />
+        </div>
+        
+        <div class="info-item flex flex-col">
+          <div class="text-sm text-gray-500 mb-1">职位</div>
+          <div v-if="!isEditMode" class="font-medium">{{ userProfile.position }}</div>
+          <n-input v-else v-model:value="editingProfile.position" placeholder="请输入职位" />
+        </div>
+      </div>
+      
+      <!-- 账号信息部分 -->
+      <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
+        <h3 class="text-lg font-medium mb-3">账号信息</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="info-item">
+            <div class="text-sm text-gray-500 mb-1">账号ID</div>
+            <div class="font-medium">{{ userInfo.id }}</div>
+          </div>
+          <div class="info-item">
+            <div class="text-sm text-gray-500 mb-1">账号状态</div>
+            <n-tag :type="userInfo.status === 'active' ? 'success' : 'warning'">
+              {{ userInfo.status === 'active' ? '正常' : '已禁用' }}
+            </n-tag>
+          </div>
+          <div class="info-item">
+            <div class="text-sm text-gray-500 mb-1">创建时间</div>
+            <div class="font-medium">{{ formatDate(userInfo.createdAt) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="text-sm text-gray-500 mb-1">最后登录</div>
+            <div class="font-medium">{{ formatDateTime(userInfo.lastLogin) }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 修改密码部分 -->
+      <n-divider />
+      <div class="mt-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-lg font-medium">修改密码</h3>
+          <n-button 
+            v-if="!showPasswordForm" 
+            text 
+            @click="showPasswordForm = true"
+          >
+            点击修改
+          </n-button>
+        </div>
+        
+        <n-collapse-transition :show="showPasswordForm">
+          <div class="mt-3 space-y-3">
+            <n-input 
+              v-model:value="passwordForm.currentPassword" 
+              type="password" 
+              placeholder="当前密码"
+              show-password-on="click"
+            />
+            <n-input 
+              v-model:value="passwordForm.newPassword" 
+              type="password" 
+              placeholder="新密码"
+              show-password-on="click"
+            />
+            <n-input 
+              v-model:value="passwordForm.confirmPassword" 
+              type="password" 
+              placeholder="确认新密码"
+              show-password-on="click"
+            />
+            <div class="flex justify-end space-x-2">
+              <n-button size="small" @click="showPasswordForm = false">
+                取消
+              </n-button>
+              <n-button 
+                type="primary" 
+                size="small" 
+                @click="changePassword"
+                :disabled="!canChangePassword"
+              >
+                确认修改
+              </n-button>
+            </div>
+          </div>
+        </n-collapse-transition>
+      </div>
+    </div>
+  </n-modal>
 </template>
 
 <script setup>
 import { ref, inject, computed, h, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { format } from 'date-fns'
 import {
   SearchOutlined,
   BellOutlined,
@@ -251,7 +404,11 @@ import {
   RobotOutlined,
   ScheduleOutlined,
   EnvironmentOutlined,
-  AlertOutlined
+  AlertOutlined,
+  EditOutlined,
+  SaveOutlined,
+  UserOutlined,
+  LockOutlined
 } from '@vicons/antd'
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '@/store/userStore'
@@ -338,6 +495,52 @@ const notifications = ref([
 const unreadNotifications = computed(() => {
   return notifications.value.filter(notification => !notification.read)
 })
+
+// 个人信息相关 (新增)
+const showProfile = ref(false)
+const isEditMode = ref(false)
+const loading = ref(false)
+const showPasswordForm = ref(false)
+const defaultAvatar = 'https://cdn.jsdelivr.net/gh/ruilisi/naiveui-vue-icon@master/svg/person-outline.svg'
+
+// 用户资料
+const userProfile = ref({
+  username: 'admin',
+  name: '管理员',
+  email: 'admin@example.com',
+  phone: '13800138000',
+  department: '技术部',
+  position: '系统管理员',
+  avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+})
+
+// 用于编辑的副本
+const editingProfile = ref({})
+
+// 账号信息
+const userInfo = ref({
+  id: 'user_12345',
+  role: 'admin',
+  status: 'active',
+  createdAt: '2024-01-15T08:00:00Z',
+  lastLogin: '2024-04-15T10:30:45Z'
+})
+
+// 密码表单
+const passwordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+// 部门选项
+const departmentOptions = [
+  { label: '运营部', value: '运营部' },
+  { label: '技术部', value: '技术部' },
+  { label: '管理部', value: '管理部' },
+  { label: '安全部', value: '安全部' },
+  { label: '无人机管理中心', value: '无人机管理中心' }
+]
 
 // 搜索处理函数
 function handleSearch() {
@@ -540,11 +743,6 @@ const userMenuOptions = [
     icon: () => h('i', { class: 'fas fa-user' })
   },
   {
-    label: '设置',
-    key: 'settings',
-    icon: () => h('i', { class: 'fas fa-cog' })
-  },
-  {
     type: 'divider',
     key: 'd1'
   },
@@ -555,15 +753,98 @@ const userMenuOptions = [
   }
 ]
 
-// 监听用户菜单操作
+// 个人信息相关函数 (新增)
+// 切换编辑模式
+function toggleEditMode() {
+  isEditMode.value = true
+  // 创建待编辑的个人信息副本
+  editingProfile.value = JSON.parse(JSON.stringify(userProfile.value))
+}
+
+// 取消编辑
+function cancelEdit() {
+  isEditMode.value = false
+  // 丢弃更改
+  editingProfile.value = {}
+}
+
+// 保存个人信息
+function saveProfile() {
+  loading.value = true
+  
+  // 模拟API调用
+  setTimeout(() => {
+    // 更新个人信息
+    userProfile.value = { ...editingProfile.value }
+    isEditMode.value = false
+    loading.value = false
+    message.success('个人信息已更新')
+  }, 500)
+}
+
+// 修改密码
+function changePassword() {
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    message.error('两次输入的密码不一致')
+    return
+  }
+  
+  // 模拟API调用
+  setTimeout(() => {
+    // 成功后清空表单并隐藏
+    passwordForm.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+    showPasswordForm.value = false
+    message.success('密码已成功修改')
+  }, 500)
+}
+
+// 判断是否可以修改密码
+const canChangePassword = computed(() => {
+  return passwordForm.value.currentPassword && 
+         passwordForm.value.newPassword && 
+         passwordForm.value.confirmPassword &&
+         passwordForm.value.newPassword === passwordForm.value.confirmPassword
+})
+
+// 工具函数
+const formatDate = (dateStr) => {
+  try {
+    return format(new Date(dateStr), 'yyyy-MM-dd')
+  } catch (e) {
+    return dateStr || '未知'
+  }
+}
+
+const formatDateTime = (dateStr) => {
+  try {
+    return format(new Date(dateStr), 'yyyy-MM-dd HH:mm:ss')
+  } catch (e) {
+    return dateStr || '未知'
+  }
+}
+
+const getRoleName = (role) => {
+  const roles = {
+    'admin': '管理员',
+    'operator': '操作员',
+    'viewer': '查看者',
+    'manager': '经理'
+  }
+  return roles[role] || role
+}
+
+// 监听用户菜单操作 (修改)
 const handleUserMenuSelect = (key) => {
   if (key === 'logout') {
     userStore.logout()
     router.push('/login')
   } else if (key === 'profile') {
-    router.push('/profile')
-  } else if (key === 'settings') {
-    showSettings.value = true
+    // 修改为显示个人信息弹窗，而不是导航到个人资料页面
+    showProfile.value = true
   }
 }
 
@@ -572,3 +853,25 @@ watch(notifications, () => {
   unreadCount.value = unreadNotifications.value.length
 }, { immediate: true })
 </script>
+
+<style scoped>
+/* 个人资料模态框样式 */
+.profile-modal :deep(.n-card-header) {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.profile-content {
+  padding: 16px 0;
+}
+
+.info-item {
+  transition: all 0.2s ease;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.info-item:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+}
+</style>

@@ -121,7 +121,20 @@
     border-color: var(--border-color) !important;
   }
   
-  .dark-theme-override .n-tabs {
+  .dark-theme-override .n-tabs .n-tab {
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab:hover {
+    color: var(--highlight-color) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab--active {
+    color: var(--highlight-color) !important;
+  }
+  
+  /* Make sure tab text is visible even when not active */
+  .dark-theme-override .n-tab-pane-scroll-content {
     color: var(--text-primary) !important;
   }
   
@@ -190,3 +203,88 @@
     background-color: rgba(59, 130, 246, 0.3) !important;
     border-color: rgba(59, 130, 246, 0.7) !important;
   }
+
+  /* Override hover background for drone list items */
+.dark-theme-override .hover\:bg-gray-50:hover {
+  background-color: var(--bg-card-hover) !important; /* Using the already defined hover variable */
+}
+
+/* Ensure heading text colors are visible in dark mode */
+.dark-theme-override h4,
+.dark-theme-override .text-gray-700 {
+  color: var(--text-primary) !important;
+}
+
+/* 控制弹窗样式覆盖 */
+.dark-theme-override .n-modal {
+  background-color: var(--bg-card) !important;
+}
+
+.dark-theme-override .n-card {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme-override .n-card-header {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-form-item-label {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-input-number {
+  background-color: var(--bg-element) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme-override .n-slider {
+  --n-fill-color: var(--highlight-color) !important;
+  --n-rail-color: var(--border-color) !important;
+}
+
+.dark-theme-override .n-slider-handles {
+  --n-handle-color: var(--highlight-color) !important;
+}
+
+/* Additional override for section headers in drone details */
+.dark-theme-override .mb-4.flex.items-center h4.font-medium {
+  color: var(--text-primary) !important;
+}
+
+/* 2. 右侧事件详情面板中的步骤和表单文本 */
+.dark-theme-override .n-steps .n-step-content__title {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-steps .n-step-content__description {
+  color: var(--text-secondary) !important;
+}
+
+/* 右侧事件处理流程标题 */
+.dark-theme-override h3.font-medium {
+  color: var(--text-primary) !important;
+}
+
+/* 表单项标签和文本 */
+.dark-theme-override .n-form-item .n-form-item-label {
+  color: var(--text-primary) !important;
+}
+
+/* 输入框内文本 */
+.dark-theme-override .n-input__input-el,
+.dark-theme-override .n-input__textarea-el {
+  color: var(--text-primary) !important;
+}
+
+/* 右侧面板中的灰色文本标签 */
+.dark-theme-override .text-gray-500.text-sm {
+  color: var(--text-secondary) !important;
+}
+
+/* 事件详情分隔标题的颜色 */
+.dark-theme-override .font-medium {
+  color: var(--text-primary) !important;
+}

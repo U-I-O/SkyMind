@@ -1,164 +1,164 @@
 <template>
-    <div class="relative w-full h-full">
-      <!-- 3D地图容器 -->
-      <div ref="mapContainer" class="w-full h-full"></div>
-      
-      <!-- 加载指示器 -->
-      <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 z-10">
-        <n-spin size="large" />
-      </div>
-      
-      <!-- 控制面板 -->
-      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-        <div class="flex flex-row space-x-2 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-full px-4 py-2 shadow-md">
-          <!-- 图层控制 -->
-          <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
-            <template #trigger>
-              <n-button circle secondary class="opacity-90 map-control-btn">
-                <template #icon>
-                  <n-icon><layers-icon /></n-icon>
-                </template>
-              </n-button>
-            </template>
-            <div class="layer-control-panel">
-              <div class="text-sm font-medium text-gray-300 mb-1">图层控制</div>
-              <n-checkbox v-model:checked="showBuildings" class="dark-checkbox">3D建筑</n-checkbox>
-              <n-checkbox v-model:checked="showTerrain" class="dark-checkbox">地形</n-checkbox>
-              <n-checkbox v-model:checked="showDrones" class="dark-checkbox">无人机</n-checkbox>
-              <n-checkbox v-model:checked="showEvents" class="dark-checkbox">事件标记</n-checkbox>
-              <n-checkbox v-model:checked="showNoFlyZones" class="dark-checkbox">禁飞区</n-checkbox>
-              <n-checkbox v-model:checked="showFlightPaths" class="dark-checkbox">飞行路径</n-checkbox>
-            </div>
-          </n-popover>
+  <div class="relative w-full h-full">
+    <!-- 3D地图容器 -->
+    <div ref="mapContainer" class="w-full h-full"></div>
+    
+    <!-- 加载指示器 -->
+    <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 z-10">
+      <n-spin size="large" />
+    </div>
+    
+    <!-- 控制面板 -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+      <div class="flex flex-row space-x-2 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-full px-4 py-2 shadow-md">
+        <!-- 图层控制 -->
+        <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
+          <template #trigger>
+            <n-button circle secondary class="opacity-90 map-control-btn">
+              <template #icon>
+                <n-icon><layers-icon /></n-icon>
+              </template>
+            </n-button>
+          </template>
+          <div class="layer-control-panel">
+            <div class="text-sm font-medium text-gray-300 mb-1">图层控制</div>
+            <n-checkbox v-model:checked="showBuildings" class="dark-checkbox">3D建筑</n-checkbox>
+            <n-checkbox v-model:checked="showTerrain" class="dark-checkbox">地形</n-checkbox>
+            <n-checkbox v-model:checked="showDrones" class="dark-checkbox">无人机</n-checkbox>
+            <n-checkbox v-model:checked="showEvents" class="dark-checkbox">事件标记</n-checkbox>
+            <n-checkbox v-model:checked="showNoFlyZones" class="dark-checkbox">禁飞区</n-checkbox>
+            <n-checkbox v-model:checked="showFlightPaths" class="dark-checkbox">飞行路径</n-checkbox>
+          </div>
+        </n-popover>
 
-          <!-- 地图样式切换 -->
-          <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
-            <template #trigger>
-              <n-button circle secondary class="opacity-90 map-control-btn">
-                <template #icon>
-                  <n-icon>
-                    <template v-if="isDarkMode">
-                      <moon-icon />
-                    </template>
-                    <template v-else>
-                      <sun-icon />
-                    </template>
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-            <div class="layer-control-panel">
-              <div class="text-sm font-medium text-gray-300 mb-1">地图样式</div>
-              <n-radio-group v-model:value="mapStyle" @update:value="changeMapStyle">
-                <n-space vertical>
-                  <n-radio value="mapbox://styles/mapbox/dark-v11" class="dark-radio">
-                    <div class="flex items-center">
-                      <moon-icon class="mr-1" />
-                      黑夜模式
-                    </div>
-                  </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/light-v11" class="dark-radio">
-                    <div class="flex items-center">
-                      <sun-icon class="mr-1" />
-                      白天模式
-                    </div>
-                  </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/streets-v12" class="dark-radio">
-                    <div class="flex items-center">
-                      <map-icon class="mr-1" />
-                      街道模式
-                    </div>
-                  </n-radio>
-                  <n-radio value="mapbox://styles/mapbox/satellite-streets-v12" class="dark-radio">
-                    <div class="flex items-center">
-                      <globe-icon class="mr-1" />
-                      卫星模式
-                    </div>
-                  </n-radio>
-                </n-space>
-              </n-radio-group>
-            </div>
-          </n-popover>
-          
-          <!-- 视角控制 -->
-          <n-button circle secondary class="opacity-90" @click="toggle3DView">
-            <template #icon>
-              <n-icon>
-                <template v-if="is3DView">
-                  <cube-icon />
-                </template>
-                <template v-else>
-                  <map-icon />
-                </template>
-              </n-icon>
-            </template>
-          </n-button>
-          
-          <!-- 回到初始位置 -->
-          <n-button circle secondary class="opacity-90" @click="resetView">
-            <template #icon>
-              <n-icon><home-icon /></n-icon>
-            </template>
-          </n-button>
+        <!-- 地图样式切换 -->
+        <n-popover trigger="click" placement="top" :show-arrow="false" style="background: transparent; border: none; box-shadow: none; padding: 0;" raw>
+          <template #trigger>
+            <n-button circle secondary class="opacity-90 map-control-btn">
+              <template #icon>
+                <n-icon>
+                  <template v-if="isDarkMode">
+                    <moon-icon />
+                  </template>
+                  <template v-else>
+                    <sun-icon />
+                  </template>
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          <div class="layer-control-panel">
+            <div class="text-sm font-medium text-gray-300 mb-1">地图样式</div>
+            <n-radio-group v-model:value="mapStyle" @update:value="changeMapStyle">
+              <n-space vertical>
+                <n-radio value="mapbox://styles/mapbox/dark-v11" class="dark-radio">
+                  <div class="flex items-center">
+                    <moon-icon class="mr-1" />
+                    黑夜模式
+                  </div>
+                </n-radio>
+                <n-radio value="mapbox://styles/mapbox/light-v11" class="dark-radio">
+                  <div class="flex items-center">
+                    <sun-icon class="mr-1" />
+                    白天模式
+                  </div>
+                </n-radio>
+                <n-radio value="mapbox://styles/mapbox/streets-v12" class="dark-radio">
+                  <div class="flex items-center">
+                    <map-icon class="mr-1" />
+                    街道模式
+                  </div>
+                </n-radio>
+                <n-radio value="mapbox://styles/mapbox/satellite-streets-v12" class="dark-radio">
+                  <div class="flex items-center">
+                    <globe-icon class="mr-1" />
+                    卫星模式
+                  </div>
+                </n-radio>
+              </n-space>
+            </n-radio-group>
+          </div>
+        </n-popover>
+        
+        <!-- 视角控制 -->
+        <n-button circle secondary class="opacity-90" @click="toggle3DView">
+          <template #icon>
+            <n-icon>
+              <template v-if="is3DView">
+                <cube-icon />
+              </template>
+              <template v-else>
+                <map-icon />
+              </template>
+            </n-icon>
+          </template>
+        </n-button>
+        
+        <!-- 回到初始位置 -->
+        <n-button circle secondary class="opacity-90" @click="resetView">
+          <template #icon>
+            <n-icon><home-icon /></n-icon>
+          </template>
+        </n-button>
 
-          <!-- 跳转到武汉大学 -->
-          <n-button circle secondary class="opacity-90" @click="flyToWhu">
-            <template #icon>
-              <n-icon><environment-icon /></n-icon>
-            </template>
-          </n-button>
-        </div>
-      </div>
-      
-      <!-- 坐标信息 -->
-      <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 bg-slate-800 bg-opacity-0 p-2 rounded-md text-xs text-gray-200">
-        <div>经度: {{ formatCoordinate(currentPosition.lng) }}</div>
-        <div>纬度: {{ formatCoordinate(currentPosition.lat) }}</div>
-        <div>海拔: {{ currentPosition.altitude?.toFixed(2) || '未知' }} 米</div>
-      </div>
-
-      <!-- 无人机信息弹窗 -->
-      <div v-if="hoveredDroneInfo" class="absolute top-4 left-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-md shadow-md p-3 text-sm max-w-xs text-white">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-medium">{{ hoveredDroneInfo.name }}</div>
-          <n-tag size="small" :type="getDroneStatusType(hoveredDroneInfo.status)">
-            {{ hoveredDroneInfo.status }}
-          </n-tag>
-        </div>
-        <div class="text-gray-600 text-xs mb-1">ID: {{ hoveredDroneInfo.drone_id }}</div>
-        <div class="flex items-center mt-1">
-          <div class="text-gray-600 mr-2">Battery:</div>
-          <n-progress 
-            :percentage="hoveredDroneInfo.battery_level" 
-            :color="getDroneBatteryColor(hoveredDroneInfo.battery_level)"
-            :height="5"
-            :show-indicator="false"
-            class="w-24"
-          />
-          <span class="ml-2 text-xs">{{ hoveredDroneInfo.battery_level }}%</span>
-        </div>
-      </div>
-
-      <!-- 巡逻控制 -->
-      <div class="absolute bottom-4 right-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 p-2 rounded-md text-white">
-        <n-button-group>
-          <n-button @click="startPatrol" :disabled="patrolStatus">
-            <template #icon><n-icon><play-icon /></n-icon></template>
-            开始巡逻
-          </n-button>
-          <n-button @click="stopPatrol" :disabled="!patrolStatus">
-            <template #icon><n-icon><pause-icon /></n-icon></template>
-            停止巡逻
-          </n-button>
-        </n-button-group>
-        <div class="mt-2">
-          <n-slider v-model:value="droneSpeedFactor" :step="0.1" :min="0.5" :max="2.0" />
-          <div class="text-xs text-center">速度: {{ droneSpeedFactor.toFixed(1) }}x</div>
-        </div>
+        <!-- 跳转到武汉大学 -->
+        <n-button circle secondary class="opacity-90" @click="flyToWhu">
+          <template #icon>
+            <n-icon><environment-icon /></n-icon>
+          </template>
+        </n-button>
       </div>
     </div>
+    
+    <!-- 坐标信息 -->
+    <div class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 bg-slate-800 bg-opacity-0 p-2 rounded-md text-xs text-gray-200">
+      <div>经度: {{ formatCoordinate(currentPosition.lng) }}</div>
+      <div>纬度: {{ formatCoordinate(currentPosition.lat) }}</div>
+      <div>海拔: {{ currentPosition.altitude?.toFixed(2) || '未知' }} 米</div>
+    </div>
+
+    <!-- 无人机信息弹窗 -->
+    <div v-if="hoveredDroneInfo" class="absolute top-4 left-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 rounded-md shadow-md p-3 text-sm max-w-xs text-white">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-medium">{{ hoveredDroneInfo.name }}</div>
+        <n-tag size="small" :type="getDroneStatusType(hoveredDroneInfo.status)">
+          {{ hoveredDroneInfo.status }}
+        </n-tag>
+      </div>
+      <div class="text-gray-600 text-xs mb-1">ID: {{ hoveredDroneInfo.drone_id }}</div>
+      <div class="flex items-center mt-1">
+        <div class="text-gray-600 mr-2">Battery:</div>
+        <n-progress 
+          :percentage="hoveredDroneInfo.battery_level" 
+          :color="getDroneBatteryColor(hoveredDroneInfo.battery_level)"
+          :height="5"
+          :show-indicator="false"
+          class="w-24"
+        />
+        <span class="ml-2 text-xs">{{ hoveredDroneInfo.battery_level }}%</span>
+      </div>
+    </div>
+
+    <!-- 巡逻控制 -->
+    <div class="absolute bottom-4 right-4 z-20 bg-slate-800 bg-opacity-85 backdrop-filter backdrop-blur-md border border-slate-700 p-2 rounded-md text-white">
+      <n-button-group>
+        <n-button @click="startPatrol" :disabled="patrolStatus">
+          <template #icon><n-icon><play-icon /></n-icon></template>
+          开始巡逻
+        </n-button>
+        <n-button @click="stopPatrol" :disabled="!patrolStatus">
+          <template #icon><n-icon><pause-icon /></n-icon></template>
+          停止巡逻
+        </n-button>
+      </n-button-group>
+      <div class="mt-2">
+        <n-slider v-model:value="droneSpeedFactor" :step="0.1" :min="0.5" :max="2.0" />
+        <div class="text-xs text-center">速度: {{ droneSpeedFactor.toFixed(1) }}x</div>
+      </div>
+    </div>
+  </div>
 </template>
-  
+
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, defineProps, defineEmits } from 'vue'
 import mapboxgl from 'mapbox-gl'
@@ -171,9 +171,9 @@ import {
   GlobalOutlined as MapIcon,
   EnvironmentOutlined as EnvironmentIcon,
   BulbOutlined as SunIcon,
-  CheckOutlined as MoonIcon,
-  PlayCircleOutlined as PlayIcon,
-  PauseCircleOutlined as PauseIcon
+CheckOutlined as MoonIcon,
+PlayCircleOutlined as PlayIcon,
+PauseCircleOutlined as PauseIcon
 } from '@vicons/antd'
 import { NProgress, NSpin, NButton, NIcon, NPopover, NCheckbox, NRadioGroup, NRadio, NSpace, NTag, NSlider, NButtonGroup } from 'naive-ui'
 
@@ -225,19 +225,19 @@ console.log('Mapbox Token:', MAPBOX_TOKEN)
 
 // 武汉大学位置
 const WHU_LOCATION = {
-  longitude: 114.367, 
+  longitude: 114.267, 
   latitude: 30.54,
-  zoom: 15,
+  zoom: 10,
   pitch: 60,
   bearing: 30
 }
 
 const INITIAL_VIEW_STATE = {
-  longitude: props.initialView ? props.initialView.center[0] : 114.367,
-  latitude: props.initialView ? props.initialView.center[1] : 30.54,
-  zoom: props.initialView ? props.initialView.zoom : 14,
-  pitch: 45,
-  bearing: 0
+longitude: props.initialView ? props.initialView.center[0] : 114.367,
+latitude: props.initialView ? props.initialView.center[1] : 30.54,
+zoom: props.initialView ? props.initialView.zoom : 14,
+pitch: 45,
+bearing: 0
 }
 
 // Map and deck.gl instances
@@ -247,14 +247,14 @@ let deck = null
 // Icon Atlas definition - this is what we need to add!
 const ICON_ATLAS = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png';
 const ICON_MAPPING = {
-  marker: {x: 0, y: 0, width: 128, height: 128, mask: true},
-  marker1: {x: 128, y: 0, width: 128, height: 128, mask: true},
-  marker2: {x: 256, y: 0, width: 128, height: 128, mask: true},
-  marker3: {x: 384, y: 0, width: 128, height: 128, mask: true},
-  info: {x: 0, y: 128, width: 128, height: 128, mask: true},
-  warning: {x: 128, y: 128, width: 128, height: 128, mask: true},
-  danger: {x: 256, y: 128, width: 128, height: 128, mask: true},
-  triangle: {x: 384, y: 128, width: 128, height: 128, mask: true}
+marker: {x: 0, y: 0, width: 128, height: 128, mask: true},
+marker1: {x: 128, y: 0, width: 128, height: 128, mask: true},
+marker2: {x: 256, y: 0, width: 128, height: 128, mask: true},
+marker3: {x: 384, y: 0, width: 128, height: 128, mask: true},
+info: {x: 0, y: 128, width: 128, height: 128, mask: true},
+warning: {x: 128, y: 128, width: 128, height: 128, mask: true},
+danger: {x: 256, y: 128, width: 128, height: 128, mask: true},
+triangle: {x: 384, y: 128, width: 128, height: 128, mask: true}
 };
 
 // Component state
@@ -350,11 +350,11 @@ watch([showDrones, showEvents, showNoFlyZones, showFlightPaths], () => {
 
 // Watch drone speed factor
 watch(droneSpeedFactor, () => {
-  // Update animation speed if patrol is active
-  if (patrolStatus.value && deck) {
-      renderDeckLayers()
-    }
-  })
+// Update animation speed if patrol is active
+if (patrolStatus.value && deck) {
+    renderDeckLayers()
+  }
+})
 
 // Format coordinate display
 const formatCoordinate = (coord) => {
@@ -376,21 +376,21 @@ const getDroneStatusType = (status) => {
 
 // Get event status tag type
 const getEventStatusType = (status) => {
-  const statusMap = {
-    'new': 'info',
-    'processing': 'warning',
-    'resolved': 'success'
-  }
-  return statusMap[status] || 'default'
+const statusMap = {
+  'new': 'info',
+  'processing': 'warning',
+  'resolved': 'success'
+}
+return statusMap[status] || 'default'
 }
 
 // Format time
 const formatTime = (timeStr) => {
-  try {
-    return new Date(timeStr).toLocaleString('zh-CN')
-  } catch (e) {
-    return timeStr || '未知'
-  }
+try {
+  return new Date(timeStr).toLocaleString('zh-CN')
+} catch (e) {
+  return timeStr || '未知'
+}
 }
 
 // Get drone battery color
@@ -438,13 +438,13 @@ const initializeMap = () => {
     // 尝试创建地图实例
     map = new mapboxgl.Map({
       container: mapContainer.value,
-      style: mapStyle.value, // 使用环境变量或默认样式
+    style: mapStyle.value, // 使用环境变量或默认样式
       center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
       zoom: INITIAL_VIEW_STATE.zoom,
       pitch: INITIAL_VIEW_STATE.pitch,
       bearing: INITIAL_VIEW_STATE.bearing,
       antialias: true,
-      failIfMajorPerformanceCaveat: false, // 允许在性能受限的设备上运行
+    failIfMajorPerformanceCaveat: false, // 允许在性能受限的设备上运行
     });
     
     console.log('地图实例已创建，初始化位置:', [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude]);
@@ -452,7 +452,7 @@ const initializeMap = () => {
     // 添加错误事件监听器
     map.on('error', (e) => {
       console.error('地图加载错误:', e);
-      // 不设置isLoading = false，让load事件处理
+    // 不设置isLoading = false，让load事件处理
       
       // 尝试使用备选样式
       if (e.error && e.error.status === 401) {
@@ -553,139 +553,139 @@ const add3DBuildings = () => {
 
 // 使用原生Mapbox标记添加事件图标
 const addEventsAsMapboxMarkers = () => {
-  if (!map || !props.events || props.events.length === 0) return;
+if (!map || !props.events || props.events.length === 0) return;
 
-  // 清除之前的标记和弹窗
-  eventMarkers.value.forEach(marker => marker.remove());
-  eventMarkers.value = [];
-  eventPopups.value.forEach(popup => popup.remove());
-  eventPopups.value.clear();
+// 清除之前的标记和弹窗
+eventMarkers.value.forEach(marker => marker.remove());
+eventMarkers.value = [];
+eventPopups.value.forEach(popup => popup.remove());
+eventPopups.value.clear();
+
+// 为每个事件创建标记
+props.events.forEach(event => {
+  if (!event.location || !event.location.coordinates) return;
   
-  // 为每个事件创建标记
-  props.events.forEach(event => {
-    if (!event.location || !event.location.coordinates) return;
+  // 创建DOM元素作为标记
+  const el = document.createElement('div');
+  el.className = 'mapboxgl-event-marker';
+  el.style.backgroundColor = getEventPriorityColor(event.priority);
+  el.style.width = '30px';
+  el.style.height = '30px';
+  el.style.borderRadius = '50%';
+  el.style.border = '2px solid white';
+  el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+  el.style.cursor = 'pointer';
+  
+  // 添加感叹号
+  const exclamation = document.createElement('div');
+  exclamation.textContent = '!';
+  exclamation.style.textAlign = 'center';
+  exclamation.style.color = 'white';
+  exclamation.style.fontWeight = 'bold';
+  exclamation.style.fontSize = '18px';
+  exclamation.style.lineHeight = '28px';
+  el.appendChild(exclamation);
+  
+  // 创建标记
+  const marker = new mapboxgl.Marker({
+    element: el,
+    anchor: 'bottom',
+  })
+    .setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+    .addTo(map);
+  
+  // 设置较低的z-index
+  const markerElement = marker.getElement();
+  markerElement.style.zIndex = '0';
+  
+  // 保存标记引用
+  eventMarkers.value.push(marker);
+  
+  // 创建弹窗但不立即显示
+  const popupContent = document.createElement('div');
+  popupContent.className = 'event-popup-content';
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-2">
+      <div class="font-medium">${event.title}</div>
+      <span class="popup-tag popup-tag-${getEventStatusType(event.status)}">${event.status}</span>
+    </div>
+    <div class="text-gray-600 text-xs mb-1">ID: ${event.id}</div>
+    <div class="text-gray-600 text-xs mb-2">${formatTime(event.reportTime)}</div>
+    <div class="text-xs text-gray-700 p-2 bg-gray-50 rounded mb-2">
+      ${event.description}
+    </div>
+    <div class="flex justify-end">
+      <button class="popup-close-btn">关闭</button>
+    </div>
+  `;
+  
+  // 创建popup对象
+  const popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    anchor: 'bottom',
+    offset: [0, -15],
+    className: 'custom-mapbox-popup'
+  }).setDOMContent(popupContent);
+  
+  // 存储popup引用
+  eventPopups.value.set(event.id, popup);
+  
+  // 点击事件处理
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
     
-    // 创建DOM元素作为标记
-    const el = document.createElement('div');
-    el.className = 'mapboxgl-event-marker';
-    el.style.backgroundColor = getEventPriorityColor(event.priority);
-    el.style.width = '30px';
-    el.style.height = '30px';
-    el.style.borderRadius = '50%';
-    el.style.border = '2px solid white';
-    el.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
-    el.style.cursor = 'pointer';
+    // 如果其他弹窗打开，先关闭
+    eventPopups.value.forEach((p, id) => {
+      if (id !== event.id) p.remove();
+    });
     
-    // 添加感叹号
-    const exclamation = document.createElement('div');
-    exclamation.textContent = '!';
-    exclamation.style.textAlign = 'center';
-    exclamation.style.color = 'white';
-    exclamation.style.fontWeight = 'bold';
-    exclamation.style.fontSize = '18px';
-    exclamation.style.lineHeight = '28px';
-    el.appendChild(exclamation);
-    
-    // 创建标记
-    const marker = new mapboxgl.Marker({
-      element: el,
-      anchor: 'bottom',
-    })
-      .setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+    // 显示此事件的弹窗
+    popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
       .addTo(map);
     
-    // 设置较低的z-index
-    const markerElement = marker.getElement();
-    markerElement.style.zIndex = '0';
+    // 设置选中的事件
+    selectedEventInfo.value = event;
     
-    // 保存标记引用
-    eventMarkers.value.push(marker);
-    
-    // 创建弹窗但不立即显示
-    const popupContent = document.createElement('div');
-    popupContent.className = 'event-popup-content';
-    popupContent.innerHTML = `
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-medium">${event.title}</div>
-        <span class="popup-tag popup-tag-${getEventStatusType(event.status)}">${event.status}</span>
-      </div>
-      <div class="text-gray-600 text-xs mb-1">ID: ${event.id}</div>
-      <div class="text-gray-600 text-xs mb-2">${formatTime(event.reportTime)}</div>
-      <div class="text-xs text-gray-700 p-2 bg-gray-50 rounded mb-2">
-        ${event.description}
-      </div>
-      <div class="flex justify-end">
-        <button class="popup-close-btn">关闭</button>
-      </div>
-    `;
-    
-    // 创建popup对象
-    const popup = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false,
-      anchor: 'bottom',
-      offset: [0, -15],
-      className: 'custom-mapbox-popup'
-    }).setDOMContent(popupContent);
-    
-    // 存储popup引用
-    eventPopups.value.set(event.id, popup);
-    
-    // 点击事件处理
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      
-      // 如果其他弹窗打开，先关闭
-      eventPopups.value.forEach((p, id) => {
-        if (id !== event.id) p.remove();
-      });
-      
-      // 显示此事件的弹窗
-      popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
-        .addTo(map);
-      
-      // 设置选中的事件
-      selectedEventInfo.value = event;
-      
-      // 触发事件点击事件
-      emit('event-clicked', event);
-    });
-    
-    // 弹窗中的关闭按钮点击事件
-    popupContent.querySelector('.popup-close-btn').addEventListener('click', () => {
-      popup.remove();
-      selectedEventInfo.value = null;
-    });
+    // 触发事件点击事件
+    emit('event-clicked', event);
   });
+  
+  // 弹窗中的关闭按钮点击事件
+  popupContent.querySelector('.popup-close-btn').addEventListener('click', () => {
+    popup.remove();
+    selectedEventInfo.value = null;
+  });
+});
 };
 
 // 获取事件优先级颜色
 const getEventPriorityColor = (priority) => {
-  switch (priority) {
-    case 'high': return '#ff4d4f'; // 红色
-    case 'medium': return '#faad14'; // 橙色
-    case 'low': return '#52c41a'; // 绿色
-    default: return '#1890ff'; // 蓝色
-  }
+switch (priority) {
+  case 'high': return '#ff4d4f'; // 红色
+  case 'medium': return '#faad14'; // 橙色
+  case 'low': return '#52c41a'; // 绿色
+  default: return '#1890ff'; // 蓝色
+}
 };
 
 // 监听事件变化，更新地图标记
 watch(() => props.events, () => {
-  if (map && showEvents.value) {
-    addEventsAsMapboxMarkers();
-  }
+if (map && showEvents.value) {
+  addEventsAsMapboxMarkers();
+}
 }, { deep: true });
 
 // 监听showEvents变化
 watch(() => showEvents.value, (newVal) => {
-  if (map) {
-    if (newVal) {
-      addEventsAsMapboxMarkers();
-    } else {
-      // 移除所有事件标记
-      document.querySelectorAll('.mapboxgl-event-marker').forEach(el => el.remove());
-    }
+if (map) {
+  if (newVal) {
+    addEventsAsMapboxMarkers();
+  } else {
+    // 移除所有事件标记
+    document.querySelectorAll('.mapboxgl-event-marker').forEach(el => el.remove());
   }
+}
 });
 
 // 在地图点击事件中添加关闭弹窗逻辑
@@ -701,11 +701,11 @@ const setupMapEvents = () => {
     };
   });
   
-  // 点击事件 - 修改为关闭弹窗
+// 点击事件 - 修改为关闭弹窗
   map.on('click', (e) => {
-    // 关闭事件信息窗口
-    closeEventInfo();
-    
+  // 关闭事件信息窗口
+  closeEventInfo();
+  
     // 发送点击事件到父组件
     emit('map-clicked', {
       lng: e.lngLat.lng,
@@ -714,63 +714,63 @@ const setupMapEvents = () => {
     });
   });
 
-  // 地图样式加载时添加事件图标
-  map.on('style.load', () => {
-    if (showEvents.value) {
-      addEventsAsMapboxMarkers();
-    }
-  });
+// 地图样式加载时添加事件图标
+map.on('style.load', () => {
+  if (showEvents.value) {
+    addEventsAsMapboxMarkers();
+  }
+});
 };
 
 const showEventInfo = (event) => {
-  // 获取对应的popup
-  const popup = eventPopups.value.get(event.id);
-  if (popup && event.location && event.location.coordinates) {
-    // 如果其他弹窗打开，先关闭
-    eventPopups.value.forEach((p, id) => {
-      if (id !== event.id) p.remove();
-    });
-    
-    // 显示此事件的弹窗
-    popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
-      .addTo(map);
-    
-    // 设置选中的事件
-    selectedEventInfo.value = event;
-  }
+// 获取对应的popup
+const popup = eventPopups.value.get(event.id);
+if (popup && event.location && event.location.coordinates) {
+  // 如果其他弹窗打开，先关闭
+  eventPopups.value.forEach((p, id) => {
+    if (id !== event.id) p.remove();
+  });
+  
+  // 显示此事件的弹窗
+  popup.setLngLat([event.location.coordinates[0], event.location.coordinates[1]])
+    .addTo(map);
+  
+  // 设置选中的事件
+  selectedEventInfo.value = event;
+}
 };
 
 const closeEventInfo = () => {
-  if (selectedEventInfo.value) {
-    const popup = eventPopups.value.get(selectedEventInfo.value.id);
-    if (popup) popup.remove();
-  }
-  selectedEventInfo.value = null;
+if (selectedEventInfo.value) {
+  const popup = eventPopups.value.get(selectedEventInfo.value.id);
+  if (popup) popup.remove();
+}
+selectedEventInfo.value = null;
 };
 
 // 飞行到指定位置
 const flyTo = (position) => {
   if (!map) return;
   
-  try {
-    console.log('飞行到位置:', position);
-    
-    // 确保位置对象包含必要的属性
-    const lng = position.lng || position.longitude || 114.367;
-    const lat = position.lat || position.latitude || 30.54;
-    const zoom = position.zoom || 14;
-    
-    map.flyTo({
-      center: [lng, lat],
-      zoom: zoom,
-      pitch: position.pitch !== undefined ? position.pitch : 45,
-      bearing: position.bearing !== undefined ? position.bearing : 0,
-      duration: position.duration || 2000,
-      essential: true
-    });
-  } catch (error) {
-    console.error('飞行到位置时出错:', error);
-  }
+try {
+  console.log('飞行到位置:', position);
+  
+  // 确保位置对象包含必要的属性
+  const lng = position.lng || position.longitude || 114.367;
+  const lat = position.lat || position.latitude || 30.54;
+  const zoom = position.zoom || 14;
+  
+  map.flyTo({
+    center: [lng, lat],
+    zoom: zoom,
+    pitch: position.pitch !== undefined ? position.pitch : 45,
+    bearing: position.bearing !== undefined ? position.bearing : 0,
+    duration: position.duration || 2000,
+    essential: true
+  });
+} catch (error) {
+  console.error('飞行到位置时出错:', error);
+}
 };
 
 // 重置视图到初始状态
@@ -788,392 +788,392 @@ const resetView = () => {
 
 // Initialize deck.gl
 const initDeck = () => {
-    console.log('Initializing Deck.gl...')
-    try {
-      // 确保canvas元素存在
-      let deckCanvas = document.getElementById('deck-canvas')
-      if (!deckCanvas) {
-        console.log('创建deck-canvas元素...')
-        deckCanvas = document.createElement('canvas')
-        deckCanvas.id = 'deck-canvas'
-        deckCanvas.style.position = 'absolute'
-        deckCanvas.style.top = '0'
-        deckCanvas.style.left = '0'
-        deckCanvas.style.width = '100%'
-        deckCanvas.style.height = '100%'
-        deckCanvas.style.pointerEvents = 'none'
-        deckCanvas.style.zIndex = '5'
-        mapContainer.value.appendChild(deckCanvas)
-        console.log('deck-canvas元素已添加到DOM')
-      } else {
-        // 确保现有canvas也设置为none
-        deckCanvas.style.pointerEvents = 'none'
-      }
-    
-      // 使用更简单的配置初始化Deck
-      console.log('使用简化配置初始化Deck.gl...')
-      deck = new Deck({
-        canvas: deckCanvas,
-        initialViewState: {
-          longitude: map.getCenter().lng,
-          latitude: map.getCenter().lat,
-          zoom: map.getZoom(),
-          pitch: map.getPitch(),
-          bearing: map.getBearing()
-        },
-        controller: false,
-        layers: []
-      })
-      
-      console.log('Deck.gl实例创建成功')
-      
-      // 先尝试渲染简单的点图层以测试功能
-      const testLayer = new ScatterplotLayer({
-        id: 'test-layer',
-        data: [
-          {
-            position: [map.getCenter().lng, map.getCenter().lat, 0], 
-            color: [255, 0, 0, 255], 
-            radius: 200
-          }
-        ],
-        pickable: true,
-        stroked: true,
-        filled: true,
-        radiusScale: 1,
-        radiusMinPixels: 10,
-        radiusMaxPixels: 100,
-        getPosition: d => d.position,
-        getFillColor: d => d.color,
-        getRadius: d => d.radius,
-        getLineColor: [0, 0, 0]
-      })
-      
-      deck.setProps({
-        layers: [testLayer]
-      })
-      
-      console.log('测试图层设置成功')
-      
-      // 确保deck和map视角同步
-      map.on('render', () => {
-        if (deck) {
-          deck.setProps({
-            viewState: {
-              longitude: map.getCenter().lng,
-              latitude: map.getCenter().lat,
-              zoom: map.getZoom(),
-              pitch: map.getPitch(),
-              bearing: map.getBearing()
-            }
-          })
-        }
-      })
-      
-      // 渲染实际图层
-      setTimeout(() => renderDeckLayers(), 1000)
-      
-      // 添加定期刷新
-      const refreshInterval = setInterval(() => {
-        if (deck && showDrones.value) {
-          renderDeckLayers()
-        }
-      }, 3000)
-      
-      onUnmounted(() => {
-        if (refreshInterval) clearInterval(refreshInterval)
-        if (deck) {
-          deck.finalize()
-          deck = null
-        }
-      })
-    } catch (error) {
-      console.error('初始化Deck.gl时出错:', error)
+  console.log('Initializing Deck.gl...')
+  try {
+    // 确保canvas元素存在
+    let deckCanvas = document.getElementById('deck-canvas')
+    if (!deckCanvas) {
+      console.log('创建deck-canvas元素...')
+      deckCanvas = document.createElement('canvas')
+      deckCanvas.id = 'deck-canvas'
+      deckCanvas.style.position = 'absolute'
+      deckCanvas.style.top = '0'
+      deckCanvas.style.left = '0'
+      deckCanvas.style.width = '100%'
+      deckCanvas.style.height = '100%'
+      deckCanvas.style.pointerEvents = 'none'
+      deckCanvas.style.zIndex = '5'
+      mapContainer.value.appendChild(deckCanvas)
+      console.log('deck-canvas元素已添加到DOM')
+    } else {
+      // 确保现有canvas也设置为none
+      deckCanvas.style.pointerEvents = 'none'
     }
-  }
   
+    // 使用更简单的配置初始化Deck
+    console.log('使用简化配置初始化Deck.gl...')
+    deck = new Deck({
+      canvas: deckCanvas,
+      initialViewState: {
+        longitude: map.getCenter().lng,
+        latitude: map.getCenter().lat,
+        zoom: map.getZoom(),
+        pitch: map.getPitch(),
+        bearing: map.getBearing()
+      },
+      controller: false,
+      layers: []
+    })
+    
+    console.log('Deck.gl实例创建成功')
+    
+    // 先尝试渲染简单的点图层以测试功能
+    const testLayer = new ScatterplotLayer({
+      id: 'test-layer',
+      data: [
+        {
+          position: [map.getCenter().lng, map.getCenter().lat, 0], 
+          color: [255, 0, 0, 255], 
+          radius: 200
+        }
+      ],
+      pickable: true,
+      stroked: true,
+      filled: true,
+      radiusScale: 1,
+      radiusMinPixels: 10,
+      radiusMaxPixels: 100,
+      getPosition: d => d.position,
+      getFillColor: d => d.color,
+      getRadius: d => d.radius,
+      getLineColor: [0, 0, 0]
+    })
+    
+    deck.setProps({
+      layers: [testLayer]
+    })
+    
+    console.log('测试图层设置成功')
+    
+    // 确保deck和map视角同步
+    map.on('render', () => {
+      if (deck) {
+        deck.setProps({
+          viewState: {
+            longitude: map.getCenter().lng,
+            latitude: map.getCenter().lat,
+            zoom: map.getZoom(),
+            pitch: map.getPitch(),
+            bearing: map.getBearing()
+          }
+        })
+      }
+    })
+    
+    // 渲染实际图层
+    setTimeout(() => renderDeckLayers(), 1000)
+    
+    // 添加定期刷新
+    const refreshInterval = setInterval(() => {
+      if (deck && showDrones.value) {
+        renderDeckLayers()
+      }
+    }, 3000)
+    
+    onUnmounted(() => {
+      if (refreshInterval) clearInterval(refreshInterval)
+      if (deck) {
+        deck.finalize()
+        deck = null
+      }
+    })
+  } catch (error) {
+    console.error('初始化Deck.gl时出错:', error)
+  }
+}
+
 // Store drone patrol routes
 const dronePatrolRoutes = new Map();
 
 // Get or create a patrol route for a drone
 const getOrCreatePatrolRoute = (drone) => {
-  if (!dronePatrolRoutes.has(drone.drone_id)) {
-    // Get starting position
-    const center = drone.current_location?.coordinates || [map.getCenter().lng, map.getCenter().lat];
-    const altitude = (drone.current_location?.coordinates && drone.current_location.coordinates[2]) || 200;
-    
-    // Generate a unique patrol route for this drone
-    const patrolRoute = generatePatrolRoute(center[0], center[1], altitude, drone.drone_id);
-    dronePatrolRoutes.set(drone.drone_id, patrolRoute);
-  }
+if (!dronePatrolRoutes.has(drone.drone_id)) {
+  // Get starting position
+  const center = drone.current_location?.coordinates || [map.getCenter().lng, map.getCenter().lat];
+  const altitude = (drone.current_location?.coordinates && drone.current_location.coordinates[2]) || 200;
   
-  return dronePatrolRoutes.get(drone.drone_id);
+  // Generate a unique patrol route for this drone
+  const patrolRoute = generatePatrolRoute(center[0], center[1], altitude, drone.drone_id);
+  dronePatrolRoutes.set(drone.drone_id, patrolRoute);
+}
+
+return dronePatrolRoutes.get(drone.drone_id);
 };
 
 // Generate a more complex and natural patrol route
 const generatePatrolRoute = (centerLng, centerLat, altitude, droneId) => {
-  console.log(`生成无人机 ${droneId} 的巡逻路线`);
+console.log(`生成无人机 ${droneId} 的巡逻路线`);
+
+// Generate a unique random seed based on drone ID
+const seed = droneId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+const random = (min, max) => {
+  const x = Math.sin(seed * 9999) * 10000;
+  const r = x - Math.floor(x);
+  return min + r * (max - min);
+};
+
+// Configure patrol route based on drone ID to make each drone behave differently
+const radiusX = 0.05 + random(0.01, 0.08); // 半长轴 - 扩大10倍
+const radiusY = 0.03 + random(0.01, 0.06); // 半短轴 - 扩大10倍
+const points = 40 + Math.floor(random(0, 20)); // 路径点数量
+const altitudeVariation = 30 + Math.floor(random(10, 50)); // 高度变化范围
+const rotationAngle = random(0, Math.PI * 2); // 旋转角度
+
+// 设置共享目的地点 - 增加路径重叠的概率
+const sharedPoints = [
+  [114.30, 30.60], // 武汉市中心
+  [114.367, 30.540], // 武汉大学
+  [114.412, 30.513], // 华中科技大学
+  [114.325, 30.57], // 汉口商圈
+  [114.264, 30.582], // 江汉路
+  [114.306, 30.544], // 黄鹤楼
+];
+
+// 选择1-2个共享点
+const useSharedPoints = random(0, 1) > 0.3; // 70%概率使用共享点
+const sharedPoint1 = sharedPoints[Math.floor(random(0, sharedPoints.length))];
+const sharedPoint2 = sharedPoints[Math.floor(random(0, sharedPoints.length))];
+
+// Generate route points
+const route = [];
+
+// First, add the starting position
+route.push([centerLng, centerLat, altitude]);
+
+// Add transition to patrol altitude
+const patrolAltitude = altitude + Math.floor(random(-20, 50));
+route.push([centerLng, centerLat, patrolAltitude]);
+
+// Generate core patrol path
+for (let i = 0; i <= points; i++) {
+  // Calculate position on ellipse
+  const angle = (i / points) * Math.PI * 2;
+  const x = radiusX * Math.cos(angle);
+  const y = radiusY * Math.sin(angle);
   
-  // Generate a unique random seed based on drone ID
-  const seed = droneId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const random = (min, max) => {
-    const x = Math.sin(seed * 9999) * 10000;
-    const r = x - Math.floor(x);
-    return min + r * (max - min);
-  };
+  // Apply rotation to create varied paths
+  const rotatedX = x * Math.cos(rotationAngle) - y * Math.sin(rotationAngle);
+  const rotatedY = x * Math.sin(rotationAngle) + y * Math.cos(rotationAngle);
   
-  // Configure patrol route based on drone ID to make each drone behave differently
-  const radiusX = 0.05 + random(0.01, 0.08); // 半长轴 - 扩大10倍
-  const radiusY = 0.03 + random(0.01, 0.06); // 半短轴 - 扩大10倍
-  const points = 40 + Math.floor(random(0, 20)); // 路径点数量
-  const altitudeVariation = 30 + Math.floor(random(10, 50)); // 高度变化范围
-  const rotationAngle = random(0, Math.PI * 2); // 旋转角度
+  // Calculate altitude variation with sinusoidal pattern
+  const altVariation = altitudeVariation * Math.sin((i / points) * Math.PI * 4);
+  const pointAltitude = patrolAltitude + altVariation;
   
-  // 设置共享目的地点 - 增加路径重叠的概率
-  const sharedPoints = [
-    [114.30, 30.60], // 武汉市中心
-    [114.367, 30.540], // 武汉大学
-    [114.412, 30.513], // 华中科技大学
-    [114.325, 30.57], // 汉口商圈
-    [114.264, 30.582], // 江汉路
-    [114.306, 30.544], // 黄鹤楼
-  ];
+  // Add small random variations to make path more natural
+  const jitterX = random(-0.0005, 0.0005);
+  const jitterY = random(-0.0005, 0.0005);
   
-  // 选择1-2个共享点
-  const useSharedPoints = random(0, 1) > 0.3; // 70%概率使用共享点
-  const sharedPoint1 = sharedPoints[Math.floor(random(0, sharedPoints.length))];
-  const sharedPoint2 = sharedPoints[Math.floor(random(0, sharedPoints.length))];
+  // Add point to route
+  route.push([
+    centerLng + rotatedX + jitterX,
+    centerLat + rotatedY + jitterY,
+    pointAltitude
+  ]);
+}
+
+// Connect back to the beginning
+route.push([centerLng, centerLat, patrolAltitude]);
+
+// 添加共享点到路径中 - 创建重叠
+if (useSharedPoints) {
+  // 添加前往共享点1的路径
+  route.push([
+    sharedPoint1[0], 
+    sharedPoint1[1], 
+    patrolAltitude + random(-30, 30)
+  ]);
   
-  // Generate route points
-  const route = [];
-  
-  // First, add the starting position
-  route.push([centerLng, centerLat, altitude]);
-  
-  // Add transition to patrol altitude
-  const patrolAltitude = altitude + Math.floor(random(-20, 50));
-  route.push([centerLng, centerLat, patrolAltitude]);
-  
-  // Generate core patrol path
-  for (let i = 0; i <= points; i++) {
-    // Calculate position on ellipse
-    const angle = (i / points) * Math.PI * 2;
-    const x = radiusX * Math.cos(angle);
-    const y = radiusY * Math.sin(angle);
-    
-    // Apply rotation to create varied paths
-    const rotatedX = x * Math.cos(rotationAngle) - y * Math.sin(rotationAngle);
-    const rotatedY = x * Math.sin(rotationAngle) + y * Math.cos(rotationAngle);
-    
-    // Calculate altitude variation with sinusoidal pattern
-    const altVariation = altitudeVariation * Math.sin((i / points) * Math.PI * 4);
-    const pointAltitude = patrolAltitude + altVariation;
-    
-    // Add small random variations to make path more natural
-    const jitterX = random(-0.0005, 0.0005);
-    const jitterY = random(-0.0005, 0.0005);
-    
-    // Add point to route
+  // 在共享点停留一些点
+  const hoverPoints = Math.floor(random(3, 8));
+  for (let i = 0; i < hoverPoints; i++) {
     route.push([
-      centerLng + rotatedX + jitterX,
-      centerLat + rotatedY + jitterY,
-      pointAltitude
+      sharedPoint1[0] + random(-0.002, 0.002),
+      sharedPoint1[1] + random(-0.002, 0.002),
+      patrolAltitude + random(-20, 20)
     ]);
   }
   
-  // Connect back to the beginning
-  route.push([centerLng, centerLat, patrolAltitude]);
-  
-  // 添加共享点到路径中 - 创建重叠
-  if (useSharedPoints) {
-    // 添加前往共享点1的路径
+  // 有50%概率添加第二个共享点
+  if (random(0, 1) > 0.5) {
     route.push([
-      sharedPoint1[0], 
-      sharedPoint1[1], 
+      sharedPoint2[0], 
+      sharedPoint2[1], 
       patrolAltitude + random(-30, 30)
     ]);
     
-    // 在共享点停留一些点
-    const hoverPoints = Math.floor(random(3, 8));
-    for (let i = 0; i < hoverPoints; i++) {
+    // 在第二个共享点停留
+    for (let i = 0; i < Math.floor(random(2, 6)); i++) {
       route.push([
-        sharedPoint1[0] + random(-0.002, 0.002),
-        sharedPoint1[1] + random(-0.002, 0.002),
+        sharedPoint2[0] + random(-0.002, 0.002),
+        sharedPoint2[1] + random(-0.002, 0.002),
         patrolAltitude + random(-20, 20)
       ]);
     }
-    
-    // 有50%概率添加第二个共享点
-    if (random(0, 1) > 0.5) {
-      route.push([
-        sharedPoint2[0], 
-        sharedPoint2[1], 
-        patrolAltitude + random(-30, 30)
-      ]);
-      
-      // 在第二个共享点停留
-      for (let i = 0; i < Math.floor(random(2, 6)); i++) {
-        route.push([
-          sharedPoint2[0] + random(-0.002, 0.002),
-          sharedPoint2[1] + random(-0.002, 0.002),
-          patrolAltitude + random(-20, 20)
-        ]);
-      }
-    }
   }
+}
+
+// Generate additional waypoints for figure-8 patterns
+const figure8Points = 20 + Math.floor(random(0, 10));
+const figure8Scale = 0.7 + random(0.5, 0.8); // 增大figure-8的比例
+
+for (let i = 0; i <= figure8Points; i++) {
+  const t = (i / figure8Points) * Math.PI * 2;
   
-  // Generate additional waypoints for figure-8 patterns
-  const figure8Points = 20 + Math.floor(random(0, 10));
-  const figure8Scale = 0.7 + random(0.5, 0.8); // 增大figure-8的比例
+  // Create figure-8 pattern 
+  const fx = radiusX * figure8Scale * Math.sin(t);
+  const fy = radiusY * figure8Scale * Math.sin(t * 2);
   
-  for (let i = 0; i <= figure8Points; i++) {
-    const t = (i / figure8Points) * Math.PI * 2;
-    
-    // Create figure-8 pattern 
-    const fx = radiusX * figure8Scale * Math.sin(t);
-    const fy = radiusY * figure8Scale * Math.sin(t * 2);
-    
-    // Apply rotation
-    const rotatedFX = fx * Math.cos(rotationAngle) - fy * Math.sin(rotationAngle);
-    const rotatedFY = fx * Math.sin(rotationAngle) + fy * Math.cos(rotationAngle);
-    
-    // Calculate altitude with double frequency
-    const faltVariation = altitudeVariation * 0.7 * Math.sin(t * 3);
-    const fpointAltitude = patrolAltitude + faltVariation;
-    
-    // Add minor jitter
-    const fjitterX = random(-0.0003, 0.0003);
-    const fjitterY = random(-0.0003, 0.0003);
-    
-    // Add point to route
-    route.push([
-      centerLng + rotatedFX + fjitterX,
-      centerLat + rotatedFY + fjitterY,
-      fpointAltitude
-    ]);
-  }
+  // Apply rotation
+  const rotatedFX = fx * Math.cos(rotationAngle) - fy * Math.sin(rotationAngle);
+  const rotatedFY = fx * Math.sin(rotationAngle) + fy * Math.cos(rotationAngle);
   
-  // Add a second figure-8 pattern at a different angle for variety
-  const secondAngle = rotationAngle + Math.PI / 3;
-  const secondScale = 0.8 + random(0.4, 0.7); // 增大第二个figure-8的比例
+  // Calculate altitude with double frequency
+  const faltVariation = altitudeVariation * 0.7 * Math.sin(t * 3);
+  const fpointAltitude = patrolAltitude + faltVariation;
   
-  for (let i = 0; i <= figure8Points / 2; i++) {
-    const t = (i / (figure8Points / 2)) * Math.PI * 2;
-    
-    // Create second figure-8 pattern
-    const fx = radiusX * secondScale * Math.sin(t);
-    const fy = radiusY * secondScale * Math.sin(t * 2);
-    
-    // Apply second rotation
-    const rotatedFX = fx * Math.cos(secondAngle) - fy * Math.sin(secondAngle);
-    const rotatedFY = fx * Math.sin(secondAngle) + fy * Math.cos(secondAngle);
-    
-    // Calculate altitude with triple frequency
-    const faltVariation = altitudeVariation * 0.5 * Math.sin(t * 5);
-    const fpointAltitude = patrolAltitude - 20 + faltVariation;
-    
-    // Add minor jitter
-    const fjitterX = random(-0.0002, 0.0002);
-    const fjitterY = random(-0.0002, 0.0002);
-    
-    // Add point to route
-    route.push([
-      centerLng + rotatedFX + fjitterX,
-      centerLat + rotatedFY + fjitterY,
-      fpointAltitude
-    ]);
-  }
+  // Add minor jitter
+  const fjitterX = random(-0.0003, 0.0003);
+  const fjitterY = random(-0.0003, 0.0003);
   
-  // Return to start position to complete the loop
-  route.push([centerLng, centerLat, patrolAltitude]);
-  route.push([centerLng, centerLat, altitude]);
+  // Add point to route
+  route.push([
+    centerLng + rotatedFX + fjitterX,
+    centerLat + rotatedFY + fjitterY,
+    fpointAltitude
+  ]);
+}
+
+// Add a second figure-8 pattern at a different angle for variety
+const secondAngle = rotationAngle + Math.PI / 3;
+const secondScale = 0.8 + random(0.4, 0.7); // 增大第二个figure-8的比例
+
+for (let i = 0; i <= figure8Points / 2; i++) {
+  const t = (i / (figure8Points / 2)) * Math.PI * 2;
   
-  return route;
+  // Create second figure-8 pattern
+  const fx = radiusX * secondScale * Math.sin(t);
+  const fy = radiusY * secondScale * Math.sin(t * 2);
+  
+  // Apply second rotation
+  const rotatedFX = fx * Math.cos(secondAngle) - fy * Math.sin(secondAngle);
+  const rotatedFY = fx * Math.sin(secondAngle) + fy * Math.cos(secondAngle);
+  
+  // Calculate altitude with triple frequency
+  const faltVariation = altitudeVariation * 0.5 * Math.sin(t * 5);
+  const fpointAltitude = patrolAltitude - 20 + faltVariation;
+  
+  // Add minor jitter
+  const fjitterX = random(-0.0002, 0.0002);
+  const fjitterY = random(-0.0002, 0.0002);
+  
+  // Add point to route
+  route.push([
+    centerLng + rotatedFX + fjitterX,
+    centerLat + rotatedFY + fjitterY,
+    fpointAltitude
+  ]);
+}
+
+// Return to start position to complete the loop
+route.push([centerLng, centerLat, patrolAltitude]);
+route.push([centerLng, centerLat, altitude]);
+
+return route;
 };
 
 // Calculate position along route with improved interpolation and timing
 const calculatePositionAlongRoute = (route, timestamp) => {
-  if (!route || route.length < 2) return null;
-  
-  // 基于速度因子计算持续时间 - 值越大，动画越慢
-  const baseDuration = 180000; // 3 minutes
-  const speedFactor = droneSpeedFactor.value;
-  const duration = baseDuration / speedFactor;
-  
-  // 计算当前时间在路径中的位置
-  const elapsed = timestamp % duration;
-  const progress = elapsed / duration;
-  
-  // 计算在路径上的位置索引
-  const totalDistance = route.length - 1;
-  const exactIndex = progress * totalDistance;
-  const index1 = Math.floor(exactIndex);
-  const index2 = Math.min(index1 + 1, route.length - 1);
-  
-  // 计算两点之间的插值系数
-  const fraction = exactIndex - index1;
-  
-  // 计算当前位置 - 使用三次样条插值使运动更平滑
-  const p0 = route[Math.max(0, index1 - 1)];
-  const p1 = route[index1];
-  const p2 = route[index2];
-  const p3 = route[Math.min(route.length - 1, index2 + 1)];
-  
-  // 立方样条插值系数
-  const t = fraction;
-  const t2 = t * t;
-  const t3 = t2 * t;
-  
-  // Catmull-Rom 样条插值
-  const c0 = 0.5 * (-t3 + 2*t2 - t);
-  const c1 = 0.5 * (3*t3 - 5*t2 + 2);
-  const c2 = 0.5 * (-3*t3 + 4*t2 + t);
-  const c3 = 0.5 * (t3 - t2);
-  
-  // 计算插值位置
-  return [
-    c0 * p0[0] + c1 * p1[0] + c2 * p2[0] + c3 * p3[0],
-    c0 * p0[1] + c1 * p1[1] + c2 * p2[1] + c3 * p3[1],
-    c0 * p0[2] + c1 * p1[2] + c2 * p2[2] + c3 * p3[2]
-  ];
+if (!route || route.length < 2) return null;
+
+// 基于速度因子计算持续时间 - 值越大，动画越慢
+const baseDuration = 180000; // 3 minutes
+const speedFactor = droneSpeedFactor.value;
+const duration = baseDuration / speedFactor;
+
+// 计算当前时间在路径中的位置
+const elapsed = timestamp % duration;
+const progress = elapsed / duration;
+
+// 计算在路径上的位置索引
+const totalDistance = route.length - 1;
+const exactIndex = progress * totalDistance;
+const index1 = Math.floor(exactIndex);
+const index2 = Math.min(index1 + 1, route.length - 1);
+
+// 计算两点之间的插值系数
+const fraction = exactIndex - index1;
+
+// 计算当前位置 - 使用三次样条插值使运动更平滑
+const p0 = route[Math.max(0, index1 - 1)];
+const p1 = route[index1];
+const p2 = route[index2];
+const p3 = route[Math.min(route.length - 1, index2 + 1)];
+
+// 立方样条插值系数
+const t = fraction;
+const t2 = t * t;
+const t3 = t2 * t;
+
+// Catmull-Rom 样条插值
+const c0 = 0.5 * (-t3 + 2*t2 - t);
+const c1 = 0.5 * (3*t3 - 5*t2 + 2);
+const c2 = 0.5 * (-3*t3 + 4*t2 + t);
+const c3 = 0.5 * (t3 - t2);
+
+// 计算插值位置
+return [
+  c0 * p0[0] + c1 * p1[0] + c2 * p2[0] + c3 * p3[0],
+  c0 * p0[1] + c1 * p1[1] + c2 * p2[1] + c3 * p3[1],
+  c0 * p0[2] + c1 * p1[2] + c2 * p2[2] + c3 * p3[2]
+];
 };
 
 // Calculate drone heading with smoother transitions
 const calculateDroneHeading = (route, timestamp) => {
-  if (!route || route.length < 2) return 0;
-  
-  // 基于速度因子计算持续时间
-  const baseDuration = 180000;
-  const speedFactor = droneSpeedFactor.value;
-  const duration = baseDuration / speedFactor;
-  
-  // 计算当前时间在路径中的位置
-  const elapsed = timestamp % duration;
-  const progress = elapsed / duration;
-  
-  // 获取当前位置和下一个位置
-  const totalDistance = route.length - 1;
-  const exactIndex = progress * totalDistance;
-  const index1 = Math.floor(exactIndex);
-  const index2 = Math.min(index1 + 1, route.length - 1);
-  
-  // 获取当前位置和下一个位置的坐标
-  const p1 = route[index1];
-  const p2 = route[index2];
-  
-  // 计算航向角度 - 使用反正切函数获取两点连线与正北方向的夹角
-  const dx = p2[0] - p1[0];
-  const dy = p2[1] - p1[1];
-  let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-  
-  // 转换为顺时针角度，从北方向开始
-  angle = 90 - angle;
-  if (angle < 0) angle += 360;
-  
-  // 添加小幅随机摇摆以模拟自然飞行
-  const wobble = Math.sin(timestamp / 500) * 5;
-  
-  return angle + wobble;
+if (!route || route.length < 2) return 0;
+
+// 基于速度因子计算持续时间
+const baseDuration = 180000;
+const speedFactor = droneSpeedFactor.value;
+const duration = baseDuration / speedFactor;
+
+// 计算当前时间在路径中的位置
+const elapsed = timestamp % duration;
+const progress = elapsed / duration;
+
+// 获取当前位置和下一个位置
+const totalDistance = route.length - 1;
+const exactIndex = progress * totalDistance;
+const index1 = Math.floor(exactIndex);
+const index2 = Math.min(index1 + 1, route.length - 1);
+
+// 获取当前位置和下一个位置的坐标
+const p1 = route[index1];
+const p2 = route[index2];
+
+// 计算航向角度 - 使用反正切函数获取两点连线与正北方向的夹角
+const dx = p2[0] - p1[0];
+const dy = p2[1] - p1[1];
+let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+// 转换为顺时针角度，从北方向开始
+angle = 90 - angle;
+if (angle < 0) angle += 360;
+
+// 添加小幅随机摇摆以模拟自然飞行
+const wobble = Math.sin(timestamp / 500) * 5;
+
+return angle + wobble;
 };
 
 // Render deck.gl layers with enhanced drone visualization
@@ -1403,12 +1403,12 @@ const renderDeckLayers = () => {
             animatedPosition[2] || 200
           ]
         };
-          // Store the last known position for test drones too
+         // Store the last known position for test drones too
         droneLastKnownPositions.value.set(drone.drone_id, animatedDrone.current_location.coordinates);
       }
     } else if (droneLastKnownPositions.value.has(drone.drone_id)) {
       // If patrol is stopped, use the last known position for rendering test drones
-        animatedDrone.current_location = {
+       animatedDrone.current_location = {
         coordinates: droneLastKnownPositions.value.get(drone.drone_id)
       };
     }
@@ -1462,8 +1462,8 @@ const renderDeckLayers = () => {
         
         // Define base radius based on drone type - 缩小10倍
         const scanRadius = drone.type === 'surveillance' ? 0.035 : 
-                          drone.type === 'security' ? 0.032 : 
-                          drone.type === 'transport' ? 0.028 : 0.038;
+                         drone.type === 'security' ? 0.032 : 
+                         drone.type === 'transport' ? 0.028 : 0.038;
 
         for (let i = 0; i < segments; i++) {
           const angle1 = (i / segments) * Math.PI * 2;
@@ -1527,8 +1527,8 @@ const renderDeckLayers = () => {
         
         // 根据无人机类型设置扫描半径 - 缩小10倍
         const scanRadius = drone.type === 'surveillance' ? 0.035 : 
-                            drone.type === 'security' ? 0.032 : 
-                            drone.type === 'transport' ? 0.028 : 0.038;
+                           drone.type === 'security' ? 0.032 : 
+                           drone.type === 'transport' ? 0.028 : 0.038;
         
         // 创建圆锥体的填充多边形数据
         const coneSegments = 36; // 更高的分段数使圆锥体更平滑
@@ -2153,8 +2153,8 @@ const renderDeckLayers = () => {
         },
         getLineColor: d => {
           const baseColor = d.type === 'surveillance' ? [0, 255, 255] : 
-                            d.type === 'security' ? [255, 0, 85] : 
-                            d.type === 'transport' ? [136, 85, 255] : [255, 0, 0];
+                           d.type === 'security' ? [255, 0, 85] : 
+                           d.type === 'transport' ? [136, 85, 255] : [255, 0, 0];
           return [...baseColor, 120];
         },
         getElevation: d => {
@@ -2299,13 +2299,13 @@ const renderDeckLayers = () => {
 
 // Animation function for smooth patrol movement
 const animatePatrol = () => {
-  if (patrolStatus.value) {
-    renderDeckLayers();
-    animationFrameId = requestAnimationFrame(animatePatrol);
-  } else if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
+if (patrolStatus.value) {
+  renderDeckLayers();
+  animationFrameId = requestAnimationFrame(animatePatrol);
+} else if (animationFrameId) {
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
+}
 };
 
 // Get color based on drone status
@@ -2330,178 +2330,178 @@ const getDroneColor = (drone) => {
 
 // Helper function to adjust color brightness
 const adjustColor = (color, amount) => {
-  // Simple implementation - in production this would be more sophisticated
-  // Just return the original color for now
-  return color;
+// Simple implementation - in production this would be more sophisticated
+// Just return the original color for now
+return color;
 }
 
 // Get drone SVG icon
 const getDroneSvgIcon = (drone) => {
-  // Select base color based on drone status with higher saturation
-  const statusColor = drone.status === 'flying' ? '#00ff00' :
-                  drone.status === 'charging' ? '#ff9500' :
-                  drone.status === 'maintenance' ? '#ffcc00' :
-                  drone.status === 'offline' ? '#8e8e93' : '#007aff';
-  
-  // Type-specific colors with higher saturation
-  const typeColor = drone.type === 'surveillance' ? '#00ffff' :
-                   drone.type === 'security' ? '#ff2d55' : 
-                   drone.type === 'transport' ? '#8855ff' : 
-                   drone.type === 'emergency' ? '#ff0000' : '#00ffff';
-  
-  // Battery level visualization
-  const batteryLevel = drone.battery_level || 100;
-  const batteryColor = batteryLevel > 60 ? '#00ff00' : 
-                       batteryLevel > 30 ? '#ffcc00' : '#ff0000';
-  
-  // Generate unique ID for this drone's animations
-  const uniqueId = `drone-${drone.drone_id}`;
-  
-  // 创建一个简化但更加清晰的3D无人机SVG图标
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-      <defs>
-        <!-- 发光效果 - 增强光晕效果 -->
-        <filter id="glow${uniqueId}" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feFlood flood-color="${typeColor}" flood-opacity="0.95" result="color"/>
-          <feComposite in="color" in2="blur" operator="in" result="glow"/>
-          <feComposite in="glow" in2="SourceGraphic" operator="over" />
-        </filter>
-        
-        <!-- 无人机机体金属质感 - 增强金属质感 -->
-        <linearGradient id="bodyGradient${uniqueId}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#ffffff" />
-          <stop offset="50%" stop-color="${typeColor}" />
-          <stop offset="100%" stop-color="#111111" />
-        </linearGradient>
-        
-        <!-- 螺旋桨动画 - 更明显的动画效果 -->
-        <linearGradient id="propGradient${uniqueId}" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-          <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0.4"/>
-        </linearGradient>
-      </defs>
+// Select base color based on drone status with higher saturation
+const statusColor = drone.status === 'flying' ? '#00ff00' :
+                drone.status === 'charging' ? '#ff9500' :
+                drone.status === 'maintenance' ? '#ffcc00' :
+                drone.status === 'offline' ? '#8e8e93' : '#007aff';
+
+// Type-specific colors with higher saturation
+const typeColor = drone.type === 'surveillance' ? '#00ffff' :
+                 drone.type === 'security' ? '#ff2d55' : 
+                 drone.type === 'transport' ? '#8855ff' : 
+                 drone.type === 'emergency' ? '#ff0000' : '#00ffff';
+
+// Battery level visualization
+const batteryLevel = drone.battery_level || 100;
+const batteryColor = batteryLevel > 60 ? '#00ff00' : 
+                     batteryLevel > 30 ? '#ffcc00' : '#ff0000';
+
+// Generate unique ID for this drone's animations
+const uniqueId = `drone-${drone.drone_id}`;
+
+// 创建一个简化但更加清晰的3D无人机SVG图标
+return `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <defs>
+      <!-- 发光效果 - 增强光晕效果 -->
+      <filter id="glow${uniqueId}" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.5" result="blur" />
+        <feFlood flood-color="${typeColor}" flood-opacity="0.95" result="color"/>
+        <feComposite in="color" in2="blur" operator="in" result="glow"/>
+        <feComposite in="glow" in2="SourceGraphic" operator="over" />
+      </filter>
       
-      <!-- 机身 -->
-      <g filter="url(#glow${uniqueId})">
-        <!-- 机身主体 - 中央部分 -->
-        <circle cx="32" cy="32" r="10" fill="url(#bodyGradient${uniqueId})" stroke="#555" stroke-width="0.5"/>
+      <!-- 无人机机体金属质感 - 增强金属质感 -->
+      <linearGradient id="bodyGradient${uniqueId}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ffffff" />
+        <stop offset="50%" stop-color="${typeColor}" />
+        <stop offset="100%" stop-color="#111111" />
+      </linearGradient>
+      
+      <!-- 螺旋桨动画 - 更明显的动画效果 -->
+      <linearGradient id="propGradient${uniqueId}" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#aaaaaa" stop-opacity="0.4"/>
+      </linearGradient>
+    </defs>
+    
+    <!-- 机身 -->
+    <g filter="url(#glow${uniqueId})">
+      <!-- 机身主体 - 中央部分 -->
+      <circle cx="32" cy="32" r="10" fill="url(#bodyGradient${uniqueId})" stroke="#555" stroke-width="0.5"/>
+      
+      <!-- 四个机臂 -->
+      <line x1="32" y1="32" x2="15" y2="15" stroke="#333" stroke-width="3" />
+      <line x1="32" y1="32" x2="49" y2="15" stroke="#333" stroke-width="3" />
+      <line x1="32" y1="32" x2="15" y2="49" stroke="#333" stroke-width="3" />
+      <line x1="32" y1="32" x2="49" y2="49" stroke="#333" stroke-width="3" />
+      
+      <!-- 四个电机和螺旋桨 -->
+      <g>
+        <!-- 左上电机与螺旋桨 -->
+        <circle cx="15" cy="15" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
+        ${drone.status === 'flying' ? `
+        <circle cx="15" cy="15" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
+          <animateTransform attributeName="transform" type="rotate" from="0 15 15" to="360 15 15" dur="0.15s" repeatCount="indefinite"/>
+        </circle>` : `
+        <line x1="9" y1="15" x2="21" y2="15" stroke="#aaa" stroke-width="1.5"/>
+        <line x1="15" y1="9" x2="15" y2="21" stroke="#aaa" stroke-width="1.5"/>`}
         
-        <!-- 四个机臂 -->
-        <line x1="32" y1="32" x2="15" y2="15" stroke="#333" stroke-width="3" />
-        <line x1="32" y1="32" x2="49" y2="15" stroke="#333" stroke-width="3" />
-        <line x1="32" y1="32" x2="15" y2="49" stroke="#333" stroke-width="3" />
-        <line x1="32" y1="32" x2="49" y2="49" stroke="#333" stroke-width="3" />
+        <!-- 右上电机与螺旋桨 -->
+        <circle cx="49" cy="15" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
+        ${drone.status === 'flying' ? `
+        <circle cx="49" cy="15" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
+          <animateTransform attributeName="transform" type="rotate" from="0 49 15" to="360 49 15" dur="0.17s" repeatCount="indefinite"/>
+        </circle>` : `
+        <line x1="43" y1="15" x2="55" y2="15" stroke="#aaa" stroke-width="1.5"/>
+        <line x1="49" y1="9" x2="49" y2="21" stroke="#aaa" stroke-width="1.5"/>`}
         
-        <!-- 四个电机和螺旋桨 -->
-        <g>
-          <!-- 左上电机与螺旋桨 -->
-          <circle cx="15" cy="15" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
-          ${drone.status === 'flying' ? `
-          <circle cx="15" cy="15" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
-            <animateTransform attributeName="transform" type="rotate" from="0 15 15" to="360 15 15" dur="0.15s" repeatCount="indefinite"/>
-          </circle>` : `
-          <line x1="9" y1="15" x2="21" y2="15" stroke="#aaa" stroke-width="1.5"/>
-          <line x1="15" y1="9" x2="15" y2="21" stroke="#aaa" stroke-width="1.5"/>`}
-          
-          <!-- 右上电机与螺旋桨 -->
-          <circle cx="49" cy="15" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
-          ${drone.status === 'flying' ? `
-          <circle cx="49" cy="15" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
-            <animateTransform attributeName="transform" type="rotate" from="0 49 15" to="360 49 15" dur="0.17s" repeatCount="indefinite"/>
-          </circle>` : `
-          <line x1="43" y1="15" x2="55" y2="15" stroke="#aaa" stroke-width="1.5"/>
-          <line x1="49" y1="9" x2="49" y2="21" stroke="#aaa" stroke-width="1.5"/>`}
-          
-          <!-- 左下电机与螺旋桨 -->
-          <circle cx="15" cy="49" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
-          ${drone.status === 'flying' ? `
-          <circle cx="15" cy="49" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
-            <animateTransform attributeName="transform" type="rotate" from="0 15 49" to="360 15 49" dur="0.16s" repeatCount="indefinite"/>
-          </circle>` : `
-          <line x1="9" y1="49" x2="21" y2="49" stroke="#aaa" stroke-width="1.5"/>
-          <line x1="15" y1="43" x2="15" y2="55" stroke="#aaa" stroke-width="1.5"/>`}
-          
-          <!-- 右下电机与螺旋桨 -->
-          <circle cx="49" cy="49" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
-          ${drone.status === 'flying' ? `
-          <circle cx="49" cy="49" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
-            <animateTransform attributeName="transform" type="rotate" from="0 49 49" to="360 49 49" dur="0.14s" repeatCount="indefinite"/>
-          </circle>` : `
-          <line x1="43" y1="49" x2="55" y2="49" stroke="#aaa" stroke-width="1.5"/>
-          <line x1="49" y1="43" x2="49" y2="55" stroke="#aaa" stroke-width="1.5"/>`}
-        </g>
+        <!-- 左下电机与螺旋桨 -->
+        <circle cx="15" cy="49" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
+        ${drone.status === 'flying' ? `
+        <circle cx="15" cy="49" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
+          <animateTransform attributeName="transform" type="rotate" from="0 15 49" to="360 15 49" dur="0.16s" repeatCount="indefinite"/>
+        </circle>` : `
+        <line x1="9" y1="49" x2="21" y2="49" stroke="#aaa" stroke-width="1.5"/>
+        <line x1="15" y1="43" x2="15" y2="55" stroke="#aaa" stroke-width="1.5"/>`}
         
-        <!-- 状态指示灯 - 增强亮度 -->
-        <circle cx="32" cy="32" r="5" fill="${statusColor}" opacity="0.9">
-          ${drone.status === 'flying' || drone.status === 'charging' ? 
-          `<animate attributeName="opacity" values="0.6;1;0.6" dur="1s" repeatCount="indefinite"/>` : ''}
-        </circle>
-        
-        <!-- 电池电量指示器 -->
-        <rect x="27" y="20" width="10" height="3" rx="1" fill="#222" stroke="#444" stroke-width="0.3"/>
-        <rect x="27.5" y="20.5" width="${(batteryLevel/100) * 9}" height="2" rx="0.5" fill="${batteryColor}"/>
-        
-        <!-- 无人机ID标识 -->
-        <text x="32" y="48" text-anchor="middle" font-size="5" fill="white" stroke="black" stroke-width="0.5" font-weight="bold">${drone.name.substring(0, 6)}</text>
+        <!-- 右下电机与螺旋桨 -->
+        <circle cx="49" cy="49" r="4" fill="#444" stroke="#222" stroke-width="0.5"/>
+        ${drone.status === 'flying' ? `
+        <circle cx="49" cy="49" r="8" fill="url(#propGradient${uniqueId})" opacity="0.7">
+          <animateTransform attributeName="transform" type="rotate" from="0 49 49" to="360 49 49" dur="0.14s" repeatCount="indefinite"/>
+        </circle>` : `
+        <line x1="43" y1="49" x2="55" y2="49" stroke="#aaa" stroke-width="1.5"/>
+        <line x1="49" y1="43" x2="49" y2="55" stroke="#aaa" stroke-width="1.5"/>`}
       </g>
-    </svg>
-  `;
+      
+      <!-- 状态指示灯 - 增强亮度 -->
+      <circle cx="32" cy="32" r="5" fill="${statusColor}" opacity="0.9">
+        ${drone.status === 'flying' || drone.status === 'charging' ? 
+        `<animate attributeName="opacity" values="0.6;1;0.6" dur="1s" repeatCount="indefinite"/>` : ''}
+      </circle>
+      
+      <!-- 电池电量指示器 -->
+      <rect x="27" y="20" width="10" height="3" rx="1" fill="#222" stroke="#444" stroke-width="0.3"/>
+      <rect x="27.5" y="20.5" width="${(batteryLevel/100) * 9}" height="2" rx="0.5" fill="${batteryColor}"/>
+      
+      <!-- 无人机ID标识 -->
+      <text x="32" y="48" text-anchor="middle" font-size="5" fill="white" stroke="black" stroke-width="0.5" font-weight="bold">${drone.name.substring(0, 6)}</text>
+    </g>
+  </svg>
+`;
 };
 
 // Get drone icon for IconLayer
 const getDroneIcon = (drone) => {
-  // Ensure proper encoding for complex SVGs with special characters
-  const svgContent = getDroneSvgIcon(drone);
-  const encodedSvg = encodeURIComponent(svgContent)
-    .replace(/'/g, '%27')
-    .replace(/"/g, '%22');
-  
-  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-  
-  return {
-    url: dataUrl,
-    width: 512,
-    height: 512,
-    anchorX: 256,
-    anchorY: 256,
-    mask: false
-  };
+// Ensure proper encoding for complex SVGs with special characters
+const svgContent = getDroneSvgIcon(drone);
+const encodedSvg = encodeURIComponent(svgContent)
+  .replace(/'/g, '%27')
+  .replace(/"/g, '%22');
+
+const dataUrl = `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
+
+return {
+  url: dataUrl,
+  width: 512,
+  height: 512,
+  anchorX: 256,
+  anchorY: 256,
+  mask: false
+};
 }
 
 // Get icon for event
 const getEventIcon = (event) => {
-  // Deck.gl预定义的图标名称
-  return 'warning'
+// Deck.gl预定义的图标名称
+return 'warning'
 }
 
 // Get size for event
 const getEventSize = (event) => {
-  switch (event.priority) {
-    case 'high':
-      return 5
-    case 'medium':
-      return 4
-    case 'low':
-      return 3
-    default:
-      return 3
-  }
+switch (event.priority) {
+  case 'high':
+    return 5
+  case 'medium':
+    return 4
+  case 'low':
+    return 3
+  default:
+    return 3
+}
 }
 
 // Get color for event
 const getEventColor = (event) => {
-  switch (event.priority) {
-    case 'high':
-      return [255, 59, 48, 255]  // Red
-    case 'medium':
-      return [255, 149, 0, 255]  // Orange
-    case 'low':
-      return [255, 204, 0, 255]  // Yellow
-    default:
-      return [0, 122, 255, 255]  // Blue
-  }
+switch (event.priority) {
+  case 'high':
+    return [255, 59, 48, 255]  // Red
+  case 'medium':
+    return [255, 149, 0, 255]  // Orange
+  case 'low':
+    return [255, 204, 0, 255]  // Yellow
+  default:
+    return [0, 122, 255, 255]  // Blue
+}
 }
 
 // Toggle 3D view
@@ -2556,19 +2556,19 @@ const flyToWhu = () => {
   if (!map) return;
   
   try {
-    console.log('飞行到武汉大学');
+  console.log('飞行到武汉大学');
     
-    // 添加动画效果
+  // 添加动画效果
     map.flyTo({
-      center: [WHU_LOCATION.longitude, WHU_LOCATION.latitude],
-      zoom: WHU_LOCATION.zoom,
-      pitch: WHU_LOCATION.pitch,
-      bearing: WHU_LOCATION.bearing,
+    center: [WHU_LOCATION.longitude, WHU_LOCATION.latitude],
+    zoom: WHU_LOCATION.zoom,
+    pitch: WHU_LOCATION.pitch,
+    bearing: WHU_LOCATION.bearing,
       duration: 3000, // 较长的动画时间
       essential: true
     });
   } catch (error) {
-    console.error('飞行到武汉大学时出错:', error);
+  console.error('飞行到武汉大学时出错:', error);
   }
 };
 
@@ -2576,12 +2576,12 @@ const flyToWhu = () => {
 const initializeWithAnimation = () => {
   // 首先定位到默认位置的较远视角
   if (map) {
-    console.log('初始化动态飞行到武汉大学');
+  console.log('初始化动态飞行到武汉大学');
     
     // 设置初始视角为较远的视角
     map.jumpTo({
-      center: [114.36, 30.52], // 稍微偏离武汉大学的位置
-      zoom: 10, // 较小的缩放级别表示更远的视角
+    center: [114.36, 30.52], // 稍微偏离武汉大学的位置
+    zoom: 10, // 较小的缩放级别表示更远的视角
       pitch: 0,
       bearing: 0
     });
@@ -2595,44 +2595,44 @@ const initializeWithAnimation = () => {
 
 // 启动所有无人机巡逻
 const startPatrol = () => {
-  if (!map) return;
+if (!map) return;
+
+try {
+  console.log('开始无人机巡逻');
+  patrolStatus.value = true;
   
-  try {
-    console.log('开始无人机巡逻');
-    patrolStatus.value = true;
-    
-    // DO NOT Clear existing routes - let animation continue or generate if needed
-    // dronePatrolRoutes.clear(); 
-    
-    // Start animation loop
-    if (!animationFrameId) {
-      animationFrameId = requestAnimationFrame(animatePatrol);
-    }
-  } catch (error) {
-    console.error('启动巡逻时出错:', error);
+  // DO NOT Clear existing routes - let animation continue or generate if needed
+  // dronePatrolRoutes.clear(); 
+  
+  // Start animation loop
+  if (!animationFrameId) {
+    animationFrameId = requestAnimationFrame(animatePatrol);
   }
+} catch (error) {
+  console.error('启动巡逻时出错:', error);
+}
 };
 
 // 停止所有无人机巡逻
 const stopPatrol = () => {
-  if (!map) return;
+if (!map) return;
+
+try {
+  console.log('停止无人机巡逻');
+  patrolStatus.value = false;
   
-  try {
-    console.log('停止无人机巡逻');
-    patrolStatus.value = false;
-    
-    // Cancel animation frame
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
-    
-    // Force one last render to capture final positions in droneLastKnownPositions
-    renderDeckLayers();
-    
-  } catch (error) {
-    console.error('停止巡逻时出错:', error);
+  // Cancel animation frame
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
+  
+  // Force one last render to capture final positions in droneLastKnownPositions
+  renderDeckLayers();
+  
+} catch (error) {
+  console.error('停止巡逻时出错:', error);
+}
 };
 
 // 修改开始巡逻方法
@@ -2730,10 +2730,10 @@ onMounted(() => {
 
 // Cleanup on unmount
 onUnmounted(() => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
+if (animationFrameId) {
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
+}
 
   if (map) {
     map.remove()
@@ -2756,98 +2756,98 @@ defineExpose({
   startDronePatrol,
   stopDronePatrol,
   getPatrolStatus,
-  changeMapStyle,
-  showEventInfo,
-  closeEventInfo,
-  startPatrol,
-  stopPatrol
+changeMapStyle,
+showEventInfo,
+closeEventInfo,
+startPatrol,
+stopPatrol
 })
 </script>
-  
+
 <style scoped>
 .mapboxgl-canvas {
-  outline: none;
+outline: none;
 }
 
 #deck-canvas {
-  z-index: 2;
+z-index: 2;
 }
 
 .drone-highlight {
-  animation: pulse 1.5s infinite;
+animation: pulse 1.5s infinite;
 }
-  
+
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+0% { transform: scale(1); opacity: 1; }
+50% { transform: scale(1.1); opacity: 0.8; }
+100% { transform: scale(1); opacity: 1; }
 }
 
 /* 自定义地图控制按钮 */
 .map-control-btn {
-  background-color: rgba(30, 41, 59, 0.85) !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+background-color: rgba(30, 41, 59, 0.85) !important;
+color: #e2e8f0 !important;
+border: 1px solid rgba(51, 65, 85, 0.6) !important;
 }
 
 /* 覆盖Naive UI组件样式 */
 :deep(.n-button:not(.n-button--primary-type)) {
-  background-color: rgba(30, 41, 59, 0.85) !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+background-color: rgba(30, 41, 59, 0.85) !important;
+color: #e2e8f0 !important;
+border: 1px solid rgba(51, 65, 85, 0.6) !important;
 }
 
 :deep(.n-checkbox__label) {
-  color: #e2e8f0 !important;
+color: #e2e8f0 !important;
 }
 
 :deep(.n-radio__label) {
-  color: #e2e8f0 !important;
+color: #e2e8f0 !important;
 }
 
 /* 完全覆盖Naive UI的弹出框样式 - 更加彻底的覆盖 */
 :deep(.n-popover) {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+background-color: transparent !important;
+border: none !important;
+box-shadow: none !important;
+padding: 0 !important;
 }
 
 :deep(.n-popover-shared) {
-  box-shadow: none !important;
-  background-color: transparent !important;
+box-shadow: none !important;
+background-color: transparent !important;
 }
 
 :deep(.n-popover__content) {
-  background-color: transparent !important;
-  padding: 0 !important;
+background-color: transparent !important;
+padding: 0 !important;
 }
 
 /* 覆盖弹出框的内部容器 */
 :deep(.n-popover-shared__content) {
-  background-color: transparent !important;
-  border: none !important;
-  padding: 0 !important;
+background-color: transparent !important;
+border: none !important;
+padding: 0 !important;
 }
 
 :deep(.n-popover-shared-container) {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+background-color: transparent !important;
+border: none !important;
+box-shadow: none !important;
+padding: 0 !important;
 }
 
 /* 统一图层控制和地图样式面板的样式 */
 .layer-control-panel {
-  background-color: #1e293b !important;
-  border: 1px solid rgba(51, 65, 85, 0.8) !important;
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  min-width: 10rem;
-  color: #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+background-color: #1e293b !important;
+border: 1px solid rgba(51, 65, 85, 0.8) !important;
+border-radius: 0.375rem;
+padding: 0.75rem;
+min-width: 10rem;
+color: #e2e8f0;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
 }
 </style>

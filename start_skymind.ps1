@@ -3,8 +3,8 @@
 
 # 定义路径变量
 $VENV_PATH = "D:\Desktop\gitSkyMind\venv"
-$FRONTEND_PATH = "D:\Desktop\gitSkyMind\SkyMind\frontend"
-$BACKEND_PATH = "D:\Desktop\gitSkyMind\SkyMind\backend"
+$FRONTEND_PATH = ".\frontend"
+$BACKEND_PATH = ".\backend"
 
 # 显示欢迎信息
 Write-Host "=================================================" -ForegroundColor Cyan

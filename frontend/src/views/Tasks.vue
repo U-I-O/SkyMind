@@ -1,17 +1,35 @@
-<template>
-  <div class="h-full pointer-events-none">
+/* 调整表格行高使其更紧凑 */
+.compact-table :deep(.n-data-table-tr) {
+  height: auto;
+}
+
+.compact-table :deep(.n-data-table-th),
+.compact-table :deep(.n-data-table-td) {
+  padding: 4px 8px;
+}
+
+/* 减小分页控件的尺寸 */
+.compact-table :deep(.n-pagination) {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.compact-table :deep(.n-base-selection) {
+  font-size: 12px;
+}<template>
+  <div class="h-screen pointer-events-none flex flex-col">
     <!-- 漂浮面板容器 -->
-    <div class="p-4 h-full">
-      <div class="h-full grid grid-cols-12 gap-4">
+    <div class="p-2 flex-1 overflow-hidden">
+      <div class="h-full grid grid-cols-12 gap-3">
         <!-- 任务管理面板（占据整行） -->
-        <div class="col-span-12 flex flex-col gap-4 pointer-events-auto">
+        <div class="col-span-12 flex flex-col gap-3 pointer-events-auto h-full overflow-hidden">
           <!-- 任务列表面板（合并了标题和列表） -->
-          <div class="floating-card dark-theme-override flex-1 flex flex-col overflow-hidden">
+          <div class="floating-card dark-theme-override flex-1 flex flex-col overflow-hidden max-h-[50vh]">
             <!-- 标题和操作按钮 -->
-            <div class="flex justify-between items-center mb-4">
-              <h1 class="text-2xl font-bold">任务管理</h1>
+            <div class="flex justify-between items-center mb-1">
+              <h1 class="text-lg font-bold">任务管理</h1>
               <div class="actions">
-                <n-button @click="fetchTasks" :loading="loading" title="刷新列表">
+                <n-button @click="fetchTasks" :loading="loading" title="刷新列表" size="small">
                   <template #icon><n-icon><reload-outlined /></n-icon></template>
                   刷新
                 </n-button>
@@ -28,8 +46,8 @@
                     :loading="loading"
                     :pagination="pagination"
                     :row-key="row => row.task_id"
-                    class="custom-table"
-                    :style="{ minHeight: '300px' }"
+                    class="custom-table compact-table"
+                    :style="{ minHeight: '150px' }"
                   />
                 </div>
               </n-tab-pane>
@@ -42,8 +60,8 @@
                     :loading="loading"
                     :pagination="pagination"
                     :row-key="row => row.task_id"
-                    class="custom-table"
-                    :style="{ minHeight: '300px' }"
+                    class="custom-table compact-table"
+                    :style="{ minHeight: '150px' }"
                   />
                 </div>
               </n-tab-pane>
@@ -51,10 +69,10 @@
           </div>
           
           <!-- 任务详情面板 -->
-          <div class="floating-card dark-theme-override">
-            <h2 class="text-lg font-bold mb-4">任务详情</h2>
-            <div v-if="selectedTask" class="space-y-4">
-              <n-descriptions label-placement="left" bordered :column="2" size="small">
+          <div class="floating-card dark-theme-override max-h-[45vh] overflow-hidden flex flex-col">
+            <h2 class="text-lg font-bold mb-2">任务详情</h2>
+            <div v-if="selectedTask" class="space-y-3 overflow-auto custom-scrollbar flex-1">
+              <n-descriptions label-placement="left" bordered :column="2" size="small" class="dark-theme-descriptions">
                 <n-descriptions-item label="任务ID">{{ shortenId(selectedTask.task_id) }}</n-descriptions-item>
                 <n-descriptions-item label="标题">{{ selectedTask.title }}</n-descriptions-item>
                 <n-descriptions-item label="类型">
@@ -81,13 +99,13 @@
                       {{ drone.name || drone.drone_id }} ({{ getDroneStatusText(drone.status) }})
                     </n-tag>
                   </n-space>
-                  <span v-else class="text-gray-500">未分配</span>
+                  <span v-else class="text-gray-500 dark-text">未分配</span>
                 </n-descriptions-item>
                 <n-descriptions-item label="描述" :span="2">
                   {{ selectedTask.description || '无描述' }}
                 </n-descriptions-item>
                 <n-descriptions-item label="任务数据" :span="2" v-if="selectedTask.task_data">
-                  <pre class="text-xs bg-gray-100 p-2 rounded overflow-auto">{{ JSON.stringify(selectedTask.task_data, null, 2) }}</pre>
+                  <pre class="text-xs bg-slate-800 text-slate-200 p-2 rounded overflow-auto max-h-24">{{ JSON.stringify(selectedTask.task_data, null, 2) }}</pre>
                 </n-descriptions-item>
               </n-descriptions>
 
@@ -99,7 +117,7 @@
                 </n-button>
               </div>
             </div>
-            <div v-else class="py-12 flex items-center justify-center text-gray-400">
+            <div v-else class="py-4 flex items-center justify-center text-gray-400">
               从上方列表选择一个任务查看详情
             </div>
           </div>
@@ -158,8 +176,8 @@ const completedTasks = computed(() =>
 
 // --- Constants ---
 const pagination = ref({ 
-  pageSize: 4,
-  pageSizes: [4, 8, 12, 20],
+  pageSize: 3,
+  pageSizes: [3, 4, 8, 12],
   showSizePicker: true,
   onChange: (page) => {
     console.log('切换到页码：', page);
@@ -889,5 +907,57 @@ pre {
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 150px;
+}
+
+/* 自定义样式调整任务详情面板 */
+.dark-theme-descriptions :deep(.n-descriptions-table-wrapper) {
+  background-color: var(--bg-element) !important;
+}
+
+.dark-theme-descriptions :deep(.n-descriptions-table-header) {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+}
+
+.dark-theme-descriptions :deep(.n-descriptions-table-tbody) {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.dark-theme-descriptions :deep(.n-descriptions-table) {
+  border-collapse: collapse;
+  border-color: var(--border-color) !important;
+}
+
+.dark-theme-descriptions :deep(.n-descriptions-table-td) {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-descriptions :deep(.n-descriptions-table-th) {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 调整任务数据JSON预览区域样式 */
+pre.dark-theme-override {
+  background-color: rgba(15, 23, 42, 0.8);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* 确保所有文本颜色在暗色主题下可见 */
+.dark-text {
+  color: var(--text-secondary) !important;
+}
+
+/* 强制覆盖任务详情表格的所有元素 */
+.dark-theme-descriptions :deep(td),
+.dark-theme-descriptions :deep(th),
+.dark-theme-descriptions :deep(tr),
+.dark-theme-descriptions :deep(table) {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
 }
 </style>

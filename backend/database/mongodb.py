@@ -184,29 +184,6 @@ async def create_initial_data():
                         ),
                         name="长江沿岸"
                     )
-                ),
-                Task(
-                    title="城市安防巡逻",
-                    description="对主要交通干道进行安全巡逻",
-                    type=TaskType.SURVEILLANCE,
-                    priority=6,
-                    status=TaskStatus.COMPLETED,
-                    created_by="admin",
-                    assigned_drones=[drone_ids[3]] if len(drone_ids) > 3 else [],
-                    start_location=Location(
-                        position=GeoPoint(
-                            coordinates=[114.39, 30.55],
-                            altitude=120.0
-                        ),
-                        name="武汉火车站"
-                    ),
-                    end_location=Location(
-                        position=GeoPoint(
-                            coordinates=[114.39, 30.49],
-                            altitude=120.0
-                        ),
-                        name="武昌火车站"
-                    )
                 )
             ]
             

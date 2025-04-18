@@ -50,6 +50,7 @@ class TaskType(str, Enum):
     DELIVERY = "delivery"
     INSPECTION = "inspection"
     SURVEILLANCE = "surveillance"
+    PATROL = "patrol"
     OTHER = "other"
 
 
@@ -176,33 +177,24 @@ class Task(Document):
     task_id: str = Field(default_factory=lambda: str(uuid.uuid4()), unique=True, index=True)
     title: str
     description: str
-    type: TaskType
-    priority: int = 1  # 1-10，10为最高优先级
+    type: TaskType = TaskType.PATROL  # 默认巡逻任务
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: str  # 用户ID或智能体ID
-    assigned_drones: List[str] = []  # 分配的无人机ID
-    assigned_agents: List[str] = []  # 分配的智能体ID
-    start_location: Optional[Location] = None
-    end_location: Optional[Location] = None
-    waypoints: Optional[List[Location]] = None
-    planned_path: Optional[FlightPath] = None
-    time_window: Optional[TimeWindow] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    related_events: List[str] = []  # 相关事件ID
-    completion_criteria: Optional[Dict[str, Any]] = None
-    task_data: Optional[Dict[str, Any]] = None  # 任务相关的额外数据
-    
+    created_by: str  # 用户ID
+    assigned_drones: List[str] = []  # 无人机ID列表
+    related_events: List[str] = []   # 保留事件关联
+    # 巡逻任务特有字段
+    rounds: int = 1                  # 巡逻轮次
+    altitude: float = 50.0           # 飞行高度（米）
+    speed: float = 5.0               # 飞行速度（m/s）
+    priority: int = 1                # 优先级
+    patrol_area: Dict[str, Any] = Field(default_factory=lambda: {"type": "Polygon", "coordinates": []})
+    schedule: Dict[str, Any] = Field(default_factory=lambda: {"type": "once", "date": None, "weekdays": [], "time": None})
+
     class Settings:
         name = "tasks"
-        use_revision = True
         indexes = [
-            "task_id",
-            "type",
-            "status",
-            "priority",
-            "created_at"
+            "task_id", "type", "status", "created_at"
         ]
 
 

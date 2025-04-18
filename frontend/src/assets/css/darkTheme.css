@@ -1,0 +1,290 @@
+/* 暗色主题变量 */
+:root {
+    --bg-card: rgba(15, 23, 42, 0.75); /* slate-900 with opacity */
+    --bg-card-hover: rgba(30, 41, 59, 0.6); /* 悬停状态背景 */
+    --bg-element: rgba(30, 41, 59, 0.7); /* 输入框等元素背景 */
+    --text-primary: #e2e8f0; /* slate-200 */
+    --text-secondary: #94a3b8; /* slate-400 */
+    --text-muted: #64748b; /* slate-500 */
+    --border-color: rgba(51, 65, 85, 0.5); /* slate-700 with opacity */
+    --highlight-color: #3b82f6; /* blue-500 */
+    --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --input-placeholder: rgba(235, 235, 245, 0.6); /* 输入框placeholder颜色 */
+    --btn-primary-bg: rgba(17, 24, 39, 0.8); /* 主要按钮背景色 */
+    --btn-primary-border: rgba(255, 255, 255, 0.7); /* 主要按钮边框色 */
+    --btn-primary-hover-bg: rgba(31, 41, 55, 0.9); /* 主要按钮悬停背景色 */
+    --btn-danger-bg: rgba(185, 28, 28, 0.7); /* 危险按钮背景色 */
+    --btn-success-bg: rgba(22, 101, 52, 0.7); /* 成功按钮背景色 */
+  }
+  
+  /* 浮动卡片全局样式 */
+  .floating-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    z-index: 100;
+  }
+  
+  /* 暗色主题滚动条样式 */
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3); /* Firefox */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(51, 65, 85, 0.7);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(59, 130, 246, 0.7);
+  }
+  
+  /* Naive UI 组件暗色主题覆盖 */
+  .dark-theme-override .n-data-table {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-data-table-th {
+    background-color: rgba(30, 41, 59, 0.9) !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-data-table-td {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  
+  /* 按钮样式覆盖 */
+  .dark-theme-override .n-button.n-button--primary-type {
+    background-color: var(--btn-primary-bg) !important;
+    border: 1px solid var(--btn-primary-border) !important;
+    color: #ffffff !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--primary-type:hover {
+    background-color: var(--btn-primary-hover-bg) !important;
+    border: 1px solid #ffffff !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--error-type {
+    background-color: var(--btn-danger-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--success-type {
+    background-color: var(--btn-success-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  .dark-theme-override .n-button.n-button--info-type {
+    background-color: var(--bg-element) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  .dark-theme-override .n-button:not(.n-button--primary-type) {
+    background-color: rgba(51, 65, 85, 0.8) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  }
+  
+  .dark-theme-override .n-input, 
+  .dark-theme-override .n-select {
+    background-color: var(--bg-element) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  
+  .dark-theme-override .n-pagination {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-pagination .n-button {
+    background-color: var(--bg-element) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab {
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab:hover {
+    color: var(--highlight-color) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab--active {
+    color: var(--highlight-color) !important;
+  }
+  
+  /* Make sure tab text is visible even when not active */
+  .dark-theme-override .n-tab-pane-scroll-content {
+    color: var(--text-primary) !important;
+  }
+  
+  .dark-theme-override .n-tabs .n-tab-pane {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 全局输入框样式 */
+  .dark-theme-override .n-input .n-input__placeholder,
+  .dark-theme-override .n-input-number .n-input__placeholder,
+  .dark-theme-override .n-time-picker .n-input__placeholder,
+  .dark-theme-override .n-date-picker .n-input__placeholder,
+  .dark-theme-override .n-select .n-base-selection-placeholder {
+    color: var(--input-placeholder) !important;
+  }
+
+  .dark-theme-override .n-input .n-input__input-el,
+  .dark-theme-override .n-input-number .n-input__input-el,
+  .dark-theme-override .n-time-picker .n-input__input-el,
+  .dark-theme-override .n-date-picker .n-input__input-el,
+  .dark-theme-override .n-select .n-base-selection-input {
+    color: var(--text-primary) !important;
+  }
+
+  .dark-theme-override .n-input-number .n-input-number-suffix {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 文本颜色覆盖 */
+  .dark-theme-override .text-gray-400,
+  .dark-theme-override .text-gray-500,
+  .dark-theme-override .text-gray-600 {
+    color: var(--text-secondary) !important;
+  }
+  
+  .dark-theme-override .text-gray-700,
+  .dark-theme-override .text-gray-800,
+  .dark-theme-override .font-bold,
+  .dark-theme-override .font-medium,
+  .dark-theme-override h1,
+  .dark-theme-override h2,
+  .dark-theme-override h3 {
+    color: var(--text-primary) !important;
+  }
+  
+  /* 特殊背景颜色覆盖 */
+  .dark-theme-override .bg-gray-50,
+  .dark-theme-override .bg-gray-100 {
+    background-color: rgba(30, 41, 59, 0.6) !important;
+  }
+  
+  .dark-theme-override .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+  }
+  
+  .dark-theme-override .bg-green-50 {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+  }
+  
+  .dark-theme-override .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+  }
+  
+  /* 选中状态 */
+  .dark-theme-override .border-blue-500.bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.3) !important;
+    border-color: rgba(59, 130, 246, 0.7) !important;
+  }
+
+  /* Override hover background for drone list items */
+.dark-theme-override .hover\:bg-gray-50:hover {
+  background-color: var(--bg-card-hover) !important; /* Using the already defined hover variable */
+}
+
+/* Ensure heading text colors are visible in dark mode */
+.dark-theme-override h4,
+.dark-theme-override .text-gray-700 {
+  color: var(--text-primary) !important;
+}
+
+/* 控制弹窗样式覆盖 */
+.dark-theme-override .n-modal {
+  background-color: var(--bg-card) !important;
+}
+
+.dark-theme-override .n-card {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme-override .n-card-header {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-form-item-label {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-input-number {
+  background-color: var(--bg-element) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme-override .n-slider {
+  --n-fill-color: var(--highlight-color) !important;
+  --n-rail-color: var(--border-color) !important;
+}
+
+.dark-theme-override .n-slider-handles {
+  --n-handle-color: var(--highlight-color) !important;
+}
+
+/* Additional override for section headers in drone details */
+.dark-theme-override .mb-4.flex.items-center h4.font-medium {
+  color: var(--text-primary) !important;
+}
+
+/* 2. 右侧事件详情面板中的步骤和表单文本 */
+.dark-theme-override .n-steps .n-step-content__title {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme-override .n-steps .n-step-content__description {
+  color: var(--text-secondary) !important;
+}
+
+/* 右侧事件处理流程标题 */
+.dark-theme-override h3.font-medium {
+  color: var(--text-primary) !important;
+}
+
+/* 表单项标签和文本 */
+.dark-theme-override .n-form-item .n-form-item-label {
+  color: var(--text-primary) !important;
+}
+
+/* 输入框内文本 */
+.dark-theme-override .n-input__input-el,
+.dark-theme-override .n-input__textarea-el {
+  color: var(--text-primary) !important;
+}
+
+/* 右侧面板中的灰色文本标签 */
+.dark-theme-override .text-gray-500.text-sm {
+  color: var(--text-secondary) !important;
+}
+
+/* 事件详情分隔标题的颜色 */
+.dark-theme-override .font-medium {
+  color: var(--text-primary) !important;
+}

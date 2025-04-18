@@ -381,8 +381,9 @@ class CoordinatorAgent(BaseAgent):
                 "object_detection": 0.5
             }
         
-        # 可以根据任务的具体描述或要求调整能力需求
-        if task.task_data and "required_capabilities" in task.task_data:
+
+        # 修改后（兼容无 task_data 的情况）：
+        if hasattr(task, "task_data") and task.task_data and "required_capabilities" in task.task_data:
             # 合并自定义能力需求
             capabilities.update(task.task_data["required_capabilities"])
         

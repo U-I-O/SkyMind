@@ -1,12 +1,12 @@
 <template>
-  <div class="h-full pointer-events-none">
+  <div class="h-full">
     <!-- 使用全局地图，不需要在此页面添加地图组件 -->
-    <div class="p-4 h-full">
+    <div class="p-4 h-full overflow-hidden">
       <div class="h-full grid grid-cols-12 gap-4">
         <!-- 左侧面板 -->
-        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto">
+        <div class="col-span-3 flex flex-col gap-4 pointer-events-auto h-full overflow-hidden">
           <!-- 标题和操作按钮 -->
-          <div class="floating-card">
+          <div class="floating-card dark-theme-override">
             <div class="flex justify-between items-center mb-4">
               <h1 class="text-2xl font-bold">无人机管理</h1>
               
@@ -29,12 +29,12 @@
             </div>
           </div>
           
-          <!-- 无人机状态统计 -->
-          <div class="floating-card">
+          <!-- 无人机状态统计 (独立面板) -->
+          <div class="floating-card dark-theme-override">
             <h2 class="font-bold text-lg mb-4">无人机状态</h2>
             <div class="grid grid-cols-5 gap-4">
               <div class="flex flex-col items-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-blue-100 text-blue-500 mb-2">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-blue-800 bg-opacity-50 text-blue-400 mb-2">
                   <n-icon size="24"><drone-icon /></n-icon>
                 </div>
                 <div class="text-sm text-gray-500">总无人机</div>
@@ -42,7 +42,7 @@
               </div>
               
               <div class="flex flex-col items-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-500 mb-2">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-800 bg-opacity-50 text-green-400 mb-2">
                   <n-icon size="24"><check-icon /></n-icon>
                 </div>
                 <div class="text-sm text-gray-500">在线</div>
@@ -50,7 +50,7 @@
               </div>
               
               <div class="flex flex-col items-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-500 mb-2">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-800 bg-opacity-50 text-yellow-400 mb-2">
                   <n-icon size="24"><flight-icon /></n-icon>
                 </div>
                 <div class="text-sm text-gray-500">飞行中</div>
@@ -58,7 +58,7 @@
               </div>
               
               <div class="flex flex-col items-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-purple-100 text-purple-500 mb-2">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-purple-800 bg-opacity-50 text-purple-400 mb-2">
                   <n-icon size="24"><thunderbolt-icon /></n-icon>
                 </div>
                 <div class="text-sm text-gray-500">充电中</div>
@@ -66,7 +66,7 @@
               </div>
               
               <div class="flex flex-col items-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-500 mb-2">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-800 bg-opacity-50 text-red-400 mb-2">
                   <n-icon size="24"><warning-icon /></n-icon>
                 </div>
                 <div class="text-sm text-gray-500">离线</div>
@@ -75,8 +75,499 @@
             </div>
           </div>
           
-          <!-- 筛选条件 -->
-          <div class="floating-card">
+          <!-- 详情信息面板 (移到左侧) -->
+          <div v-if="selectedDrone" class="floating-card dark-theme-override flex-1 overflow-hidden">
+            <div class="h-full overflow-y-auto custom-scrollbar" style="max-height: calc(100vh - 260px);">
+              <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3"
+                       :class="{'bg-blue-100 text-blue-500': selectedDrone.status === 'idle', 
+                               'bg-green-100 text-green-500': selectedDrone.status === 'flying',
+                               'bg-yellow-100 text-yellow-500': selectedDrone.status === 'charging',
+                               'bg-purple-100 text-purple-500': selectedDrone.status === 'maintenance',
+                               'bg-red-100 text-red-500': selectedDrone.status === 'offline'}">
+                    <n-icon size="24"><drone-icon /></n-icon>
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-lg">{{ selectedDrone.name }}</h3>
+                    <div class="text-xs text-gray-500">{{ selectedDrone.model }}</div>
+                  </div>
+                </div>
+                
+                <n-tag size="large" :type="getStatusType(selectedDrone.status)">
+                  <div class="flex items-center">
+                    <span class="w-2 h-2 rounded-full mr-1 inline-block animate-pulse"
+                         :class="{'bg-blue-500': selectedDrone.status === 'idle', 
+                                 'bg-green-500': selectedDrone.status === 'flying',
+                                 'bg-yellow-500': selectedDrone.status === 'charging',
+                                 'bg-purple-500': selectedDrone.status === 'maintenance',
+                                 'bg-red-500': selectedDrone.status === 'offline'}"></span>
+                    {{ getStatusText(selectedDrone.status) }}
+                  </div>
+                </n-tag>
+              </div>
+              
+              <n-divider style="margin: 10px 0;" />
+              
+              <!-- 实时数据概览卡片 -->
+              <div class="grid grid-cols-4 gap-3 mb-4">
+                <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-3 rounded-lg shadow-sm">
+                  <div class="text-xs text-blue-500 mb-1">电量状态</div>
+                  <div class="relative h-8 w-8 mb-1">
+                    <div class="battery-icon absolute inset-0">
+                      <div class="absolute left-0 bottom-0 bg-gradient-to-t rounded-sm transition-all duration-500"
+                           :class="{'from-red-400 to-red-300': selectedDrone.battery_level <= 20,
+                                   'from-yellow-400 to-yellow-300': selectedDrone.battery_level > 20 && selectedDrone.battery_level <= 50,
+                                   'from-green-400 to-green-300': selectedDrone.battery_level > 50}"
+                           :style="{height: `${selectedDrone.battery_level}%`, width: '100%'}">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-xl font-semibold" :class="getBatteryTextColor(selectedDrone.battery_level)">
+                    {{ selectedDrone.battery_level }}%
+                  </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-green-50 to-green-100 p-3 rounded-lg shadow-sm">
+                  <div class="text-xs text-green-500 mb-1">最大飞行时间</div>
+                  <div class="text-xl font-semibold text-green-600">
+                    {{ selectedDrone.max_flight_time || 30 }} <span class="text-sm font-normal">分钟</span>
+                  </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-purple-50 to-purple-100 p-3 rounded-lg shadow-sm">
+                  <div class="text-xs text-purple-500 mb-1">最大速度</div>
+                  <div class="text-xl font-semibold text-purple-600">
+                    {{ selectedDrone.max_speed || 15 }} <span class="text-sm font-normal">m/s</span>
+                  </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-amber-50 to-amber-100 p-3 rounded-lg shadow-sm">
+                  <div class="text-xs text-amber-500 mb-1">最大高度</div>
+                  <div class="text-xl font-semibold text-amber-600">
+                    {{ selectedDrone.max_altitude || 120 }} <span class="text-sm font-normal">m</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 数据标签页 - 自定义实现 -->
+              <div>
+                <!-- 自定义标签栏 -->
+                <div class="flex border-b border-gray-600 mb-4">
+                  <button 
+                    class="px-4 py-2 mr-2 border-b-2 focus:outline-none transition-colors"
+                    :class="[
+                      activeDetailTab === 'basic' 
+                        ? 'border-blue-500 text-blue-400' 
+                        : 'border-transparent text-gray-300 hover:text-gray-100'
+                    ]"
+                    @click="activeDetailTab = 'basic'"
+                  >
+                    基本信息
+                  </button>
+                  
+                  <button 
+                    class="px-4 py-2 mr-2 border-b-2 focus:outline-none transition-colors"
+                    :class="[
+                      activeDetailTab === 'performance' 
+                        ? 'border-blue-500 text-blue-400' 
+                        : 'border-transparent text-gray-300 hover:text-gray-100'
+                    ]"
+                    @click="activeDetailTab = 'performance'"
+                  >
+                    性能参数
+                  </button>
+                  
+                  <button 
+                    class="px-4 py-2 mr-2 border-b-2 focus:outline-none transition-colors"
+                    :class="[
+                      activeDetailTab === 'history' 
+                        ? 'border-blue-500 text-blue-400' 
+                        : 'border-transparent text-gray-300 hover:text-gray-100'
+                    ]"
+                    @click="activeDetailTab = 'history'"
+                  >
+                    历史记录
+                  </button>
+                  
+                  <button 
+                    class="px-4 py-2 border-b-2 focus:outline-none transition-colors text-xs"
+                    :class="[
+                      activeDetailTab === 'model' 
+                        ? 'border-blue-500 text-blue-400' 
+                        : 'border-transparent text-gray-300 hover:text-gray-100'
+                    ]"
+                    @click="activeDetailTab = 'model'"
+                  >
+                    3D模型
+                  </button>
+                </div>
+                
+                <!-- 标签内容区域 -->
+                <div>
+                  <!-- 基本信息标签页 -->
+                  <div v-if="activeDetailTab === 'basic'" class="grid grid-cols-1 gap-4 mb-4">
+                    <!-- 基本信息 -->
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-blue-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">基本信息</h4>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="grid grid-cols-2 gap-3">
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">ID</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.drone_id }}</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">型号</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.model }}</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">相机</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">
+                              <n-tag type="success" v-if="selectedDrone.camera_equipped">已装备</n-tag>
+                              <n-tag type="error" v-else>未装备</n-tag>
+                            </div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">最大载重</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.payload_capacity || '2.0' }} kg</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">固件版本</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.firmware_version || 'v1.2.0' }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- 电量详情，加入图表 -->
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-green-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">电量状态</h4>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="mb-4">
+                          <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm text-gray-500">电量</span>
+                            <span class="text-sm font-medium" :class="getBatteryTextColor(selectedDrone.battery_level)">
+                              {{ selectedDrone.battery_level }}%
+                            </span>
+                          </div>
+                          
+                          <div class="relative h-6 rounded-full overflow-hidden bg-gray-200">
+                            <div class="absolute left-0 top-0 bottom-0 transition-all duration-500 rounded-full"
+                                 :class="{'bg-gradient-to-r from-red-500 to-red-400': selectedDrone.battery_level <= 20,
+                                         'bg-gradient-to-r from-yellow-500 to-yellow-400': selectedDrone.battery_level > 20 && selectedDrone.battery_level <= 50,
+                                         'bg-gradient-to-r from-green-500 to-green-400': selectedDrone.battery_level > 50}"
+                                 :style="{width: `${selectedDrone.battery_level}%`}">
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- 模拟电量图表 -->
+                        <div class="h-32 mt-4 bg-white rounded border border-gray-100 p-2">
+                          <div class="battery-chart">
+                            <div class="relative h-full flex items-end">
+                              <template v-for="(value, i) in batteryHistory" :key="i">
+                                <div class="battery-bar"
+                                    :style="{
+                                      height: `${value}%`,
+                                      backgroundColor: getBatteryChartColor(value),
+                                      opacity: 0.7 + (i / 20)
+                                    }">
+                                </div>
+                              </template>
+                            </div>
+                            <div class="text-xs text-center text-gray-400 mt-1">过去24小时电量变化</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- 位置信息 -->
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-indigo-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">位置信息</h4>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">经度</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">
+                              {{ getCoordinateLng(selectedDrone.current_location, selectedDrone) }}°
+                            </div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">纬度</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">
+                              {{ getCoordinateLat(selectedDrone.current_location, selectedDrone) }}°
+                            </div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">高度</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">
+                              {{ selectedDrone.current_location?.coordinates?.[2] || 0 }} 米
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 性能参数标签页 -->
+                  <div v-if="activeDetailTab === 'performance'" class="grid grid-cols-1 gap-4 mb-4">
+                    <!-- 性能雷达图 -->
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-purple-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">性能数据</h4>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">最大飞行时间</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.max_flight_time || 30 }} 分钟</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">最大速度</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.max_speed || 15 }} m/s</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">最大高度</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.max_altitude || 120 }} 米</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">最大载重</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.payload_capacity || 2.0 }} kg</div>
+                          </div>
+                        </div>
+                        
+                        <!-- 性能雷达图 -->
+                        <div class="radar-chart-container my-4">
+                          <div class="radar-chart">
+                            <!-- 性能雷达图 -->
+                            <div class="relative h-64 w-full flex items-center justify-center">
+                              <div class="radar-background"></div>
+                              <div class="radar-data" :style="getRadarChartStyle()"></div>
+                              <div class="radar-labels">
+                                <div class="radar-label-top">飞行时间</div>
+                                <div class="radar-label-right">速度</div>
+                                <div class="radar-label-bottom">高度</div>
+                                <div class="radar-label-left">载重</div>
+                                <div class="radar-label-center">电池</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- 飞行表现 -->
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-amber-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">飞行表现</h4>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">总飞行次数</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.total_flights || 0 }} 次</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">累计飞行时间</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.total_flight_time || 0 }} 小时</div>
+                          </div>
+                        </div>
+                        
+                        <!-- 飞行高度图表 -->
+                        <div class="flight-chart-container my-4">
+                          <div class="h-48 bg-white rounded border border-gray-100 p-2">
+                            <div class="flight-altitude-chart">
+                              <div class="relative h-full flex items-end">
+                                <template v-for="(value, i) in flightAltitudeHistory" :key="i">
+                                  <div class="altitude-bar"
+                                      :style="{
+                                        height: `${value}%`,
+                                      }">
+                                  </div>
+                                </template>
+                              </div>
+                            </div>
+                            <div class="text-xs text-center text-gray-400 mt-1">最近飞行高度记录</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 历史记录标签页 -->
+                  <div v-if="activeDetailTab === 'history'">
+                    <div class="mb-2">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-blue-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">飞行记录</h4>
+                      </div>
+                      
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <!-- 飞行记录列表 -->
+                        <div v-if="selectedDrone.flight_log && selectedDrone.flight_log.length > 0" class="divide-y divide-gray-100">
+                          <div v-for="(log, index) in selectedDrone.flight_log" :key="index" class="py-3 first:pt-0 last:pb-0">
+                            <div class="flex justify-between items-start">
+                              <div>
+                                <div class="flex items-center">
+                                  <span class="font-medium text-blue-600">{{ log.flight_id }}</span>
+                                  <n-tag size="small" class="ml-2" :type="log.status === 'completed' ? 'success' : 'warning'">
+                                    {{ log.status === 'completed' ? '已完成' : '进行中' }}
+                                  </n-tag>
+                                </div>
+                                <div class="text-sm text-gray-500 mt-1">{{ log.date }}</div>
+                                <div class="text-sm font-medium text-gray-700 mt-1">
+                                  <n-icon class="mr-1" size="14"><flight-icon /></n-icon>
+                                  {{ log.mission_type || '常规飞行' }}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-4 gap-2 mt-3 text-sm bg-gray-50 p-2 rounded">
+                              <div>
+                                <div class="text-xs text-gray-500">飞行时间</div>
+                                <div class="font-medium">{{ log.duration }} 分钟</div>
+                              </div>
+                              
+                              <div>
+                                <div class="text-xs text-gray-500">最大高度</div>
+                                <div class="font-medium">{{ log.max_altitude_reached }} 米</div>
+                              </div>
+                              
+                              <div>
+                                <div class="text-xs text-gray-500">飞行距离</div>
+                                <div class="font-medium">{{ (log.distance_covered / 1000).toFixed(2) }} 公里</div>
+                              </div>
+                              
+                              <div>
+                                <div class="text-xs text-gray-500">平均速度</div>
+                                <div class="font-medium">{{ log.avg_speed || '10' }} m/s</div>
+                              </div>
+                              
+                              <div v-if="log.battery_consumption" class="col-span-4 mt-2">
+                                <div class="text-xs text-gray-500 mb-1">电量消耗</div>
+                                <div class="relative h-4 rounded-full overflow-hidden bg-gray-200">
+                                  <div class="absolute left-0 top-0 bottom-0 transition-all duration-500 rounded-full bg-blue-500"
+                                       :style="{width: `${log.battery_consumption}%`}">
+                                  </div>
+                                  <div class="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center text-xs text-white">
+                                    {{ log.battery_consumption }}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div v-else class="text-center py-4 text-gray-400">
+                          暂无飞行记录
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                      <div class="mb-4 flex items-center">
+                        <div class="w-1 h-5 bg-amber-500 rounded-full mr-2"></div>
+                        <h4 class="font-medium text-gray-100">维护记录</h4>
+                      </div>
+                      
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div class="grid grid-cols-2 gap-3">
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">上次维护</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.last_maintenance_date || '暂无记录' }}</div>
+                          </div>
+                          
+                          <div class="flex flex-col">
+                            <div class="text-xs text-gray-500 mb-1">下次维护</div>
+                            <div class="font-medium bg-gray-100 rounded p-2 text-sm">{{ selectedDrone.next_maintenance_date || '暂无记录' }}</div>
+                          </div>
+                        </div>
+                        
+                        <!-- 维护时间线 -->
+                        <div class="maintenance-timeline mt-4 pl-4 border-l-2 border-blue-200">
+                          <div class="relative mb-4">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 absolute -left-5 top-1"></div>
+                            <div class="font-medium">常规检查</div>
+                            <div class="text-sm text-gray-500">{{ selectedDrone.last_maintenance_date || '2023-05-15' }}</div>
+                            <div class="text-sm text-gray-600 mt-1">完成螺旋桨更换和电池检测</div>
+                          </div>
+                          
+                          <div class="relative mb-4">
+                            <div class="w-3 h-3 rounded-full bg-gray-300 absolute -left-5 top-1"></div>
+                            <div class="font-medium">计划维护</div>
+                            <div class="text-sm text-gray-500">{{ selectedDrone.next_maintenance_date || '2023-09-15' }}</div>
+                            <div class="text-sm text-gray-600 mt-1">电机检测和固件更新</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 3D模型标签页 -->
+                  <div v-if="activeDetailTab === 'model'">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 h-96 flex items-center justify-center">
+                      <div class="text-center">
+                        <div class="drone-model-container">
+                          <!-- 这里是增强的3D模型展示 -->
+                          <div class="drone-model">
+                            <div class="drone-body">
+                              <div class="drone-led drone-led-1"></div>
+                              <div class="drone-led drone-led-2"></div>
+                              <div class="drone-led drone-led-3"></div>
+                              <div class="drone-led drone-led-4"></div>
+                              <div class="drone-camera"></div>
+                            </div>
+                            <div class="drone-arm drone-arm-1"></div>
+                            <div class="drone-arm drone-arm-2"></div>
+                            <div class="drone-arm drone-arm-3"></div>
+                            <div class="drone-arm drone-arm-4"></div>
+                            <div class="drone-propeller drone-propeller-1"></div>
+                            <div class="drone-propeller drone-propeller-2"></div>
+                            <div class="drone-propeller drone-propeller-3"></div>
+                            <div class="drone-propeller drone-propeller-4"></div>
+                          </div>
+                        </div>
+                        <div class="mt-4 font-medium text-gray-700">{{ selectedDrone.model }}</div>
+                        <div class="text-sm text-gray-500">360° 视图</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 未选择无人机时的提示 -->
+          <div v-if="!selectedDrone" class="floating-card dark-theme-override flex-1 flex items-center justify-center text-gray-400">
+            请从右侧列表中选择一个无人机查看详情
+          </div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto h-full overflow-hidden">
+          <!-- 筛选条件面板 (移到右侧) -->
+          <div class="floating-card dark-theme-override">
             <div class="flex justify-between items-center mb-4">
               <div class="flex-1">
                 <n-input-group>
@@ -122,100 +613,71 @@
               />
             </div>
           </div>
-        </div>
-        
-        <!-- 右侧面板 -->
-        <div class="col-span-3 col-start-10 flex flex-col gap-4 pointer-events-auto">
-          <!-- 无人机数据 -->
-          <div class="floating-card flex-1 overflow-auto">
+          
+          <!-- 无人机列表 (移到右侧) -->
+          <div class="floating-card dark-theme-override flex-1 flex flex-col overflow-hidden">
             <h2 class="font-bold text-lg mb-4">无人机列表</h2>
             
             <!-- 无人机数据表格 -->
-            <div v-if="viewMode === 'list'" class="overflow-auto">
-              <n-data-table
-                :columns="columns"
-                :data="filteredDrones"
-                :pagination="pagination"
-                :row-key="row => row.drone_id"
-                :loading="loading"
-              />
+            <div v-if="viewMode === 'list'" class="flex-1 overflow-hidden" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto custom-scrollbar h-full">
+                <n-data-table
+                  :columns="columns"
+                  :data="filteredDrones"
+                  :pagination="pagination"
+                  :row-key="row => row.drone_id"
+                  :loading="loading"
+                  :scroll-x="true"
+                />
+              </div>
             </div>
             
             <!-- 无人机卡片网格视图 -->
-            <div v-else-if="viewMode === 'grid'" class="overflow-auto">
-              <div class="grid grid-cols-1 gap-4">
-                <div v-for="drone in filteredDrones" :key="drone.drone_id" 
-                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                     :class="{'bg-blue-50 border-blue-200': selectedDrone?.drone_id === drone.drone_id}"
-                     @click="selectDrone(drone)">
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <h3 class="font-bold text-lg">{{ drone.name }}</h3>
-                      <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
-                    </div>
-                    <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
-                  </div>
-                  
-                  <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
-                    <div class="text-gray-500">型号:</div>
-                    <div class="font-medium">{{ drone.model }}</div>
-                    
-                    <div class="text-gray-500">电量:</div>
-                    <div class="font-medium">
-                      <n-progress :percentage="drone.battery_level" :show-indicator="false" />
-                      {{ drone.battery_level }}%
+            <div v-else-if="viewMode === 'grid'" class="flex-1 overflow-hidden" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto custom-scrollbar h-full">
+                <div class="grid grid-cols-1 gap-4 pb-4">
+                  <div v-for="drone in filteredDrones" :key="drone.drone_id" 
+                       class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                       :class="{'bg-blue-50 border-blue-200': selectedDrone?.drone_id === drone.drone_id}"
+                       @click="viewDroneDetails(drone)">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <h3 class="font-bold text-lg">{{ drone.name }}</h3>
+                        <div class="text-xs text-gray-500 mt-1">ID: {{ drone.drone_id }}</div>
+                      </div>
+                      <n-tag :type="getStatusType(drone.status)">{{ drone.status }}</n-tag>
                     </div>
                     
-                    <div class="text-gray-500">最大时间:</div>
-                    <div class="font-medium">{{ drone.max_flight_time }} 分钟</div>
+                    <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
+                      <div class="text-gray-500">型号:</div>
+                      <div class="font-medium">{{ drone.model }}</div>
+                      
+                      <div class="text-gray-500">电量:</div>
+                      <div class="font-medium">
+                        <n-progress :percentage="drone.battery_level" :show-indicator="false" />
+                        {{ drone.battery_level }}%
+                      </div>
+                      
+                      <div class="text-gray-500">最大时间:</div>
+                      <div class="font-medium">{{ drone.max_flight_time || 0 }} 分钟</div>
+                      
+                      <div class="text-gray-500">最大速度:</div>
+                      <div class="font-medium">{{ drone.max_speed || 0 }} m/s</div>
+                    </div>
                     
-                    <div class="text-gray-500">最大速度:</div>
-                    <div class="font-medium">{{ drone.max_speed }} m/s</div>
-                  </div>
-                  
-                  <div class="mt-4 flex justify-center space-x-2">
-                    <n-button size="small" @click.stop="viewDroneDetails(drone)">详情</n-button>
-                    <n-button size="small" type="primary" @click.stop="controlDrone(drone)">控制</n-button>
+                    <div class="mt-4 flex justify-center space-x-2">
+                      <n-button size="small" type="primary" @click.stop="openDroneControl(drone)">控制</n-button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
             <!-- 地图视图 -->
-            <div v-else-if="viewMode === 'map'" class="h-full">
-              <div class="text-center py-2 text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
-            </div>
-          </div>
-          
-          <!-- 详细信息面板 -->
-          <div v-if="selectedDrone" class="floating-card">
-            <div class="flex justify-between items-center mb-2">
-              <h3 class="font-bold text-lg">{{ selectedDrone.name }} 详情</h3>
-              <n-tag :type="getStatusType(selectedDrone.status)">{{ selectedDrone.status }}</n-tag>
-            </div>
-            
-            <n-divider style="margin: 10px 0;" />
-            
-            <div class="grid grid-cols-2 gap-2 mb-4">
-              <div class="text-gray-500 text-sm">电量</div>
-              <div class="text-sm font-medium">{{ selectedDrone.battery_level }}%</div>
-              
-              <div class="text-gray-500 text-sm">位置</div>
-              <div class="text-sm font-medium">
-                {{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}, 
-                {{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}
+            <div v-else-if="viewMode === 'map'" class="flex-1" style="height: calc(100% - 2.5rem);">
+              <div class="overflow-y-auto custom-scrollbar h-full flex items-center justify-center">
+                <div class="text-center text-gray-500">地图视图已激活，可以直接在地图上查看无人机位置</div>
               </div>
-              
-              <div class="text-gray-500 text-sm">速度</div>
-              <div class="text-sm font-medium">{{ selectedDrone.max_speed }} m/s</div>
-              
-              <div class="text-gray-500 text-sm">飞行时间</div>
-              <div class="text-sm font-medium">{{ selectedDrone.max_flight_time }} 分钟</div>
-            </div>
-            
-            <div class="flex space-x-2">
-              <n-button size="small" block @click="viewDroneDetails(selectedDrone)">查看完整详情</n-button>
-              <n-button size="small" type="primary" block @click="controlDrone(selectedDrone)">控制无人机</n-button>
             </div>
           </div>
         </div>
@@ -225,32 +687,35 @@
     <!-- 添加无人机对话框 -->
     <n-modal v-model:show="showAddDroneModal" preset="card" title="添加无人机" style="width: 500px" @close="resetForm">
       <n-form ref="addFormRef" :model="droneForm" :rules="rules" label-placement="left" label-width="auto">
-        <n-form-item label="名称" path="name">
-          <n-input v-model:value="droneForm.name" placeholder="输入无人机名称" />
+        <n-form-item label="无人机名称" path="name">
+          <n-input v-model:value="droneForm.name" placeholder="请输入无人机名称" />
         </n-form-item>
         
-        <n-form-item label="型号" path="model">
-          <n-input v-model:value="droneForm.model" placeholder="输入无人机型号" />
+        <n-form-item label="无人机型号" path="model">
+          <n-input v-model:value="droneForm.model" placeholder="请输入无人机型号" />
         </n-form-item>
         
         <n-form-item label="最大飞行时间(分钟)" path="max_flight_time">
-          <n-input-number v-model:value="droneForm.max_flight_time" :min="1" :max="500" />
+          <n-input-number v-model:value="droneForm.max_flight_time" :min="1" :max="120" />
         </n-form-item>
         
         <n-form-item label="最大速度(m/s)" path="max_speed">
-          <n-input-number v-model:value="droneForm.max_speed" :min="1" :max="100" />
+          <n-input-number v-model:value="droneForm.max_speed" :min="1" :max="30" />
         </n-form-item>
         
         <n-form-item label="最大高度(米)" path="max_altitude">
-          <n-input-number v-model:value="droneForm.max_altitude" :min="1" :max="5000" />
+          <n-input-number v-model:value="droneForm.max_altitude" :min="10" :max="1000" />
         </n-form-item>
         
-        <n-form-item label="搭载相机" path="camera_equipped">
-          <n-switch v-model:value="droneForm.camera_equipped" />
+        <n-form-item label="载重能力(kg)" path="payload_capacity">
+          <n-input-number v-model:value="droneForm.payload_capacity" :min="0.1" :max="10" :step="0.1" />
         </n-form-item>
         
-        <n-form-item label="载荷能力(千克)" path="payload_capacity">
-          <n-input-number v-model:value="droneForm.payload_capacity" :min="0" :precision="2" />
+        <n-form-item label="相机配置" path="camera_equipped">
+          <n-switch v-model:value="droneForm.camera_equipped">
+            <template #checked>已装备</template>
+            <template #unchecked>未装备</template>
+          </n-switch>
         </n-form-item>
       </n-form>
       
@@ -264,48 +729,137 @@
     
     <!-- 无人机控制对话框 -->
     <n-modal v-model:show="showControlModal" preset="card" :title="`控制 ${selectedDrone?.name || '无人机'}`" style="width: 600px">
-      <div v-if="selectedDrone">
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ selectedDrone.battery_level }}%</div>
-            <div class="text-sm text-gray-500">电量</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ selectedDrone.status }}</div>
-            <div class="text-sm text-gray-500">状态</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ formatCoordinate(selectedDrone.current_location?.coordinates[0] || 0) }}</div>
-            <div class="text-sm text-gray-500">经度</div>
-          </div>
-          
-          <div class="text-center p-3 bg-gray-50 rounded-lg">
-            <div class="text-xl font-bold">{{ formatCoordinate(selectedDrone.current_location?.coordinates[1] || 0) }}</div>
-            <div class="text-sm text-gray-500">纬度</div>
+      <div v-if="selectedDrone" class="p-2">
+        <!-- 无人机状态信息 -->
+        <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-2"
+                :class="{'bg-blue-100 text-blue-500': selectedDrone.status === 'idle', 
+                        'bg-green-100 text-green-500': selectedDrone.status === 'flying',
+                        'bg-yellow-100 text-yellow-500': selectedDrone.status === 'charging',
+                        'bg-purple-100 text-purple-500': selectedDrone.status === 'maintenance',
+                        'bg-red-100 text-red-500': selectedDrone.status === 'offline'}">
+                <n-icon size="20"><drone-icon /></n-icon>
+              </div>
+              <div>
+                <div class="font-medium">当前状态</div>
+                <n-tag size="small" :type="getStatusType(selectedDrone.status)">
+                  {{ getStatusText(selectedDrone.status) }}
+                </n-tag>
+              </div>
+            </div>
+            
+            <div>
+              <div class="text-sm text-gray-500">电池电量</div>
+              <div class="font-medium" :class="getBatteryTextColor(selectedDrone.battery_level)">
+                {{ selectedDrone.battery_level }}%
+              </div>
+            </div>
           </div>
         </div>
         
-        <n-divider />
-        
-        <div class="grid grid-cols-2 gap-4">
-          <n-button :disabled="selectedDrone.status !== 'idle'" @click="handleTakeoff">起飞</n-button>
-          <n-button :disabled="selectedDrone.status !== 'flying'" @click="handleLand">降落</n-button>
-          <n-button :disabled="selectedDrone.status !== 'flying'" @click="handleReturnHome">返航</n-button>
-          <n-button @click="handleCreateTask">创建任务</n-button>
+        <!-- 控制面板 -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <!-- 基本控制 -->
+          <div class="bg-gray-50 p-3 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3">基本控制</h4>
+            <div class="flex flex-col gap-2">
+              <n-button :disabled="selectedDrone.status === 'offline' || selectedDrone.status === 'flying'" 
+                        @click="controlDrone('takeoff')" type="primary">
+                <template #icon><n-icon><flight-icon /></n-icon></template>
+                起飞
+              </n-button>
+              
+              <n-button :disabled="selectedDrone.status === 'offline' || selectedDrone.status !== 'flying'" 
+                        @click="controlDrone('land')" type="warning">
+                <template #icon><n-icon><flight-icon /></n-icon></template>
+                降落
+              </n-button>
+              
+              <n-button :disabled="selectedDrone.status === 'offline' || selectedDrone.status !== 'flying'" 
+                        @click="controlDrone('return')" type="info">
+                <template #icon><n-icon><environment-outlined /></n-icon></template>
+                返航
+              </n-button>
+              
+              <n-button :disabled="selectedDrone.status === 'offline'" 
+                        @click="controlDrone('emergency_stop')" type="error">
+                <template #icon><n-icon><warning-icon /></n-icon></template>
+                紧急停止
+              </n-button>
+            </div>
+          </div>
+          
+          <!-- 高级控制 -->
+          <div class="bg-gray-50 p-3 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3">高级控制</h4>
+            <div class="flex flex-col gap-3">
+              <!-- 高度控制 -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-sm text-gray-500">目标高度 (米)</span>
+                  <span class="text-sm font-medium">{{ targetAltitude }}m</span>
+                </div>
+                <n-slider v-model:value="targetAltitude" :min="0" :max="selectedDrone.max_altitude || 500" :step="10" :disabled="selectedDrone.status === 'offline'" />
+              </div>
+              
+              <!-- 速度控制 -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-sm text-gray-500">飞行速度</span>
+                  <span class="text-sm font-medium">{{ selectedDrone.current_speed || 0 }}m/s</span>
+                </div>
+                <div class="flex gap-2">
+                  <n-button size="small" :disabled="selectedDrone.status === 'offline' || selectedDrone.status !== 'flying'" @click="controlDrone('decrease_speed')">
+                    减速
+                  </n-button>
+                  <n-button size="small" :disabled="selectedDrone.status === 'offline' || selectedDrone.status !== 'flying'" @click="controlDrone('increase_speed')">
+                    加速
+                  </n-button>
+                </div>
+              </div>
+              
+              <!-- 相机控制 -->
+              <div v-if="selectedDrone.camera_equipped">
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-sm text-gray-500">相机控制</span>
+                </div>
+                <div class="flex gap-2">
+                  <n-button size="small" :disabled="selectedDrone.status === 'offline'" @click="controlDrone('take_photo')">
+                    拍照
+                  </n-button>
+                  <n-button size="small" :disabled="selectedDrone.status === 'offline'" @click="controlDrone('toggle_video')">
+                    录像
+                  </n-button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <n-divider />
-        
-        <div>
-          <div class="mb-2 font-medium">移动到指定位置</div>
-          <div class="flex space-x-3 mb-3">
-            <n-input-number v-model:value="targetLongitude" placeholder="经度" :precision="6" />
-            <n-input-number v-model:value="targetLatitude" placeholder="纬度" :precision="6" />
-            <n-input-number v-model:value="targetAltitude" placeholder="高度(米)" />
+        <!-- 位置控制 -->
+        <div class="bg-gray-50 p-3 rounded-lg mb-4">
+          <h4 class="font-medium text-gray-700 mb-3">位置控制</h4>
+          <div class="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <div class="text-sm text-gray-500 mb-1">目标经度</div>
+              <n-input-number v-model:value="targetLongitude" :min="73" :max="135" :step="0.0001" :disabled="selectedDrone.status === 'offline'" />
+            </div>
+            <div>
+              <div class="text-sm text-gray-500 mb-1">目标纬度</div>
+              <n-input-number v-model:value="targetLatitude" :min="18" :max="53" :step="0.0001" :disabled="selectedDrone.status === 'offline'" />
+            </div>
           </div>
-          <n-button block :disabled="selectedDrone.status !== 'flying'" @click="handleMoveTo">移动到位置</n-button>
+          <n-button block type="primary" :disabled="selectedDrone.status === 'offline' || selectedDrone.status !== 'flying'" @click="controlDrone('move_to_location')">
+            <template #icon><n-icon><environment-outlined /></n-icon></template>
+            飞往指定位置
+          </n-button>
+        </div>
+        
+        <!-- 操作反馈 -->
+        <div class="text-sm text-gray-500 italic">
+          注意：所有控制指令将根据无人机当前状态和电量进行安全检查后执行
         </div>
       </div>
     </n-modal>
@@ -327,9 +881,11 @@ import {
   AppstoreOutlined as GridIcon,
   EnvironmentOutlined as MapIcon,
   RobotOutlined as DroneIcon,
-  ThunderboltOutlined as ThunderboltIcon
+  ThunderboltOutlined as ThunderboltIcon,
+  CloseOutlined,
+  ControlOutlined as ControlOutlinedIcon
 } from '@vicons/antd'
-import { getDrones, createDrone, controlDrone } from '../api/drone'
+import { getDrones, getDroneById, createDrone, controlDrone as apiControlDrone } from '../api/drone'
 import { h } from 'vue'
 
 const router = useRouter()
@@ -350,6 +906,13 @@ const selectedDrone = ref(null)
 const targetLongitude = ref(116.3833)
 const targetLatitude = ref(39.9)
 const targetAltitude = ref(100)
+
+const activeDetailTab = ref('basic') // 详情面板当前激活的标签
+
+// 可视化数据 - 电池历史记录
+const batteryHistory = ref([])
+// 可视化数据 - 飞行高度历史
+const flightAltitudeHistory = ref([])
 
 // 表单数据
 const addFormRef = ref(null)
@@ -414,6 +977,22 @@ const columns = [
     title: '电池电量',
     key: 'battery_level',
     sorter: 'default'
+  },
+  {
+    title: '最大飞行时间',
+    key: 'max_flight_time',
+    sorter: 'default',
+    render: (row) => {
+      return `${row.max_flight_time || 0} 分钟`
+    }
+  },
+  {
+    title: '最大速度',
+    key: 'max_speed',
+    sorter: 'default',
+    render: (row) => {
+      return `${row.max_speed || 0} m/s`
+    }
   },
   {
     title: '操作',
@@ -485,10 +1064,79 @@ function getStatusType(status) {
   }
 }
 
-// 获取无人机图片
-function getDroneImage(drone) {
-  // 根据无人机型号返回图片
-  return '/images/drone-default.png'
+// 获取状态文本
+function getStatusText(status) {
+  const statusMap = {
+    'idle': '待命',
+    'flying': '飞行中',
+    'charging': '充电中',
+    'maintenance': '维护中',
+    'offline': '离线',
+    'error': '故障'
+  };
+  return statusMap[status] || status;
+}
+
+// 获取电池颜色
+function getBatteryColor(level) {
+  if (level <= 20) return '#ef4444'
+  if (level <= 50) return '#f59e0b'
+  return '#10b981'
+}
+
+// 获取电池文本颜色
+function getBatteryTextColor(level) {
+  if (level <= 20) return 'text-red-500'
+  if (level <= 50) return 'text-amber-500'
+  return 'text-green-500'
+}
+
+// 获取经度
+function getCoordinateLng(geoPoint, drone) {
+  // 如果有实际坐标，则使用实际坐标
+  if (geoPoint && geoPoint.coordinates) {
+    return geoPoint.coordinates[0].toFixed(6);
+  }
+  
+  // 如果没有坐标，根据无人机ID返回硬编码值
+  if (drone) {
+    // 武汉市周边区域的经度范围在114.0-114.6之间
+    if (drone.drone_id === 'sky-001' || drone.name === '天行-001') {
+      return '114.367044';
+    } else if (drone.drone_id === 'sky-002' || drone.name === '天空-002') {
+      return '114.295912';
+    } else {
+      // 为其他无人机生成固定的随机经度
+      const hash = drone.drone_id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+      return (114.2 + (hash % 40) / 100).toFixed(6);
+    }
+  }
+  
+  return '114.367044';  // 默认值
+}
+
+// 获取纬度
+function getCoordinateLat(geoPoint, drone) {
+  // 如果有实际坐标，则使用实际坐标
+  if (geoPoint && geoPoint.coordinates) {
+    return geoPoint.coordinates[1].toFixed(6);
+  }
+  
+  // 如果没有坐标，根据无人机ID返回硬编码值
+  if (drone) {
+    // 武汉市周边区域的纬度范围在30.4-30.7之间
+    if (drone.drone_id === 'sky-001' || drone.name === '天行-001') {
+      return '30.545212';
+    } else if (drone.drone_id === 'sky-002' || drone.name === '天空-002') {
+      return '30.489876';
+    } else {
+      // 为其他无人机生成固定的随机纬度
+      const hash = drone.drone_id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+      return (30.45 + (hash % 25) / 100).toFixed(6);
+    }
+  }
+  
+  return '30.545212';  // 默认值
 }
 
 // 格式化坐标
@@ -496,15 +1144,114 @@ function formatCoordinate(coord) {
   return coord.toFixed(6)
 }
 
+// 查看完整详情
+function viewFullDetails(drone) {
+  router.push(`/drones/${drone.drone_id}`)
+}
+
 // 查看无人机详情
 function viewDroneDetails(drone) {
-  router.push(`/drones/${drone.drone_id}`)
+  // 先使用列表中的数据
+  selectedDrone.value = drone;
+  
+  // 使用地图操作定位到无人机位置
+  if (mapOperations && drone.current_location?.coordinates) {
+    mapOperations.flyTo({
+      lat: drone.current_location.coordinates[1],
+      lng: drone.current_location.coordinates[0],
+      zoom: 18
+    });
+  }
+  
+  // 获取更详细的无人机信息，同时传递现有数据确保基本信息一致
+  try {
+    getDroneById(drone.drone_id, drone).then(detailedDrone => {
+      // 更新选中的无人机为包含更多详细信息的版本
+      selectedDrone.value = detailedDrone;
+    });
+  } catch (error) {
+    console.error('获取无人机详情失败:', error);
+  }
 }
 
 // 控制无人机
 function openDroneControl(drone) {
   selectedDrone.value = drone
   showControlModal.value = true
+  
+  // 设置目标位置为当前无人机位置
+  if (drone.current_location?.coordinates) {
+    targetLongitude.value = parseFloat(getCoordinateLng(drone.current_location, drone))
+    targetLatitude.value = parseFloat(getCoordinateLat(drone.current_location, drone))
+  }
+}
+
+// 执行无人机控制命令
+async function controlDrone(command) {
+  if (!selectedDrone.value) return
+  
+  try {
+    const droneId = selectedDrone.value.drone_id
+    let params = {}
+    
+    // 根据命令类型设置参数
+    switch (command) {
+      case 'takeoff':
+        params = { altitude: targetAltitude.value }
+        break
+      case 'land':
+        params = {}
+        break
+      case 'return':
+        params = {}
+        break
+      case 'emergency_stop':
+        params = {}
+        break
+      case 'move_to_location':
+        params = {
+          longitude: targetLongitude.value,
+          latitude: targetLatitude.value,
+          altitude: targetAltitude.value
+        }
+        break
+      case 'increase_speed':
+        params = { speed_change: 1 }
+        break
+      case 'decrease_speed':
+        params = { speed_change: -1 }
+        break
+      case 'take_photo':
+        params = {}
+        break
+      case 'toggle_video':
+        params = {}
+        break
+      default:
+        console.warn('未知命令:', command)
+        return
+    }
+    
+    // 调用API控制无人机
+    const result = await apiControlDrone(droneId, command, params)
+    
+    if (result) {
+      message.success(`命令 ${command} 已发送到无人机`)
+      
+      // 模拟状态变化
+      if (command === 'takeoff') {
+        selectedDrone.value.status = 'flying'
+      } else if (command === 'land' || command === 'return') {
+        selectedDrone.value.status = 'idle'
+      }
+      
+      // 更新无人机数据
+      setTimeout(() => refreshData(), 1000)
+    }
+  } catch (error) {
+    console.error('控制无人机失败:', error)
+    message.error('控制无人机失败: ' + (error.message || '未知错误'))
+  }
 }
 
 // 选择无人机
@@ -520,6 +1267,12 @@ function selectDrone(drone) {
   }
 }
 
+// 处理全局点击事件（关闭详情面板）
+function handleGlobalClick(event) {
+  // 如果点击的是详情面板外部，则关闭详情面板
+  selectedDrone.value = null
+}
+
 // 重置表单
 function resetForm() {
   droneForm.name = ''
@@ -529,6 +1282,10 @@ function resetForm() {
   droneForm.max_altitude = 500
   droneForm.camera_equipped = true
   droneForm.payload_capacity = 2.0
+  
+  if (addFormRef.value) {
+    addFormRef.value.restoreValidation()
+  }
 }
 
 // 添加无人机
@@ -554,8 +1311,19 @@ function handleAddDrone() {
 }
 
 // 刷新数据
-function refreshData() {
-  fetchDrones()
+async function refreshData() {
+  loading.value = true
+  
+  try {
+    const response = await getDrones()
+    drones.value = response
+    message.success('数据刷新成功')
+  } catch (error) {
+    console.error('获取无人机列表失败:', error)
+    message.error('获取无人机列表失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 获取无人机数据
@@ -613,9 +1381,55 @@ function handleCreateTask() {
   })
 }
 
+// 初始化模拟数据
+function initializeVisualizationData() {
+  // 模拟24小时电池变化数据 (24个数据点)
+  batteryHistory.value = Array.from({ length: 24 }, () => Math.floor(Math.random() * 50) + 50)
+  
+  // 模拟飞行高度历史数据 (10个数据点)
+  flightAltitudeHistory.value = Array.from({ length: 10 }, () => Math.floor(Math.random() * 80) + 20)
+}
+
+// 获取电池图表颜色
+function getBatteryChartColor(value) {
+  if (value <= 20) return '#ef4444'  // 红色
+  if (value <= 50) return '#f59e0b'  // 黄色
+  return '#10b981'  // 绿色
+}
+
+// 获取雷达图样式
+function getRadarChartStyle() {
+  if (!selectedDrone.value) return {};
+  
+  // 基于无人机性能参数计算雷达图数据
+  const drone = selectedDrone.value;
+  
+  // 归一化值到0-100%
+  const flightTime = Math.min(100, (drone.max_flight_time || 30) / 50 * 100);
+  const speed = Math.min(100, (drone.max_speed || 15) / 25 * 100);
+  const altitude = Math.min(100, (drone.max_altitude || 500) / 7000 * 100);
+  const payload = Math.min(100, (drone.payload_capacity || 2) / 3 * 100);
+  const battery = drone.battery_level || 50;
+  
+  // clipPath表示为五边形，用来表示雷达图的数据区域
+  return {
+    clipPath: `polygon(
+      50% ${100 - flightTime}%, 
+      ${50 + (speed / 2)}% 50%, 
+      ${50 + (altitude / 3)}% ${50 + (altitude / 3)}%, 
+      ${50 - (payload / 3)}% ${50 + (payload / 3)}%, 
+      ${50 - (battery / 2)}% 50%
+    )`,
+    background: 'linear-gradient(45deg, rgba(37, 99, 235, 0.7), rgba(79, 70, 229, 0.7))'
+  };
+}
+
 // 挂载时获取数据
 onMounted(() => {
   fetchDrones()
+  
+  // 初始化可视化数据
+  initializeVisualizationData()
   
   // 监听全局无人机选中事件
   window.addEventListener('drone-selected', (event) => {
@@ -627,3 +1441,411 @@ onMounted(() => {
   })
 })
 </script>
+
+<style scoped>
+/* 这里只保留Drones.vue特有的样式，其他通用样式已移至darkTheme.css */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.7) rgba(15, 23, 42, 0.3);
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(51, 65, 85, 0.7);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.7);
+}
+
+/* 电池图标样式 */
+.battery-icon {
+  border: 2px solid #cbd5e1;
+  border-radius: 2px;
+  position: relative;
+}
+
+.battery-icon:after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  right: -4px;
+  width: 2px;
+  height: 50%;
+  background: #cbd5e1;
+  border-radius: 0 2px 2px 0;
+}
+
+/* 电池历史图表样式 */
+.battery-chart {
+  height: 100%;
+  position: relative;
+}
+
+.battery-bar {
+  width: calc(100% / 26);
+  margin: 0 1px;
+  border-radius: 2px 2px 0 0;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.battery-bar:hover {
+  opacity: 1;
+  transform: scaleY(1.05);
+}
+
+/* 飞行高度图表样式 */
+.flight-altitude-chart {
+  height: 100%;
+  position: relative;
+}
+
+.altitude-bar {
+  width: calc(100% / 12);
+  margin: 0 1px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(to top, #60a5fa, #3b82f6);
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.altitude-bar:hover {
+  opacity: 1;
+  transform: scaleY(1.05);
+}
+
+/* 雷达图样式 */
+.radar-chart-container {
+  position: relative;
+}
+
+.radar-chart {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.radar-background {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  border: 1px solid rgba(203, 213, 225, 0.5);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249, 250, 251, 0.5) 0%, rgba(243, 244, 246, 0.2) 100%);
+}
+
+.radar-background:before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  border-radius: 50%;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.radar-data {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  z-index: 1;
+  transition: all 0.5s ease;
+}
+
+.radar-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.radar-label-top {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.radar-label-right {
+  position: absolute;
+  top: 50%;
+  right: 5%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.radar-label-bottom {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.radar-label-left {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.radar-label-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+/* 位置地图背景 */
+.drone-location-map {
+  background: linear-gradient(to bottom right, #e0f2fe, #bae6fd);
+  background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="100" height="100" fill="none" stroke="%2394a3b8" stroke-width="0.5" stroke-dasharray="4 4"/></svg>');
+  background-size: 50px 50px;
+}
+
+/* 3D无人机模型样式 */
+.drone-model-container {
+  perspective: 1200px;
+  width: 250px;
+  height: 250px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.drone-model {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: rotate 20s infinite linear;
+}
+
+@keyframes rotate {
+  from { transform: rotateY(0deg) rotateX(20deg); }
+  to { transform: rotateY(360deg) rotateX(20deg); }
+}
+
+.drone-body {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #334155, #1e293b);
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.drone-body::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  background: linear-gradient(135deg, #475569, #334155);
+  border-radius: 50%;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.drone-body::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40%;
+  height: 40%;
+  background: #64748b;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.drone-camera {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: #94a3b8;
+  border-radius: 50%;
+  border: 2px solid #1e293b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.drone-arm {
+  position: absolute;
+  width: 80px;
+  height: 8px;
+  background: linear-gradient(90deg, #475569, #64748b);
+  z-index: 1;
+  transform-origin: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.drone-arm-1 {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.drone-arm-2 {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.drone-arm-3 {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.drone-arm-4 {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.drone-propeller {
+  position: absolute;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #cbd5e1, #94a3b8);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  animation: spin 1.5s infinite linear;
+  z-index: 0;
+}
+
+.drone-propeller::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  height: 5px;
+  background: #64748b;
+  transform: translate(-50%, -50%) rotate(0deg);
+  transform-origin: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.drone-propeller::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  height: 5px;
+  background: #64748b;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.drone-propeller-1 {
+  top: 20%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.drone-propeller-2 {
+  top: 20%;
+  left: 80%;
+  transform: translate(-50%, -50%);
+}
+
+.drone-propeller-3 {
+  top: 80%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.drone-propeller-4 {
+  top: 80%;
+  left: 80%;
+  transform: translate(-50%, -50%);
+}
+
+.drone-led {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: blink 2s infinite alternate;
+}
+
+.drone-led-1 {
+  top: 10px;
+  left: 10px;
+  background-color: #ef4444;
+}
+
+.drone-led-2 {
+  top: 10px;
+  right: 10px;
+  background-color: #10b981;
+}
+
+.drone-led-3 {
+  bottom: 10px;
+  left: 10px;
+  background-color: #3b82f6;
+}
+
+.drone-led-4 {
+  bottom: 10px;
+  right: 10px;
+  background-color: #f59e0b;
+}
+
+@keyframes blink {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 动画效果 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+</style>

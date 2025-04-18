@@ -18,7 +18,7 @@ from agents.monitor import create_monitor_agent
 from agents.planner import create_planner_agent
 from agents.response import create_response_agent
 from agents.logistics import create_logistics_agent
-from agents.security import create_security_agent
+# from agents.security import create_security_agent
 from api.v1.router import api_router
 
 # 设置日志
@@ -408,8 +408,8 @@ async def start_agent_system():
         agents.append(logistics_agent)
         
         # 安防巡检智能体
-        security_agent = await create_security_agent()
-        agents.append(security_agent)
+        # security_agent = await create_security_agent()
+        # agents.append(security_agent)
         
         # 启动所有智能体
         for agent in agents:

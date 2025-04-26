@@ -41,7 +41,7 @@
               <div class="flex items-center">
                 <div class="w-12 h-12 mr-4 border rounded flex items-center justify-center overflow-hidden">
                   <img v-if="systemSettings.logo" :src="systemSettings.logo" class="w-full h-full object-cover" />
-                  <n-icon v-else size="24"><image-outlined /></n-icon>
+                  <n-icon v-else size="24"><picture-outlined /></n-icon>
                 </div>
                 <n-button @click="uploadLogo">上传Logo</n-button>
               </div>
@@ -300,7 +300,7 @@ import {
 } from 'naive-ui'
 import { 
   SaveOutlined,
-  ImageOutlined
+  PictureOutlined
 } from '@vicons/antd'
 
 // UI组件

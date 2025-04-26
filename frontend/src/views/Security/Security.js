@@ -1,7 +1,7 @@
 import { ref, onMounted, watch, provide, nextTick, computed, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { NButton, NModal, NDrawer, NDrawerContent, useMessage, useDialog } from 'naive-ui';
-import Map3D from '@/components/map/Map3D_uio.vue';
+import Map3D from '@/components/map/Map3D_UIO.vue';
 import PatrolTaskList from '@/components/patrol/PatrolTaskList.vue';
 import PatrolTaskCreator from '@/components/patrol/PatrolTaskCreator.vue';
 import PatrolTaskDetail from '@/components/patrol/PatrolTaskDetail.vue';

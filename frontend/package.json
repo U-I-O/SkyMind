@@ -8,8 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mapbox/mapbox-gl-draw": "^1.5.0",
     "@loaders.gl/obj": "^3.4.15",
+    "@mapbox/mapbox-gl-draw": "^1.5.0",
     "@vicons/antd": "^0.13.0",
     "@vicons/carbon": "^0.13.0",
     "@vicons/fa": "^0.13.0",
@@ -29,6 +29,7 @@
     "socket.io-client": "^4.6.2",
     "three": "^0.153.0",
     "uuid": "^11.1.0",
+    "vite-plugin-mkcert": "^1.17.8",
     "vue": "^3.3.4",
     "vue-chartjs": "^5.2.0",
     "vue-router": "^4.2.2"

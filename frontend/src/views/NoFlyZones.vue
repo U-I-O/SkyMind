@@ -281,7 +281,7 @@ import {
   PlusOutlined,
   EnvironmentOutlined
 } from '@vicons/antd'
-import Map3D from '../components/map/Map3D_wg.vue'
+import Map3D from '../components/map/Map3D_WG.vue'
 
 // UI组件
 const message = useMessage()

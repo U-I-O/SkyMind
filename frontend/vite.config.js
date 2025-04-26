@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+import mkcert from 'vite-plugin-mkcert';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,6 +12,11 @@ export default defineConfig({
     },
   },
   server: {
+    // host: "2001:250:4001:108:3b8e:ddea:df0a:5765",
+    port: "5173",
+    // https: true,
+    // host:true,
+    allowedHosts: ['skymind.uio520.site',"https://skymind.uio520.site"],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

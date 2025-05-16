@@ -1,6 +1,7 @@
 # SkyMind 智慧城市低空AI平台
 
 基于FastAPI、LangChain、CAMEL.ai框架和YOLOv8目标检测模型，开发的多智能体协同的智慧城市低空AI平台。
+可以访问这个链接查看平台http://47.110.62.185/
 
 ## 项目功能
 
@@ -112,4 +113,4 @@ npm run build
 
 ## 作者
 
-SkyMind团队 啊aaa
+SkyMind团队
